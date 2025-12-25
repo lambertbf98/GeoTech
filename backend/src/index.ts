@@ -25,6 +25,14 @@ try {
 
 const app = express();
 
+// Simple root health check (before any middleware)
+app.get('/', (req, res) => {
+  res.send('GeoTech API is running');
+});
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Crear directorio de uploads si no existe
 const uploadDir = path.resolve(config.upload.dir);
 if (!fs.existsSync(uploadDir)) {
