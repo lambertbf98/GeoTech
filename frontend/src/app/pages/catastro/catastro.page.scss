@@ -1,36 +1,155 @@
-﻿.catastro-content { --background: #f8fafc; }
+.catastro-content {
+  --background: #f8fafc;
+}
 
-.search-segment { margin: 16px; --background: #fff; border-radius: 12px; }
-.search-segment ion-segment-button { --indicator-color: #1a5f7a; --color-checked: #1a5f7a; font-size: 13px; }
-
-.search-form { padding: 0 16px 16px; }
-
-.geotech-form-group { margin-bottom: 16px; }
-.geotech-label { display: block; font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
-.geotech-input {
+.search-segment {
+  margin: 16px;
   --background: #fff;
-  --border-radius: 12px;
-  --padding-start: 16px;
-  --highlight-color-focused: #1a5f7a;
-  --highlight-color-valid: #1a5f7a;
-  --highlight-height: 0px;
-  border: 1px solid #e2e8f0;
   border-radius: 12px;
 }
-.geotech-input:focus-within {
-  border-color: #1a5f7a;
+
+.search-segment ion-segment-button {
+  --indicator-color: #1a5f7a;
+  --color-checked: #1a5f7a;
+  font-size: 13px;
 }
 
-.location-btn { --border-radius: 12px; --border-color: #1a5f7a; --color: #1a5f7a; height: 48px; margin-bottom: 12px; text-transform: none; font-weight: 600; }
-.search-btn { --background: #1a5f7a; --border-radius: 12px; height: 48px; text-transform: none; font-weight: 600; }
+.search-form {
+  padding: 0 16px 16px;
+}
 
-.results { padding: 0 16px 16px; }
-.result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.result-header h3 { font-size: 18px; font-weight: 600; color: #1e293b; margin: 0; }
+.geotech-form-group {
+  margin-bottom: 16px;
+}
 
-.result-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
-.result-item { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-.result-item:last-child { border-bottom: none; }
-.result-item .label { display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-.result-item .value { font-size: 15px; color: #1e293b; font-weight: 500; }
-.result-item .value.mono { font-family: monospace; }
+.geotech-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+// Override ALL Ionic input focus/highlight styles
+.geotech-input {
+  --background: #ffffff !important;
+  --color: #1e293b !important;
+  --placeholder-color: #94a3b8 !important;
+  --border-radius: 12px !important;
+  --padding-start: 16px !important;
+  --padding-end: 16px !important;
+  --highlight-height: 0 !important;
+  --highlight-color-focused: transparent !important;
+  --highlight-color-valid: transparent !important;
+  --highlight-color-invalid: transparent !important;
+  --border-color: #e2e8f0 !important;
+  --border-width: 0 !important;
+  --box-shadow: none !important;
+  
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  color: #1e293b !important;
+  min-height: 48px;
+}
+
+.geotech-input.has-focus,
+.geotech-input:focus,
+.geotech-input:focus-within {
+  border-color: #1a5f7a !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+// Target the native input inside ion-input
+.geotech-input input,
+.geotech-input .native-input {
+  background: transparent !important;
+  color: #1e293b !important;
+  caret-color: #1a5f7a !important;
+}
+
+// Remove Ionic's bottom highlight bar completely
+.geotech-input::part(native) {
+  background: transparent !important;
+}
+
+.geotech-input .input-bottom,
+.geotech-input .input-highlight {
+  display: none !important;
+}
+
+ion-input.geotech-input {
+  --highlight-height: 0px !important;
+}
+
+.location-btn {
+  --border-radius: 12px;
+  --border-color: #1a5f7a;
+  --color: #1a5f7a;
+  height: 48px;
+  margin-bottom: 12px;
+  text-transform: none;
+  font-weight: 600;
+}
+
+.search-btn {
+  --background: #1a5f7a;
+  --border-radius: 12px;
+  height: 48px;
+  text-transform: none;
+  font-weight: 600;
+}
+
+.results {
+  padding: 0 16px 16px;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.result-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.result-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.result-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.result-item:last-child {
+  border-bottom: none;
+}
+
+.result-item .label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.result-item .value {
+  font-size: 15px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.result-item .value.mono {
+  font-family: monospace;
+}

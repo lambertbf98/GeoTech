@@ -44,33 +44,52 @@ export class CameraPage implements OnInit {
       return;
     }
 
-    const loading = await this.loadingCtrl.create({ message: "Capturando...", spinner: "crescent" });
-    await loading.present();
-
     try {
+      // First capture photo WITHOUT loading overlay (so file picker works)
       const photoData = await this.cameraService.takePhoto();
-      const position = await this.gpsService.getCurrentPosition();
+      
+      // Now show loading for GPS
+      const loading = await this.loadingCtrl.create({ message: "Obteniendo ubicacion...", spinner: "crescent" });
+      await loading.present();
 
-      this.currentPhoto = {
-        id: "photo_" + Date.now(),
-        projectId: this.selectedProjectId,
-        imagePath: photoData.webPath || photoData.webviewPath || "",
-        latitude: position.latitude,
-        longitude: position.longitude,
-        altitude: position.altitude,
-        accuracy: position.accuracy,
-        timestamp: new Date().toISOString(),
-        synced: false
-      };
+      try {
+        const position = await this.gpsService.getCurrentPosition();
 
-      this.gpsStatus = "Lat: " + position.latitude.toFixed(6) + ", Lon: " + position.longitude.toFixed(6);
-      await this.storageService.addPhoto(this.currentPhoto);
-      this.showToast("Foto capturada con GPS", "success");
+        this.currentPhoto = {
+          id: "photo_" + Date.now(),
+          projectId: this.selectedProjectId,
+          imagePath: photoData.webPath || photoData.webviewPath || "",
+          latitude: position.latitude,
+          longitude: position.longitude,
+          altitude: position.altitude,
+          accuracy: position.accuracy,
+          timestamp: new Date().toISOString(),
+          synced: false
+        };
+
+        this.gpsStatus = "Lat: " + position.latitude.toFixed(6) + ", Lon: " + position.longitude.toFixed(6);
+        await this.storageService.addPhoto(this.currentPhoto);
+        this.showToast("Foto capturada con GPS", "success");
+      } catch (gpsError: any) {
+        // Photo was taken but GPS failed - still save photo without GPS
+        this.currentPhoto = {
+          id: "photo_" + Date.now(),
+          projectId: this.selectedProjectId,
+          imagePath: photoData.webPath || photoData.webviewPath || "",
+          latitude: 0,
+          longitude: 0,
+          timestamp: new Date().toISOString(),
+          synced: false
+        };
+        this.gpsStatus = "GPS no disponible";
+        await this.storageService.addPhoto(this.currentPhoto);
+        this.showToast("Foto guardada (sin GPS: " + gpsError.message + ")", "warning");
+      }
+
+      await loading.dismiss();
     } catch (error: any) {
       this.showToast(error.message || "Error al capturar foto", "danger");
     }
-
-    await loading.dismiss();
   }
 
   async getCatastroInfo() {

@@ -1,12 +1,5 @@
 /*
  * App Global CSS
- * ----------------------------------------------------------------------------
- * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
  */
 
 /* Core CSS required for Ionic components to work properly */
@@ -18,23 +11,47 @@
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
 
-/* Optional CSS utils that can be commented out */
+/* Optional CSS utils */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
+// Force light mode
+:root {
+  --ion-background-color: #ffffff;
+  --ion-text-color: #1e293b;
+  --ion-card-background: #ffffff;
+}
 
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import "@ionic/angular/css/palettes/dark.system.css";
+// ============================================================================
+// FIX: Disable Ionic input focus highlight completely
+// ============================================================================
+ion-input,
+ion-textarea {
+  --highlight-height: 0 !important;
+  --highlight-color-focused: transparent !important;
+  --highlight-color-valid: transparent !important;
+  --highlight-color-invalid: transparent !important;
+}
+
+// Target the internal highlight element
+ion-input .input-highlight,
+ion-input .input-bottom,
+ion-textarea .input-highlight,
+ion-textarea .input-bottom {
+  display: none !important;
+  height: 0 !important;
+  opacity: 0 !important;
+}
+
+// Ensure native input has proper color
+ion-input input.native-input,
+ion-textarea textarea.native-textarea {
+  color: #1e293b !important;
+  background: transparent !important;
+}
 
 // ============================================================================
 // GeoTech Professional Styles
@@ -53,12 +70,12 @@ body {
 // Professional card styles
 .geotech-card {
   background: var(--ion-card-background);
-  border-radius: var(--geotech-radius-lg);
-  box-shadow: var(--geotech-shadow);
-  border: 1px solid var(--ion-border-color);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #e2e8f0;
   overflow: hidden;
-  margin: var(--geotech-spacing-md);
-  padding: var(--geotech-spacing-md);
+  margin: 16px;
+  padding: 16px;
 }
 
 // Header text
@@ -85,60 +102,13 @@ body {
 
 .geotech-caption {
   font-size: 0.8125rem;
-  color: var(--ion-color-medium);
+  color: #64748b;
   line-height: 1.5;
 }
 
-// Professional buttons
-ion-button.geotech-btn-primary {
-  --background: var(--ion-color-primary);
-  --background-hover: var(--ion-color-primary-shade);
-  --border-radius: var(--geotech-radius-md);
-  --box-shadow: var(--geotech-shadow-sm);
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0;
-  height: 48px;
-  font-size: 1rem;
-}
-
-ion-button.geotech-btn-secondary {
-  --background: transparent;
-  --color: var(--ion-color-primary);
-  --border-color: var(--ion-color-primary);
-  --border-width: 1.5px;
-  --border-style: solid;
-  --border-radius: var(--geotech-radius-md);
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0;
-  height: 48px;
-  font-size: 1rem;
-}
-
-ion-button.geotech-btn-tertiary {
-  --background: transparent;
-  --color: var(--ion-color-primary);
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-// Professional input styles
-ion-input.geotech-input,
-ion-textarea.geotech-input {
-  --background: var(--ion-card-background);
-  --border-radius: var(--geotech-radius-md);
-  --border-color: var(--ion-border-color);
-  --border-width: 1px;
-  --border-style: solid;
-  --padding-start: 16px;
-  --padding-end: 16px;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
-  --highlight-color-focused: var(--ion-color-primary);
-  font-size: 1rem;
-  min-height: 48px;
+// Form group
+.geotech-form-group {
+  margin-bottom: 20px;
 }
 
 // Form label
@@ -148,11 +118,6 @@ ion-textarea.geotech-input {
   font-weight: 600;
   color: var(--ion-text-color);
   margin-bottom: 8px;
-}
-
-// Form group
-.geotech-form-group {
-  margin-bottom: 20px;
 }
 
 // Sync status badges
@@ -172,40 +137,12 @@ ion-textarea.geotech-input {
 
 .sync-badge.synced {
   background: rgba(64, 145, 108, 0.12);
-  color: var(--ion-color-success);
+  color: #40916c;
 }
 
 .sync-badge.pending {
   background: rgba(224, 159, 62, 0.12);
-  color: var(--ion-color-warning);
-}
-
-.sync-badge.offline {
-  background: rgba(107, 114, 128, 0.12);
-  color: var(--ion-color-medium);
-}
-
-.sync-badge.error {
-  background: rgba(193, 41, 46, 0.12);
-  color: var(--ion-color-danger);
-}
-
-// Professional list items
-ion-list.geotech-list {
-  background: transparent;
-  padding: 0;
-}
-
-ion-list.geotech-list ion-item {
-  --background: var(--ion-card-background);
-  --border-color: var(--ion-border-color);
-  --padding-start: 16px;
-  --padding-end: 16px;
-  --inner-padding-end: 8px;
-  --min-height: 64px;
-  margin-bottom: 8px;
-  border-radius: var(--geotech-radius-md);
-  border: 1px solid var(--ion-border-color);
+  color: #e09f3e;
 }
 
 // Empty state
@@ -222,7 +159,7 @@ ion-list.geotech-list ion-item {
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: var(--ion-color-light);
+  background: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -231,7 +168,7 @@ ion-list.geotech-list ion-item {
 
 .empty-state .empty-icon ion-icon {
   font-size: 48px;
-  color: var(--ion-color-medium);
+  color: #94a3b8;
 }
 
 .empty-state .empty-title {
@@ -243,73 +180,25 @@ ion-list.geotech-list ion-item {
 
 .empty-state .empty-description {
   font-size: 0.9375rem;
-  color: var(--ion-color-medium);
+  color: #64748b;
   max-width: 280px;
   line-height: 1.5;
-}
-
-// Stat card for dashboard
-.stat-card {
-  background: var(--ion-card-background);
-  border-radius: var(--geotech-radius-lg);
-  border: 1px solid var(--ion-border-color);
-  padding: 20px;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.stat-card .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--geotech-radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-card .stat-icon ion-icon {
-  font-size: 24px;
-}
-
-.stat-card .stat-icon.primary {
-  background: rgba(26, 95, 122, 0.12);
-  color: var(--ion-color-primary);
-}
-
-.stat-card .stat-icon.secondary {
-  background: rgba(45, 106, 79, 0.12);
-  color: var(--ion-color-secondary);
-}
-
-.stat-card .stat-content .stat-value {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--ion-text-color);
-  line-height: 1.2;
-}
-
-.stat-card .stat-content .stat-label {
-  font-size: 0.875rem;
-  color: var(--ion-color-medium);
-  margin-top: 4px;
 }
 
 // GPS coordinates display
 .gps-coords {
   font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 0.8125rem;
-  color: var(--ion-color-medium);
-  background: var(--ion-color-light);
+  color: #64748b;
+  background: #f1f5f9;
   padding: 4px 8px;
-  border-radius: var(--geotech-radius-sm);
+  border-radius: 4px;
 }
 
 // Toolbar customization
 ion-toolbar {
-  --background: var(--ion-toolbar-background);
-  --color: var(--ion-toolbar-color);
+  --background: #ffffff;
+  --color: #1e293b;
   --border-width: 0;
 }
 
@@ -320,15 +209,15 @@ ion-toolbar ion-title {
 
 // Tab bar customization
 ion-tab-bar {
-  --background: var(--ion-card-background);
-  --border: 1px solid var(--ion-border-color);
+  --background: #ffffff;
+  --border: 1px solid #e2e8f0;
   height: 64px;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
 ion-tab-button {
-  --color: var(--ion-color-medium);
-  --color-selected: var(--ion-color-primary);
+  --color: #64748b;
+  --color-selected: #1a5f7a;
   font-size: 0.75rem;
   font-weight: 500;
 }

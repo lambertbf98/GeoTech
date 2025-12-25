@@ -9,6 +9,37 @@ import { config } from '../config';
 
 const router = Router();
 
+// POST /api/claude/analyze - Analyze image directly from base64
+// This endpoint does NOT require authentication for easier mobile testing
+router.post(
+  '/analyze',
+  [
+    body('imageBase64').notEmpty().withMessage('imageBase64 es requerido')
+  ],
+  async (req: any, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: errors.array()[0].msg
+        }
+      });
+    }
+
+    try {
+      const { imageBase64, context } = req.body;
+      
+      // Call Claude service with base64 image
+      const description = await claudeService.describeImageFromBase64(imageBase64, context);
+      
+      res.json({ description });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.use(authenticate);
 
 // POST /api/claude/describe

@@ -14,7 +14,6 @@ export interface CapturedPhoto {
   providedIn: 'root'
 })
 export class CameraService {
-  private fileInput: HTMLInputElement | null = null;
 
   constructor() {}
 
@@ -39,15 +38,19 @@ export class CameraService {
 
   private takeWebPhoto(): Promise<CapturedPhoto> {
     return new Promise((resolve, reject) => {
-      if (!this.fileInput) {
-        this.fileInput = document.createElement('input');
-        this.fileInput.type = 'file';
-        this.fileInput.accept = 'image/*';
-        this.fileInput.capture = 'environment';
-      }
+      // Create fresh input each time to avoid issues
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.capture = 'environment';
+      fileInput.style.display = 'none';
+      document.body.appendChild(fileInput);
 
-      this.fileInput.onchange = async (event: any) => {
-        const file = event.target.files[0];
+      // Handle file selection
+      fileInput.addEventListener('change', async () => {
+        const file = fileInput.files?.[0];
+        document.body.removeChild(fileInput);
+
         if (!file) {
           reject(new Error('No se selecciono ninguna imagen'));
           return;
@@ -66,9 +69,16 @@ export class CameraService {
         } catch (error) {
           reject(error);
         }
-      };
+      });
 
-      this.fileInput.click();
+      // Handle cancel - use a timeout to detect if no file was selected
+      fileInput.addEventListener('cancel', () => {
+        document.body.removeChild(fileInput);
+        reject(new Error('Captura cancelada'));
+      });
+
+      // Trigger the file picker
+      fileInput.click();
     });
   }
 

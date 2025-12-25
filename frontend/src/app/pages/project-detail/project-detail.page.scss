@@ -1,0 +1,164 @@
+.project-detail-content {
+  --background: #f8fafc;
+}
+
+.project-info {
+  padding: 16px;
+}
+
+.info-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.project-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.project-description {
+  font-size: 15px;
+  color: #64748b;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+  color: #475569;
+  font-size: 14px;
+}
+
+.info-row:last-of-type {
+  border-bottom: none;
+}
+
+.info-row ion-icon {
+  font-size: 20px;
+  color: #1a5f7a;
+}
+
+.sync-status {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 100px;
+}
+
+.sync-badge ion-icon {
+  font-size: 16px;
+}
+
+.sync-badge.synced {
+  background: rgba(64, 145, 108, 0.12);
+  color: #40916c;
+}
+
+.sync-badge.pending {
+  background: rgba(224, 159, 62, 0.12);
+  color: #e09f3e;
+}
+
+.photos-section {
+  padding: 0 16px 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+}
+
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.photo-card {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.photo-card img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
+.photo-info {
+  padding: 10px;
+}
+
+.photo-date {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.photo-coords {
+  display: block;
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: monospace;
+  margin-top: 4px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.empty-icon ion-icon {
+  font-size: 40px;
+  color: #94a3b8;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.empty-description {
+  font-size: 14px;
+  color: #64748b;
+  max-width: 250px;
+  margin: 0;
+}
