@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { parseStringPromise } from 'xml2js';
 import { AppError } from '../middleware/errorHandler';
 

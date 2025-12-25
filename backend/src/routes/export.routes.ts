@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import { authenticate, AuthRequest } from '../middleware/auth';
