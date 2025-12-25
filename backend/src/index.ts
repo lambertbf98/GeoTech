@@ -3,7 +3,6 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
-import { execSync } from 'child_process';
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
@@ -14,18 +13,9 @@ import claudeRoutes from './routes/claude.routes';
 import exportRoutes from './routes/export.routes';
 import syncRoutes from './routes/sync.routes';
 
-// Run database migrations on startup
-try {
-  console.log('Running database migrations...');
-  execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
-  console.log('Database migrations completed');
-} catch (error) {
-  console.error('Database migration failed:', error);
-}
-
 const app = express();
 
-// Simple root health check (before any middleware)
+// Simple root health check (before any middleware) - for Railway health checks
 app.get('/', (req, res) => {
   res.send('GeoTech API is running');
 });
@@ -69,11 +59,13 @@ app.get('/api/health', (req, res) => {
 // Error handler
 app.use(errorHandler);
 
-// Start server - bind to 0.0.0.0 for Railway/Docker compatibility
+// Start server FIRST - bind to 0.0.0.0 for Railway/Docker compatibility
 const HOST = '0.0.0.0';
-app.listen(config.port, HOST, () => {
-  console.log("GeoTech API running on " + HOST + ":" + config.port);
-  console.log("Environment: " + config.nodeEnv);
+const port = process.env.PORT || 3000;
+
+app.listen(port, HOST, () => {
+  console.log('GeoTech API running on ' + HOST + ':' + port);
+  console.log('Environment: ' + config.nodeEnv);
 });
 
 export default app;
