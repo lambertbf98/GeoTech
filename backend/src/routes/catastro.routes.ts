@@ -7,16 +7,14 @@ import { photoService } from '../services/photo.service';
 
 const router = Router();
 
-router.use(authenticate);
-
-// GET /api/catastro/lookup?lat=X&lon=Y
+// GET /api/catastro/lookup?lat=X&lon=Y - NO AUTH for easier mobile use
 router.get(
   '/lookup',
   [
-    query('lat').isFloat().withMessage('Latitud inválida'),
-    query('lon').isFloat().withMessage('Longitud inválida')
+    query('lat').isFloat().withMessage('Latitud invalida'),
+    query('lon').isFloat().withMessage('Longitud invalida')
   ],
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (req: any, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -43,6 +41,9 @@ router.get(
   }
 );
 
+// Routes below require auth
+router.use(authenticate);
+
 // POST /api/catastro/assign
 router.post(
   '/assign',
@@ -62,23 +63,16 @@ router.post(
 
     try {
       const { photoId } = req.body;
-
-      // Obtener foto
       const photo = await photoService.getById(req.userId!, photoId);
-
-      // Consultar catastro
       const catastro = await catastroService.lookupByCoordinates(
         Number(photo.latitude),
         Number(photo.longitude)
       );
-
-      // Actualizar foto con datos catastrales
       const updatedPhoto = await photoService.updateCatastro(
         photoId,
         catastro.referenciaCatastral,
         catastro
       );
-
       res.json({ photo: updatedPhoto });
     } catch (error) {
       next(error);

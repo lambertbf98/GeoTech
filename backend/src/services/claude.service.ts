@@ -21,7 +21,7 @@ export class ClaudeService {
 
   async describeImageFromBase64(base64Data: string, context?: string): Promise<string> {
     if (!config.claude.apiKey) {
-      throw new AppError('Claude API no configurada. Configure ANTHROPIC_API_KEY en las variables de entorno.', 503, 'CLAUDE_NOT_CONFIGURED');
+      throw new AppError('Claude API no configurada.', 503, 'CLAUDE_NOT_CONFIGURED');
     }
 
     try {
@@ -36,13 +36,11 @@ export class ClaudeService {
         }
       }
 
-      const prompt = context
-        ? context + ' Responde en maximo 2 lineas.'
-        : 'Describe brevemente en 2 lineas que se ve en esta imagen. Solo lo esencial, en espanol.';
+      const prompt = context || 'Describe en 1 frase corta que se ve.';
 
       const response = await this.client.messages.create({
         model: 'claude-3-haiku-20240307',
-        max_tokens: 100,
+        max_tokens: 50,
         messages: [
           {
             role: 'user',
@@ -55,10 +53,7 @@ export class ClaudeService {
                   data: base64Image
                 }
               },
-              {
-                type: 'text',
-                text: prompt
-              }
+              { type: 'text', text: prompt }
             ]
           }
         ]
@@ -66,16 +61,14 @@ export class ClaudeService {
 
       const textBlock = response.content.find(block => block.type === 'text');
       if (!textBlock || textBlock.type !== 'text') {
-        throw new AppError('Respuesta inesperada de Claude', 502, 'CLAUDE_ERROR');
+        throw new AppError('Respuesta inesperada', 502, 'CLAUDE_ERROR');
       }
 
       return textBlock.text;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
+      if (error instanceof AppError) throw error;
       console.error('Claude API error:', error);
-      throw new AppError('Error al procesar imagen con IA: ' + (error as Error).message, 502, 'CLAUDE_ERROR');
+      throw new AppError('Error IA: ' + (error as Error).message, 502, 'CLAUDE_ERROR');
     }
   }
 
@@ -93,13 +86,11 @@ export class ClaudeService {
       if (ext === '.png') mediaType = 'image/png';
       else if (ext === '.webp') mediaType = 'image/webp';
 
-      const prompt = context
-        ? context + ' Responde en maximo 2 lineas.'
-        : 'Describe brevemente en 2 lineas que se ve. Solo lo esencial, en espanol.';
+      const prompt = context || 'Describe en 1 frase corta que se ve.';
 
       const response = await this.client.messages.create({
         model: 'claude-3-haiku-20240307',
-        max_tokens: 100,
+        max_tokens: 50,
         messages: [
           {
             role: 'user',
@@ -112,10 +103,7 @@ export class ClaudeService {
                   data: base64Image
                 }
               },
-              {
-                type: 'text',
-                text: prompt
-              }
+              { type: 'text', text: prompt }
             ]
           }
         ]
@@ -123,16 +111,14 @@ export class ClaudeService {
 
       const textBlock = response.content.find(block => block.type === 'text');
       if (!textBlock || textBlock.type !== 'text') {
-        throw new AppError('Respuesta inesperada de Claude', 502, 'CLAUDE_ERROR');
+        throw new AppError('Respuesta inesperada', 502, 'CLAUDE_ERROR');
       }
 
       return textBlock.text;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
+      if (error instanceof AppError) throw error;
       console.error('Claude API error:', error);
-      throw new AppError('Error al procesar imagen con IA', 502, 'CLAUDE_ERROR');
+      throw new AppError('Error IA', 502, 'CLAUDE_ERROR');
     }
   }
 
@@ -144,22 +130,19 @@ export class ClaudeService {
     try {
       const response = await fetch(imageUrl);
       if (!response.ok) {
-        throw new AppError('No se pudo descargar la imagen', 400, 'IMAGE_DOWNLOAD_ERROR');
+        throw new AppError('No se pudo descargar', 400, 'IMAGE_ERROR');
       }
 
       const buffer = await response.arrayBuffer();
       const base64Image = Buffer.from(buffer).toString('base64');
-
       const contentType = response.headers.get('content-type') || 'image/jpeg';
       const mediaType = contentType.split(';')[0] as MediaType;
 
-      const prompt = context
-        ? context + ' Responde en maximo 2 lineas.'
-        : 'Describe brevemente en 2 lineas que se ve. Solo lo esencial, en espanol.';
+      const prompt = context || 'Describe en 1 frase corta que se ve.';
 
       const claudeResponse = await this.client.messages.create({
         model: 'claude-3-haiku-20240307',
-        max_tokens: 100,
+        max_tokens: 50,
         messages: [
           {
             role: 'user',
@@ -172,10 +155,7 @@ export class ClaudeService {
                   data: base64Image
                 }
               },
-              {
-                type: 'text',
-                text: prompt
-              }
+              { type: 'text', text: prompt }
             ]
           }
         ]
@@ -183,16 +163,14 @@ export class ClaudeService {
 
       const textBlock = claudeResponse.content.find(block => block.type === 'text');
       if (!textBlock || textBlock.type !== 'text') {
-        throw new AppError('Respuesta inesperada de Claude', 502, 'CLAUDE_ERROR');
+        throw new AppError('Respuesta inesperada', 502, 'CLAUDE_ERROR');
       }
 
       return textBlock.text;
     } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
+      if (error instanceof AppError) throw error;
       console.error('Claude API error:', error);
-      throw new AppError('Error al procesar imagen con IA', 502, 'CLAUDE_ERROR');
+      throw new AppError('Error IA', 502, 'CLAUDE_ERROR');
     }
   }
 }

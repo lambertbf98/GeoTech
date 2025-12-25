@@ -2,16 +2,29 @@
   --background: #f8fafc;
 }
 
+// FIX segment indicator not covering text
 .search-segment {
   margin: 16px;
-  --background: #fff;
+  --background: #ffffff;
   border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .search-segment ion-segment-button {
-  --indicator-color: #1a5f7a;
+  --indicator-color: transparent;
+  --indicator-height: 0;
+  --color: #64748b;
   --color-checked: #1a5f7a;
+  --background-checked: rgba(26, 95, 122, 0.1);
+  --border-radius: 10px;
   font-size: 13px;
+  font-weight: 500;
+  min-height: 44px;
+  text-transform: none;
+}
+
+.search-segment ion-segment-button ion-label {
+  margin-top: 4px;
 }
 
 .search-form {
@@ -30,7 +43,6 @@
   margin-bottom: 8px;
 }
 
-// Ionic 7 input styling - no highlight
 .geotech-input {
   --background: #ffffff;
   --color: #1e293b;
@@ -41,30 +53,22 @@
   --padding-bottom: 12px;
   --highlight-height: 0;
   --highlight-color-focused: transparent;
-  --highlight-color-valid: transparent;
-  --highlight-color-invalid: transparent;
 
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   min-height: 48px;
-  overflow: hidden;
 }
 
-.geotech-input.ion-focused,
 .geotech-input:focus-within {
   border-color: #1a5f7a;
 }
 
 ::ng-deep {
-  .geotech-input {
+  ion-input.geotech-input {
     .input-bottom,
     .input-highlight {
       display: none !important;
-      height: 0 !important;
-    }
-    .native-input {
-      color: #1e293b !important;
     }
   }
 }

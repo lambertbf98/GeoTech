@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { NavController } from '@ionic/angular';
 import { StorageService } from '../../services/storage.service';
 import { Project, Photo } from '../../models';
 
@@ -15,7 +16,8 @@ export class ProjectDetailPage implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private navCtrl: NavController
   ) {}
 
   async ngOnInit() {
@@ -33,6 +35,10 @@ export class ProjectDetailPage implements OnInit {
       const allPhotos = await this.storageService.getPhotos();
       this.photos = allPhotos.filter(p => p.projectId === projectId);
     }
+  }
+
+  goBack() {
+    this.navCtrl.navigateBack('/tabs/projects');
   }
 
   formatDate(date: Date | string): string {
