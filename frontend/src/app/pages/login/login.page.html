@@ -1,0 +1,96 @@
+<ion-content class="login-content">
+  <div class="login-container">
+    <!-- Logo y Header -->
+    <div class="login-header">
+      <div class="logo-container">
+        <ion-icon name="earth-outline" class="logo-icon"></ion-icon>
+      </div>
+      <h1 class="app-title">GeoTech</h1>
+      <p class="app-subtitle">Gestion de proyectos de ingenieria civil</p>
+    </div>
+
+    <!-- Formulario de Login -->
+    <div class="login-form-container">
+      <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+        <!-- Email -->
+        <div class="geotech-form-group">
+          <label class="geotech-label">Correo electronico</label>
+          <ion-item lines="none" class="input-item" [class.input-error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+            <ion-icon name="mail-outline" slot="start" class="input-icon"></ion-icon>
+            <ion-input
+              type="email"
+              formControlName="email"
+              placeholder="tu@email.com"
+              autocomplete="email"
+              inputmode="email"
+            ></ion-input>
+          </ion-item>
+          <span class="error-text" *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+            {{ getErrorMessage('email') }}
+          </span>
+        </div>
+
+        <!-- Password -->
+        <div class="geotech-form-group">
+          <label class="geotech-label">Contrasena</label>
+          <ion-item lines="none" class="input-item" [class.input-error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+            <ion-icon name="lock-closed-outline" slot="start" class="input-icon"></ion-icon>
+            <ion-input
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Tu contrasena"
+              autocomplete="current-password"
+            ></ion-input>
+            <ion-button fill="clear" slot="end" (click)="togglePassword()" class="password-toggle">
+              <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-item>
+          <span class="error-text" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+            {{ getErrorMessage('password') }}
+          </span>
+        </div>
+
+        <!-- Forgot Password -->
+        <div class="forgot-password">
+          <ion-button fill="clear" size="small" (click)="forgotPassword()" class="forgot-btn">
+            Olvidaste tu contrasena?
+          </ion-button>
+        </div>
+
+        <!-- Login Button -->
+        <ion-button
+          expand="block"
+          type="submit"
+          class="geotech-btn-primary login-btn"
+          [disabled]="isLoading"
+        >
+          <ion-spinner name="crescent" *ngIf="isLoading"></ion-spinner>
+          <span *ngIf="!isLoading">Iniciar Sesion</span>
+        </ion-button>
+      </form>
+
+      <!-- Divider -->
+      <div class="divider">
+        <span class="divider-line"></span>
+        <span class="divider-text">o</span>
+        <span class="divider-line"></span>
+      </div>
+
+      <!-- Register Link -->
+      <ion-button
+        expand="block"
+        fill="outline"
+        class="geotech-btn-secondary register-btn"
+        (click)="goToRegister()"
+      >
+        Crear una cuenta nueva
+      </ion-button>
+    </div>
+
+    <!-- Footer -->
+    <div class="login-footer">
+      <p class="footer-text">GeoTech v1.0.0</p>
+      <p class="footer-text">Aplicacion profesional para ingenieria civil</p>
+    </div>
+  </div>
+</ion-content>

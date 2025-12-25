@@ -5,6 +5,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 export interface CapturedPhoto {
   filepath: string;
   webviewPath: string;
+  webPath?: string;
   base64?: string;
 }
 
@@ -16,7 +17,6 @@ export class CameraService {
   constructor() {}
 
   async takePhoto(): Promise<CapturedPhoto> {
-    // Solicitar permisos y tomar foto
     const capturedPhoto = await Camera.getPhoto({
       resultType: CameraResultType.Uri,
       source: CameraSource.Camera,
@@ -27,9 +27,7 @@ export class CameraService {
       saveToGallery: false
     });
 
-    // Guardar la foto en el sistema de archivos local
     const savedPhoto = await this.savePicture(capturedPhoto);
-
     return savedPhoto;
   }
 
@@ -44,18 +42,13 @@ export class CameraService {
     });
 
     const savedPhoto = await this.savePicture(capturedPhoto);
-
     return savedPhoto;
   }
 
   private async savePicture(photo: Photo): Promise<CapturedPhoto> {
-    // Convertir la foto a base64
     const base64Data = await this.readAsBase64(photo);
-
-    // Generar nombre de archivo único
     const fileName = `geotech_${new Date().getTime()}.jpeg`;
 
-    // Guardar el archivo
     const savedFile = await Filesystem.writeFile({
       path: `photos/${fileName}`,
       data: base64Data,
@@ -66,15 +59,14 @@ export class CameraService {
     return {
       filepath: savedFile.uri,
       webviewPath: photo.webPath || '',
+      webPath: photo.webPath || '',
       base64: base64Data
     };
   }
 
   private async readAsBase64(photo: Photo): Promise<string> {
-    // Fetch la foto y convertir a blob
     const response = await fetch(photo.webPath!);
     const blob = await response.blob();
-
     return await this.convertBlobToBase64(blob) as string;
   }
 
@@ -84,7 +76,6 @@ export class CameraService {
       reader.onerror = reject;
       reader.onload = () => {
         const result = reader.result as string;
-        // Eliminar el prefijo "data:image/jpeg;base64,"
         const base64 = result.split(',')[1];
         resolve(base64);
       };
@@ -108,7 +99,6 @@ export class CameraService {
       path: filepath,
       directory: Directory.Data
     });
-
     return file.data as string;
   }
 }

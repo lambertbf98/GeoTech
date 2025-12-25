@@ -1,0 +1,201 @@
+.login-content {
+  --background: linear-gradient(180deg, #1a5f7a 0%, #2d6a4f 100%);
+}
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 24px;
+  padding-top: calc(24px + var(--ion-safe-area-top));
+  padding-bottom: calc(24px + var(--ion-safe-area-bottom));
+}
+
+// Header Section
+.login-header {
+  text-align: center;
+  padding: 40px 0 32px;
+}
+
+.logo-container {
+  width: 88px;
+  height: 88px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo-icon {
+  font-size: 48px;
+  color: #ffffff;
+}
+
+.app-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.app-subtitle {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  font-weight: 400;
+}
+
+// Form Section
+.login-form-container {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 28px 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.geotech-form-group {
+  margin-bottom: 20px;
+}
+
+.geotech-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.input-item {
+  --background: #f8fafc;
+  --border-radius: 12px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --min-height: 52px;
+  --color: #1e293b;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+
+  ion-input {
+    --color: #1e293b;
+    --placeholder-color: #9ca3af;
+  }
+
+  &.item-has-focus {
+    border-color: #1a5f7a;
+    --background: #ffffff;
+  }
+
+  &.input-error {
+    border-color: #c1292e;
+  }
+}
+
+.input-icon {
+  color: #6b7280;
+  font-size: 20px;
+  margin-right: 12px;
+}
+
+.password-toggle {
+  --color: #6b7280;
+  margin: 0;
+  height: 40px;
+
+  ion-icon {
+    font-size: 22px;
+  }
+}
+
+.error-text {
+  display: block;
+  font-size: 12px;
+  color: #c1292e;
+  margin-top: 6px;
+  padding-left: 4px;
+}
+
+.forgot-password {
+  text-align: right;
+  margin-bottom: 24px;
+  margin-top: -8px;
+}
+
+.forgot-btn {
+  --color: #1a5f7a;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.login-btn {
+  --background: #1a5f7a;
+  --background-hover: #17546c;
+  --border-radius: 12px;
+  height: 52px;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-bottom: 24px;
+
+  ion-spinner {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+// Divider
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.divider-text {
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.register-btn {
+  --border-color: #1a5f7a;
+  --border-width: 1.5px;
+  --color: #1a5f7a;
+  --border-radius: 12px;
+  height: 52px;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+// Footer
+.login-footer {
+  text-align: center;
+  padding-top: 24px;
+  margin-top: auto;
+}
+
+.footer-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  line-height: 1.6;
+}

@@ -1,0 +1,53 @@
+.camera-content { --background: #f8fafc; }
+
+.project-selector {
+  padding: 16px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  ion-select { width: 100%; --background: #f8fafc; --border-radius: 8px; --padding-start: 12px; margin-top: 8px; border: 1px solid #e2e8f0; border-radius: 8px; }
+}
+
+.gps-status {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px; background: rgba(26, 95, 122, 0.1); color: #1a5f7a; font-size: 13px; font-weight: 500;
+  ion-icon { font-size: 18px; }
+}
+
+.photo-area { padding: 16px; }
+
+.capture-area {
+  aspect-ratio: 4/3; background: #fff; border: 2px dashed #e2e8f0; border-radius: 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
+  transition: all 0.2s;
+}
+.capture-area:active { background: #f8fafc; border-color: #1a5f7a; }
+
+.capture-icon {
+  width: 80px; height: 80px; border-radius: 50%; background: rgba(26, 95, 122, 0.1);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 16px;
+  ion-icon { font-size: 40px; color: #1a5f7a; }
+}
+
+.capture-area p { color: #6b7280; font-size: 15px; }
+
+.photo-preview {
+  position: relative; border-radius: 16px; overflow: hidden;
+  img { width: 100%; display: block; }
+  .clear-btn { position: absolute; top: 8px; right: 8px; --color: #fff; --background: rgba(0,0,0,0.5); --border-radius: 50%; width: 36px; height: 36px; }
+}
+
+.photo-info { padding: 0 16px 16px; }
+
+.info-card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+  .info-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 600; color: #1e293b; ion-icon { color: #1a5f7a; font-size: 20px; } }
+  .coords { display: flex; flex-wrap: wrap; gap: 12px; font-family: monospace; font-size: 13px; color: #6b7280; }
+  .catastro-ref { font-family: monospace; font-size: 14px; color: #1e293b; margin: 0; }
+  .ai-description { font-size: 14px; color: #6b7280; line-height: 1.5; margin: 0; }
+}
+
+.action-buttons {
+  ion-button { --border-radius: 12px; height: 48px; font-weight: 600; text-transform: none; margin-bottom: 12px; }
+}
+
+.geotech-label { font-size: 14px; font-weight: 600; color: #1e293b; }

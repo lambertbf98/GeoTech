@@ -1,0 +1,82 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Catastro</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="catastro-content">
+  <!-- Search mode tabs -->
+  <ion-segment [(ngModel)]="searchMode" class="search-segment">
+    <ion-segment-button value="coords">
+      <ion-icon name="navigate-outline"></ion-icon>
+      <ion-label>Coordenadas</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="ref">
+      <ion-icon name="document-text-outline"></ion-icon>
+      <ion-label>Referencia</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <!-- Coords search -->
+  <div class="search-form" *ngIf="searchMode === 'coords'">
+    <div class="geotech-form-group">
+      <label class="geotech-label">Latitud</label>
+      <ion-input [(ngModel)]="latitude" type="number" placeholder="Ej: 40.416775" class="geotech-input"></ion-input>
+    </div>
+    <div class="geotech-form-group">
+      <label class="geotech-label">Longitud</label>
+      <ion-input [(ngModel)]="longitude" type="number" placeholder="Ej: -3.703790" class="geotech-input"></ion-input>
+    </div>
+    <ion-button expand="block" fill="outline" (click)="useCurrentLocation()" class="location-btn">
+      <ion-icon name="locate-outline" slot="start"></ion-icon>
+      Usar ubicacion actual
+    </ion-button>
+    <ion-button expand="block" (click)="searchByCoords()" class="search-btn">
+      <ion-icon name="search-outline" slot="start"></ion-icon>
+      Buscar parcela
+    </ion-button>
+  </div>
+
+  <!-- Ref search -->
+  <div class="search-form" *ngIf="searchMode === 'ref'">
+    <div class="geotech-form-group">
+      <label class="geotech-label">Referencia Catastral</label>
+      <ion-input [(ngModel)]="refCatastral" type="text" placeholder="Ej: 0012345AB1234S0001PQ" class="geotech-input"></ion-input>
+    </div>
+    <ion-button expand="block" (click)="searchByRef()" class="search-btn">
+      <ion-icon name="search-outline" slot="start"></ion-icon>
+      Buscar parcela
+    </ion-button>
+  </div>
+
+  <!-- Results -->
+  <div class="results" *ngIf="parcelData">
+    <div class="result-header">
+      <h3>Datos de la parcela</h3>
+      <ion-button fill="clear" size="small" (click)="clearResults()">Limpiar</ion-button>
+    </div>
+
+    <div class="result-card">
+      <div class="result-item">
+        <span class="label">Referencia Catastral</span>
+        <span class="value mono">{{ parcelData.referenciaCatastral }}</span>
+      </div>
+      <div class="result-item" *ngIf="parcelData.direccion">
+        <span class="label">Direccion</span>
+        <span class="value">{{ parcelData.direccion }}</span>
+      </div>
+      <div class="result-item" *ngIf="parcelData.superficie">
+        <span class="label">Superficie</span>
+        <span class="value">{{ parcelData.superficie }} m2</span>
+      </div>
+      <div class="result-item" *ngIf="parcelData.uso">
+        <span class="label">Uso</span>
+        <span class="value">{{ parcelData.uso }}</span>
+      </div>
+      <div class="result-item" *ngIf="parcelData.anoConstruccion">
+        <span class="label">Ano construccion</span>
+        <span class="value">{{ parcelData.anoConstruccion }}</span>
+      </div>
+    </div>
+  </div>
+</ion-content>

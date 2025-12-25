@@ -1,0 +1,84 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Ajustes</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="settings-content">
+  <!-- User info -->
+  <div class="user-card">
+    <div class="user-avatar">
+      <ion-icon name="person"></ion-icon>
+    </div>
+    <div class="user-info">
+      <h2>{{ userName }}</h2>
+      <p>{{ userEmail }}</p>
+    </div>
+  </div>
+
+  <!-- Sync section -->
+  <div class="section">
+    <div class="section-header">Sincronizacion</div>
+    <ion-list class="settings-list">
+      <ion-item button (click)="syncNow()">
+        <ion-icon name="sync-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h3>Sincronizar ahora</h3>
+          <p *ngIf="pendingSync > 0">{{ pendingSync }} elementos pendientes</p>
+          <p *ngIf="pendingSync === 0">Todo sincronizado</p>
+        </ion-label>
+        <ion-badge *ngIf="pendingSync > 0" color="warning" slot="end">{{ pendingSync }}</ion-badge>
+      </ion-item>
+      <ion-item>
+        <ion-icon name="cloud-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h3>Estado de conexion</h3>
+          <p>{{ isOnline ? 'Conectado' : 'Sin conexion' }}</p>
+        </ion-label>
+        <div slot="end" class="status-indicator" [class.online]="isOnline"></div>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- Storage section -->
+  <div class="section">
+    <div class="section-header">Almacenamiento</div>
+    <ion-list class="settings-list">
+      <ion-item button (click)="clearCache()">
+        <ion-icon name="trash-outline" slot="start" color="danger"></ion-icon>
+        <ion-label>
+          <h3>Limpiar cache</h3>
+          <p>Eliminar datos locales</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- About section -->
+  <div class="section">
+    <div class="section-header">Acerca de</div>
+    <ion-list class="settings-list">
+      <ion-item>
+        <ion-icon name="information-circle-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h3>Version</h3>
+          <p>{{ appVersion }}</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- Logout -->
+  <div class="logout-section">
+    <ion-button expand="block" color="danger" fill="outline" (click)="logout()">
+      <ion-icon name="log-out-outline" slot="start"></ion-icon>
+      Cerrar sesion
+    </ion-button>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>GeoTech - Gestion de proyectos</p>
+    <p>Aplicacion para ingenieria civil</p>
+  </div>
+</ion-content>

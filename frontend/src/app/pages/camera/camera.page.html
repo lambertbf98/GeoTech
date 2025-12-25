@@ -1,0 +1,88 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Camara GPS</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="camera-content">
+  <!-- Project selector -->
+  <div class="project-selector">
+    <label class="geotech-label">Proyecto activo</label>
+    <ion-select [(ngModel)]="selectedProjectId" interface="action-sheet" placeholder="Seleccionar proyecto">
+      <ion-select-option *ngFor="let p of projects" [value]="p.id">{{ p.name }}</ion-select-option>
+    </ion-select>
+  </div>
+
+  <!-- GPS Status -->
+  <div class="gps-status">
+    <ion-icon name="location"></ion-icon>
+    <span>{{ gpsStatus }}</span>
+  </div>
+
+  <!-- Photo preview or capture button -->
+  <div class="photo-area">
+    <div class="photo-preview" *ngIf="currentPhoto">
+      <img [src]="currentPhoto.imagePath" alt="Foto capturada">
+      <ion-button fill="clear" class="clear-btn" (click)="clearPhoto()">
+        <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+      </ion-button>
+    </div>
+
+    <div class="capture-area" *ngIf="!currentPhoto" (click)="takePhoto()">
+      <div class="capture-icon">
+        <ion-icon name="camera"></ion-icon>
+      </div>
+      <p>Toca para capturar foto con GPS</p>
+    </div>
+  </div>
+
+  <!-- Photo info -->
+  <div class="photo-info" *ngIf="currentPhoto">
+    <!-- Coordinates -->
+    <div class="info-card">
+      <div class="info-header">
+        <ion-icon name="navigate-outline"></ion-icon>
+        <span>Coordenadas GPS</span>
+      </div>
+      <div class="coords">
+        <span>Lat: {{ currentPhoto.latitude?.toFixed(6) }}</span>
+        <span>Lon: {{ currentPhoto.longitude?.toFixed(6) }}</span>
+        <span *ngIf="currentPhoto.altitude">Alt: {{ currentPhoto.altitude?.toFixed(1) }}m</span>
+      </div>
+    </div>
+
+    <!-- Catastro -->
+    <div class="info-card" *ngIf="currentPhoto.catastroRef">
+      <div class="info-header">
+        <ion-icon name="map-outline"></ion-icon>
+        <span>Referencia Catastral</span>
+      </div>
+      <p class="catastro-ref">{{ currentPhoto.catastroRef }}</p>
+    </div>
+
+    <!-- AI Description -->
+    <div class="info-card" *ngIf="currentPhoto.aiDescription">
+      <div class="info-header">
+        <ion-icon name="sparkles-outline"></ion-icon>
+        <span>Descripcion IA</span>
+      </div>
+      <p class="ai-description">{{ currentPhoto.aiDescription }}</p>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="action-buttons">
+      <ion-button expand="block" (click)="getCatastroInfo()" *ngIf="!currentPhoto.catastroRef">
+        <ion-icon name="map-outline" slot="start"></ion-icon>
+        Consultar Catastro
+      </ion-button>
+      <ion-button expand="block" (click)="getAIDescription()" *ngIf="!currentPhoto.aiDescription" color="secondary">
+        <ion-icon name="sparkles-outline" slot="start"></ion-icon>
+        Analizar con IA
+      </ion-button>
+      <ion-button expand="block" fill="outline" (click)="addNotes()">
+        <ion-icon name="create-outline" slot="start"></ion-icon>
+        Agregar notas
+      </ion-button>
+    </div>
+  </div>
+</ion-content>

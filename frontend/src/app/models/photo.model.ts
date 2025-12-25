@@ -4,6 +4,7 @@ export interface Photo {
   id: string;
   projectId: string;
   localPath?: string;
+  imagePath?: string;
   imageUrl?: string;
   thumbnailUrl?: string;
   latitude: number;
@@ -14,7 +15,8 @@ export interface Photo {
   catastroData?: CatastroData;
   aiDescription?: string;
   notes?: string;
-  createdAt: Date;
+  timestamp?: string;
+  createdAt?: Date;
   updatedAt?: Date;
   synced: boolean;
 }

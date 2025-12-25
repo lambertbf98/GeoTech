@@ -208,4 +208,11 @@ export class SyncService {
   get isSyncing(): boolean {
     return this.isSyncingSubject.value;
   }
+  async getPendingCount(): Promise<number> {
+    return await this.storage.getPendingSyncCount();
+  }
+
+  async syncAll(): Promise<void> {
+    await this.syncPending();
+  }
 }

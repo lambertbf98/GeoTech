@@ -1,0 +1,119 @@
+<ion-content class="register-content">
+  <div class="register-container">
+    <!-- Header con boton volver -->
+    <div class="register-header">
+      <ion-button fill="clear" class="back-btn" (click)="goToLogin()">
+        <ion-icon name="arrow-back" slot="icon-only"></ion-icon>
+      </ion-button>
+      <div class="header-text">
+        <h1 class="page-title">Crear cuenta</h1>
+        <p class="page-subtitle">Unete a GeoTech y gestiona tus proyectos</p>
+      </div>
+    </div>
+
+    <!-- Formulario de Registro -->
+    <div class="register-form-container">
+      <form [formGroup]="registerForm" (ngSubmit)="onRegister()">
+        <!-- Nombre -->
+        <div class="geotech-form-group">
+          <label class="geotech-label">Nombre completo</label>
+          <ion-item lines="none" class="input-item" [class.input-error]="registerForm.get('name')?.invalid && registerForm.get('name')?.touched">
+            <ion-icon name="person-outline" slot="start" class="input-icon"></ion-icon>
+            <ion-input
+              type="text"
+              formControlName="name"
+              placeholder="Tu nombre"
+              autocomplete="name"
+            ></ion-input>
+          </ion-item>
+          <span class="error-text" *ngIf="registerForm.get('name')?.invalid && registerForm.get('name')?.touched">
+            {{ getErrorMessage('name') }}
+          </span>
+        </div>
+
+        <!-- Email -->
+        <div class="geotech-form-group">
+          <label class="geotech-label">Correo electronico</label>
+          <ion-item lines="none" class="input-item" [class.input-error]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
+            <ion-icon name="mail-outline" slot="start" class="input-icon"></ion-icon>
+            <ion-input
+              type="email"
+              formControlName="email"
+              placeholder="tu@email.com"
+              autocomplete="email"
+              inputmode="email"
+            ></ion-input>
+          </ion-item>
+          <span class="error-text" *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
+            {{ getErrorMessage('email') }}
+          </span>
+        </div>
+
+        <!-- Password -->
+        <div class="geotech-form-group">
+          <label class="geotech-label">Contrasena</label>
+          <ion-item lines="none" class="input-item" [class.input-error]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+            <ion-icon name="lock-closed-outline" slot="start" class="input-icon"></ion-icon>
+            <ion-input
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Minimo 6 caracteres"
+              autocomplete="new-password"
+            ></ion-input>
+            <ion-button fill="clear" slot="end" (click)="togglePassword()" class="password-toggle">
+              <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-item>
+          <span class="error-text" *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+            {{ getErrorMessage('password') }}
+          </span>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="geotech-form-group">
+          <label class="geotech-label">Confirmar contrasena</label>
+          <ion-item lines="none" class="input-item" [class.input-error]="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched">
+            <ion-icon name="lock-closed-outline" slot="start" class="input-icon"></ion-icon>
+            <ion-input
+              [type]="showConfirmPassword ? 'text' : 'password'"
+              formControlName="confirmPassword"
+              placeholder="Repite tu contrasena"
+              autocomplete="new-password"
+            ></ion-input>
+            <ion-button fill="clear" slot="end" (click)="toggleConfirmPassword()" class="password-toggle">
+              <ion-icon [name]="showConfirmPassword ? 'eye-off-outline' : 'eye-outline'" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-item>
+          <span class="error-text" *ngIf="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched">
+            {{ getErrorMessage('confirmPassword') }}
+          </span>
+        </div>
+
+        <!-- Terms info -->
+        <div class="terms-info">
+          <ion-icon name="information-circle-outline"></ion-icon>
+          <span>Al crear una cuenta, aceptas nuestros terminos de servicio y politica de privacidad.</span>
+        </div>
+
+        <!-- Register Button -->
+        <ion-button
+          expand="block"
+          type="submit"
+          class="geotech-btn-primary register-btn"
+          [disabled]="isLoading"
+        >
+          <ion-spinner name="crescent" *ngIf="isLoading"></ion-spinner>
+          <span *ngIf="!isLoading">Crear cuenta</span>
+        </ion-button>
+      </form>
+
+      <!-- Login Link -->
+      <div class="login-link">
+        <span>Ya tienes una cuenta?</span>
+        <ion-button fill="clear" size="small" (click)="goToLogin()">
+          Iniciar sesion
+        </ion-button>
+      </div>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,78 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Proyectos</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="createProject()">
+        <ion-icon name="add-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar [(ngModel)]="searchQuery" placeholder="Buscar proyectos..." debounce="300"></ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Offline indicator -->
+  <div class="offline-banner" *ngIf="!isOnline">
+    <ion-icon name="cloud-offline-outline"></ion-icon>
+    <span>Modo sin conexion</span>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Cargando proyectos...</p>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="!isLoading && filteredProjects.length === 0">
+    <div class="empty-icon">
+      <ion-icon name="folder-open-outline"></ion-icon>
+    </div>
+    <h3 class="empty-title">Sin proyectos</h3>
+    <p class="empty-description">Crea tu primer proyecto para comenzar a gestionar tus trabajos de campo.</p>
+    <ion-button (click)="createProject()" class="geotech-btn-primary">
+      <ion-icon name="add-outline" slot="start"></ion-icon>
+      Crear proyecto
+    </ion-button>
+  </div>
+
+  <!-- Projects list -->
+  <ion-list class="geotech-list" *ngIf="!isLoading && filteredProjects.length > 0">
+    <ion-item *ngFor="let project of filteredProjects" (click)="openProject(project)" button detail>
+      <div class="project-icon" slot="start">
+        <ion-icon name="folder-outline"></ion-icon>
+      </div>
+      <ion-label>
+        <h2 class="project-name">{{ project.name }}</h2>
+        <p class="project-meta">
+          <ion-icon name="calendar-outline"></ion-icon>
+          {{ formatDate(project.createdAt) }}
+          <span *ngIf="project.photoCount">
+            <ion-icon name="camera-outline"></ion-icon>
+            {{ project.photoCount }} fotos
+          </span>
+        </p>
+        <p class="project-location" *ngIf="project.location">
+          <ion-icon name="location-outline"></ion-icon>
+          {{ project.location }}
+        </p>
+      </ion-label>
+      <ion-button fill="clear" slot="end" (click)="showProjectOptions(project, $event)">
+        <ion-icon name="ellipsis-vertical" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-item>
+  </ion-list>
+</ion-content>
+
+<!-- FAB -->
+<ion-fab vertical="bottom" horizontal="end" slot="fixed" *ngIf="!isLoading && filteredProjects.length > 0">
+  <ion-fab-button (click)="createProject()">
+    <ion-icon name="add"></ion-icon>
+  </ion-fab-button>
+</ion-fab>

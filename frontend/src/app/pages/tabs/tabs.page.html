@@ -1,0 +1,24 @@
+<ion-tabs>
+  <ion-tab-bar slot="bottom">
+    <ion-tab-button tab="projects">
+      <ion-icon name="folder-outline"></ion-icon>
+      <ion-label>Proyectos</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="camera">
+      <ion-icon name="camera-outline"></ion-icon>
+      <ion-label>Camara</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="catastro">
+      <ion-icon name="map-outline"></ion-icon>
+      <ion-label>Catastro</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="settings">
+      <ion-icon name="settings-outline"></ion-icon>
+      <ion-label>Ajustes</ion-label>
+      <ion-badge *ngIf="pendingSync > 0" color="warning">{{ pendingSync }}</ion-badge>
+    </ion-tab-button>
+  </ion-tab-bar>
+</ion-tabs>

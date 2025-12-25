@@ -1,0 +1,124 @@
+.offline-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(224, 159, 62, 0.15);
+  color: #e09f3e;
+  font-size: 13px;
+  font-weight: 500;
+  ion-icon { font-size: 18px; }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  ion-spinner { width: 40px; height: 40px; color: #1a5f7a; }
+  p { margin-top: 16px; color: #6b7280; font-size: 14px; }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #f4f5f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  ion-icon { font-size: 48px; color: #6b7280; }
+}
+
+.empty-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px;
+}
+
+.empty-description {
+  font-size: 15px;
+  color: #6b7280;
+  max-width: 280px;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+ion-list.geotech-list {
+  padding: 16px;
+  background: transparent;
+}
+
+ion-list.geotech-list ion-item {
+  --background: #ffffff;
+  --border-radius: 12px;
+  --padding-start: 16px;
+  --padding-end: 8px;
+  --min-height: 80px;
+  margin-bottom: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.project-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(26, 95, 122, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  ion-icon { font-size: 24px; color: #1a5f7a; }
+}
+
+.project-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.project-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #6b7280;
+  ion-icon { font-size: 14px; }
+  span { display: flex; align-items: center; gap: 4px; margin-left: 12px; }
+}
+
+.project-location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 4px;
+  ion-icon { font-size: 14px; }
+}
+
+ion-fab-button {
+  --background: #1a5f7a;
+  --background-activated: #17546c;
+}
+
+.geotech-btn-primary {
+  --background: #1a5f7a;
+  --border-radius: 12px;
+  height: 48px;
+  font-weight: 600;
+  text-transform: none;
+}

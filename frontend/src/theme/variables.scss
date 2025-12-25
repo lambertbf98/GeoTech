@@ -1,2 +1,108 @@
-// For information on how to create your own theme, please refer to:
-// https://ionicframework.com/docs/theming/
+// GeoTech Professional Theme
+// Tema corporativo para aplicación de ingeniería civil
+
+:root {
+  // Colores principales - Azul profesional con toques verdes (ingeniería/geografía)
+  --ion-color-primary: #1a5f7a;
+  --ion-color-primary-rgb: 26, 95, 122;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #17546c;
+  --ion-color-primary-tint: #316f87;
+
+  // Secundario - Verde profesional
+  --ion-color-secondary: #2d6a4f;
+  --ion-color-secondary-rgb: 45, 106, 79;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #285d46;
+  --ion-color-secondary-tint: #427961;
+
+  // Terciario - Gris azulado
+  --ion-color-tertiary: #5a7d8a;
+  --ion-color-tertiary-rgb: 90, 125, 138;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #4f6e79;
+  --ion-color-tertiary-tint: #6b8a96;
+
+  // Success - Verde confirmación
+  --ion-color-success: #40916c;
+  --ion-color-success-rgb: 64, 145, 108;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #38805f;
+  --ion-color-success-tint: #539c7b;
+
+  // Warning - Naranja atención
+  --ion-color-warning: #e09f3e;
+  --ion-color-warning-rgb: 224, 159, 62;
+  --ion-color-warning-contrast: #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade: #c58c37;
+  --ion-color-warning-tint: #e3a951;
+
+  // Danger - Rojo error
+  --ion-color-danger: #c1292e;
+  --ion-color-danger-rgb: 193, 41, 46;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #aa2428;
+  --ion-color-danger-tint: #c73e43;
+
+  // Medium - Gris medio
+  --ion-color-medium: #6b7280;
+  --ion-color-medium-rgb: 107, 114, 128;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #5e6471;
+  --ion-color-medium-tint: #7a808d;
+
+  // Light - Gris claro
+  --ion-color-light: #f4f5f8;
+  --ion-color-light-rgb: 244, 245, 248;
+  --ion-color-light-contrast: #000000;
+  --ion-color-light-contrast-rgb: 0, 0, 0;
+  --ion-color-light-shade: #d7d8da;
+  --ion-color-light-tint: #f5f6f9;
+
+  // Fondos
+  --ion-background-color: #f8fafc;
+  --ion-background-color-rgb: 248, 250, 252;
+
+  // Cards
+  --ion-card-background: #ffffff;
+
+  // Textos
+  --ion-text-color: #1e293b;
+  --ion-text-color-rgb: 30, 41, 59;
+
+  // Toolbar
+  --ion-toolbar-background: #1a5f7a;
+  --ion-toolbar-color: #ffffff;
+
+  // Bordes
+  --ion-border-color: #e2e8f0;
+
+  // Sombras
+  --geotech-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --geotech-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --geotech-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --geotech-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  // Espaciado
+  --geotech-spacing-xs: 4px;
+  --geotech-spacing-sm: 8px;
+  --geotech-spacing-md: 16px;
+  --geotech-spacing-lg: 24px;
+  --geotech-spacing-xl: 32px;
+
+  // Bordes redondeados
+  --geotech-radius-sm: 6px;
+  --geotech-radius-md: 8px;
+  --geotech-radius-lg: 12px;
+  --geotech-radius-xl: 16px;
+
+  // Tipografía
+  --ion-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}

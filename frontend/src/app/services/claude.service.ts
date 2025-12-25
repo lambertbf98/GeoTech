@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { ApiService } from './api.service';
 
 export interface ClaudeDescriptionResponse {
@@ -17,20 +17,24 @@ export class ClaudeService {
 
   constructor(private api: ApiService) {}
 
-  /**
-   * Solicita una descripción de la imagen al backend que usa Claude API
-   * @param photoId ID de la foto a describir
-   * @returns Observable con la descripción generada
-   */
+  async analyzeImage(imagePath: string): Promise<string> {
+    // For local development, return a placeholder
+    // In production, this would upload the image and get Claude's analysis
+    try {
+      const response = await firstValueFrom(
+        this.api.post<{ description: string }>('/claude/analyze', { imagePath })
+      );
+      return response.description;
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      return 'Descripcion no disponible en modo offline';
+    }
+  }
+
   describePhoto(photoId: string): Observable<ClaudeDescriptionResponse> {
     return this.api.post<ClaudeDescriptionResponse>('/claude/describe', { photoId });
   }
 
-  /**
-   * Solicita una descripción con contexto adicional
-   * @param photoId ID de la foto
-   * @param context Contexto adicional para la descripción (tipo de obra, materiales, etc.)
-   */
   describePhotoWithContext(
     photoId: string,
     context: string
@@ -41,40 +45,37 @@ export class ClaudeService {
     });
   }
 
-  /**
-   * Tipos de análisis predefinidos para ingeniería civil
-   */
   getAnalysisTypes(): Array<{ id: string; name: string; prompt: string }> {
     return [
       {
         id: 'general',
-        name: 'Descripción General',
-        prompt: 'Describe esta imagen de manera técnica y profesional.'
+        name: 'Descripcion General',
+        prompt: 'Describe esta imagen de manera tecnica y profesional.'
       },
       {
         id: 'terrain',
-        name: 'Análisis de Terreno',
-        prompt: 'Analiza el terreno visible en esta imagen: tipo de suelo, pendiente, vegetación, posibles riesgos geológicos.'
+        name: 'Analisis de Terreno',
+        prompt: 'Analiza el terreno visible en esta imagen: tipo de suelo, pendiente, vegetacion, posibles riesgos geologicos.'
       },
       {
         id: 'structure',
         name: 'Estado de Estructura',
-        prompt: 'Evalúa el estado de la estructura visible: materiales, posibles daños, conservación general.'
+        prompt: 'Evalua el estado de la estructura visible: materiales, posibles danos, conservacion general.'
       },
       {
         id: 'hydrology',
-        name: 'Análisis Hidrológico',
-        prompt: 'Analiza los elementos hidrológicos visibles: cauces, drenajes, posibles zonas de inundación, estado del agua.'
+        name: 'Analisis Hidrologico',
+        prompt: 'Analiza los elementos hidrologicos visibles: cauces, drenajes, posibles zonas de inundacion, estado del agua.'
       },
       {
         id: 'access',
         name: 'Accesibilidad',
-        prompt: 'Describe la accesibilidad de la zona: vías de acceso, estado del firme, posibles obstáculos.'
+        prompt: 'Describe la accesibilidad de la zona: vias de acceso, estado del firme, posibles obstaculos.'
       },
       {
         id: 'environmental',
         name: 'Impacto Ambiental',
-        prompt: 'Identifica elementos relevantes para un estudio de impacto ambiental: vegetación, fauna, elementos protegidos.'
+        prompt: 'Identifica elementos relevantes para un estudio de impacto ambiental: vegetacion, fauna, elementos protegidos.'
       }
     ];
   }
