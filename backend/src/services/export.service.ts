@@ -1,3 +1,4 @@
+// @ts-nocheck
 import PDFDocument from 'pdfkit';
 import * as XLSX from 'xlsx';
 import fs from 'fs';

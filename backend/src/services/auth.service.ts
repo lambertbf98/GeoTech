@@ -112,9 +112,9 @@ export class AuthService {
   private async generateTokens(userId: string) {
     // JWT token
     const token = jwt.sign(
-      { userId } as TokenPayload,
-      config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
+      { userId },
+      config.jwt.secret as jwt.Secret,
+      { expiresIn: config.jwt.expiresIn as string }
     );
 
     // Refresh token
