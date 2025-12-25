@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
+import { exec } from 'child_process';
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
@@ -63,9 +64,22 @@ app.use(errorHandler);
 const HOST = '0.0.0.0';
 const port = process.env.PORT || 3000;
 
-app.listen(port, HOST, () => {
+const server = app.listen(port, HOST, () => {
   console.log('GeoTech API running on ' + HOST + ':' + port);
   console.log('Environment: ' + config.nodeEnv);
+
+  // Run database migrations AFTER server starts (async, non-blocking)
+  console.log('Running database migrations...');
+  exec('npx prisma db push --skip-generate', (error, stdout, stderr) => {
+    if (error) {
+      console.error('Database migration failed:', error.message);
+      return;
+    }
+    if (stderr) {
+      console.log('Migration output:', stderr);
+    }
+    console.log('Database migrations completed');
+  });
 });
 
 export default app;
