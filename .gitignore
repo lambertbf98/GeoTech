@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+www/
+
+# Environment files
+.env
+.env.local
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Capacitor native projects (optional - uncomment if you don't want to track them)
+# frontend/android/
+# frontend/ios/
