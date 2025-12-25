@@ -1,4 +1,4 @@
-.catastro-content { --background: #f8fafc; }
+﻿.catastro-content { --background: #f8fafc; }
 
 .search-segment { margin: 16px; --background: #fff; border-radius: 12px; }
 .search-segment ion-segment-button { --indicator-color: #1a5f7a; --color-checked: #1a5f7a; font-size: 13px; }
@@ -7,7 +7,19 @@
 
 .geotech-form-group { margin-bottom: 16px; }
 .geotech-label { display: block; font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
-.geotech-input { --background: #fff; --border-radius: 12px; --padding-start: 16px; border: 1px solid #e2e8f0; border-radius: 12px; }
+.geotech-input {
+  --background: #fff;
+  --border-radius: 12px;
+  --padding-start: 16px;
+  --highlight-color-focused: #1a5f7a;
+  --highlight-color-valid: #1a5f7a;
+  --highlight-height: 0px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+.geotech-input:focus-within {
+  border-color: #1a5f7a;
+}
 
 .location-btn { --border-radius: 12px; --border-color: #1a5f7a; --color: #1a5f7a; height: 48px; margin-bottom: 12px; text-transform: none; font-weight: 600; }
 .search-btn { --background: #1a5f7a; --border-radius: 12px; height: 48px; text-transform: none; font-weight: 600; }
