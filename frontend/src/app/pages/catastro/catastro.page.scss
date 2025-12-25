@@ -30,57 +30,43 @@
   margin-bottom: 8px;
 }
 
-// Override ALL Ionic input focus/highlight styles
+// Ionic 7 input styling - no highlight
 .geotech-input {
-  --background: #ffffff !important;
-  --color: #1e293b !important;
-  --placeholder-color: #94a3b8 !important;
-  --border-radius: 12px !important;
-  --padding-start: 16px !important;
-  --padding-end: 16px !important;
-  --highlight-height: 0 !important;
-  --highlight-color-focused: transparent !important;
-  --highlight-color-valid: transparent !important;
-  --highlight-color-invalid: transparent !important;
-  --border-color: #e2e8f0 !important;
-  --border-width: 0 !important;
-  --box-shadow: none !important;
-  
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 12px !important;
-  color: #1e293b !important;
+  --background: #ffffff;
+  --color: #1e293b;
+  --placeholder-color: #94a3b8;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  --highlight-height: 0;
+  --highlight-color-focused: transparent;
+  --highlight-color-valid: transparent;
+  --highlight-color-invalid: transparent;
+
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   min-height: 48px;
+  overflow: hidden;
 }
 
-.geotech-input.has-focus,
-.geotech-input:focus,
+.geotech-input.ion-focused,
 .geotech-input:focus-within {
-  border-color: #1a5f7a !important;
-  outline: none !important;
-  box-shadow: none !important;
+  border-color: #1a5f7a;
 }
 
-// Target the native input inside ion-input
-.geotech-input input,
-.geotech-input .native-input {
-  background: transparent !important;
-  color: #1e293b !important;
-  caret-color: #1a5f7a !important;
-}
-
-// Remove Ionic's bottom highlight bar completely
-.geotech-input::part(native) {
-  background: transparent !important;
-}
-
-.geotech-input .input-bottom,
-.geotech-input .input-highlight {
-  display: none !important;
-}
-
-ion-input.geotech-input {
-  --highlight-height: 0px !important;
+::ng-deep {
+  .geotech-input {
+    .input-bottom,
+    .input-highlight {
+      display: none !important;
+      height: 0 !important;
+    }
+    .native-input {
+      color: #1e293b !important;
+    }
+  }
 }
 
 .location-btn {
