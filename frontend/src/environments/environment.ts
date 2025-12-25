@@ -3,5 +3,5 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'https://geotech-backend-production.up.railway.app/api'
+  apiUrl: 'https://geotech-production.up.railway.app/api'
 };
