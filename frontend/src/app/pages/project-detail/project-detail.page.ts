@@ -110,6 +110,18 @@ export class ProjectDetailPage implements OnInit {
     }
   }
 
+  onImageError(event: any) {
+    // Ocultar imagen rota y mostrar placeholder
+    event.target.style.display = 'none';
+    const parent = event.target.parentElement;
+    if (parent && !parent.querySelector('.photo-placeholder')) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'photo-placeholder';
+      placeholder.innerHTML = '<ion-icon name="image-outline"></ion-icon>';
+      parent.insertBefore(placeholder, event.target);
+    }
+  }
+
   private async showToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({
       message,

@@ -43,7 +43,10 @@
     <h3 class="section-title">Fotos del proyecto</h3>
     <div class="photos-grid">
       <div class="photo-card" *ngFor="let photo of photos" (click)="openPhotoViewer(photo)">
-        <img [src]="photo.imagePath" alt="Foto" *ngIf="photo.imagePath">
+        <img [src]="photo.imagePath" alt="Foto" *ngIf="photo.imagePath" (error)="onImageError($event)">
+        <div class="photo-placeholder" *ngIf="!photo.imagePath">
+          <ion-icon name="image-outline"></ion-icon>
+        </div>
         <div class="photo-info">
           <span class="photo-date" *ngIf="photo.timestamp">{{ formatDate($any(photo.timestamp)) }}</span>
           <span class="photo-coords" *ngIf="photo.latitude">
@@ -74,7 +77,7 @@
       </button>
 
       <div class="viewer-image">
-        <img [src]="selectedPhoto.imagePath" alt="Foto">
+        <img [src]="selectedPhoto.imagePath" alt="Foto" (error)="onImageError($event)">
       </div>
 
       <div class="viewer-content">

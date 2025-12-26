@@ -22,7 +22,6 @@
             <ion-input
               type="text"
               formControlName="name"
-              placeholder="Tu nombre"
               autocomplete="name"
             ></ion-input>
           </ion-item>
@@ -39,7 +38,6 @@
             <ion-input
               type="email"
               formControlName="email"
-              placeholder="tu@email.com"
               autocomplete="email"
               inputmode="email"
             ></ion-input>
@@ -57,7 +55,6 @@
             <ion-input
               [type]="showPassword ? 'text' : 'password'"
               formControlName="password"
-              placeholder="Minimo 6 caracteres"
               autocomplete="new-password"
             ></ion-input>
             <ion-button fill="clear" slot="end" (click)="togglePassword()" class="password-toggle">
@@ -77,7 +74,6 @@
             <ion-input
               [type]="showConfirmPassword ? 'text' : 'password'"
               formControlName="confirmPassword"
-              placeholder="Repite tu contrasena"
               autocomplete="new-password"
             ></ion-input>
             <ion-button fill="clear" slot="end" (click)="toggleConfirmPassword()" class="password-toggle">

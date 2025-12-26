@@ -128,6 +128,20 @@ ion-back-button {
   object-fit: cover;
 }
 
+.photo-placeholder {
+  width: 100%;
+  height: 120px;
+  background: var(--geotech-bg-glass);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  ion-icon {
+    font-size: 40px;
+    color: var(--geotech-text-muted);
+  }
+}
+
 .photo-info {
   padding: 12px;
 }

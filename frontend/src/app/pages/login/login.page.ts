@@ -77,8 +77,7 @@ export class LoginPage implements OnInit {
       inputs: [
         {
           name: 'email',
-          type: 'email',
-          placeholder: 'tu@email.com'
+          type: 'email'
         }
       ],
       buttons: [
