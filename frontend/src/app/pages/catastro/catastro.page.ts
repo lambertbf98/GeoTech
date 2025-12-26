@@ -223,10 +223,6 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
         const Cesium = await import('cesium');
         (window as any).CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/';
 
-        // Token de Cesium Ion (gratuito en cesium.com)
-        // Si no tienes token, el visor funcionara pero sin terreno 3D avanzado
-        Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYmM4OTk0Yy01OGM2LTQ0NTAtOWEwOC02MDg0NDEzZjY4MzciLCJpZCI6MjU5LCJpYXQiOjE3MzUyMTk4MTV9.demo_token_replace_with_yours';
-
         if (!document.getElementById('cesium-css')) {
           const link = document.createElement('link'); link.id = 'cesium-css'; link.rel = 'stylesheet';
           link.href = 'https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Widgets/widgets.css';
@@ -235,19 +231,27 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
         const lat = parseFloat(this.latitude) || 40.416775;
         const lon = parseFloat(this.longitude) || -3.703790;
 
-        // Usar EllipsoidTerrainProvider si no hay token valido (terreno plano pero funcional)
-        let terrainProvider;
-        try {
-          terrainProvider = await Cesium.createWorldTerrainAsync();
-        } catch {
-          terrainProvider = new Cesium.EllipsoidTerrainProvider();
-        }
+        // Usar ArcGIS World Imagery (gratuito, sin token requerido)
+        const imageryProvider = new Cesium.ArcGisMapServerImageryProvider({
+          url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+        });
 
         this.cesiumViewer = new Cesium.Viewer('earthView', {
-          terrainProvider,
-          baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
-          navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false,
-          infoBox: false, selectionIndicator: false, creditContainer: document.createElement('div')
+          imageryProvider,
+          terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+          baseLayerPicker: false,
+          geocoder: false,
+          homeButton: false,
+          sceneModePicker: false,
+          navigationHelpButton: false,
+          animation: false,
+          timeline: false,
+          fullscreenButton: false,
+          infoBox: false,
+          selectionIndicator: false,
+          creditContainer: document.createElement('div'),
+          skyBox: false,
+          skyAtmosphere: new Cesium.SkyAtmosphere()
         });
 
         this.cesiumViewer.camera.flyTo({
