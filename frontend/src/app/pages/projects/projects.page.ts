@@ -106,23 +106,31 @@ export class ProjectsPage implements OnInit {
 
   private async saveProject(data: any) {
     try {
-      const newProject = { name: data.name.trim(), description: data.description, location: data.location };
+      const newProject: Project = {
+        id: "proj_" + Date.now(),
+        name: data.name.trim(),
+        description: data.description || '',
+        location: data.location || '',
+        photoCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        synced: false
+      };
+
       if (this.isOnline) {
-        const response = await firstValueFrom(this.apiService.post<Project>("/projects", newProject));
-        if (response) {
-          this.projects.unshift(response);
+        try {
+          const response = await firstValueFrom(this.apiService.post<Project>("/projects", newProject));
+          if (response) {
+            // Mantener la ubicación local si el API no la devuelve
+            newProject.id = response.id || newProject.id;
+            newProject.synced = true;
+          }
+        } catch (e) {
+          console.log('API error, saving locally:', e);
         }
-      } else {
-        const tempProject: Project = {
-          ...newProject,
-          id: "temp_" + Date.now(),
-          photoCount: 0,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          synced: false
-        };
-        this.projects.unshift(tempProject);
       }
+
+      this.projects.unshift(newProject);
       await this.storageService.setProjects(this.projects);
     } catch (error) {
       console.error('Error creating project:', error);
