@@ -39,13 +39,14 @@ export class ProjectsPage implements OnInit {
 
   async loadProjects() {
     this.isLoading = true;
+    // Siempre cargar primero del almacenamiento local
+    this.projects = await this.storageService.getProjects();
+
+    // Verificar conexión sin sobrescribir datos locales
     try {
-      const response = await firstValueFrom(this.apiService.get<{ projects: Project[] }>("/projects"));
-      this.projects = response?.projects || [];
-      await this.storageService.setProjects(this.projects);
+      await firstValueFrom(this.apiService.get<any>("/health"));
       this.isOnline = true;
     } catch (error) {
-      this.projects = await this.storageService.getProjects();
       this.isOnline = false;
     }
     this.isLoading = false;
