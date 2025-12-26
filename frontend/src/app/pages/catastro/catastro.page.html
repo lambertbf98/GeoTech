@@ -153,5 +153,31 @@
       <ion-icon name="arrow-back"></ion-icon>
       Volver al mapa
     </button>
+
+    <!-- FABs de medición en Earth View -->
+    <div class="earth-fab-container">
+      <button class="fab-button" [class.active]="measureMode === 'distance'" (click)="toggleMeasureDistance()">
+        <ion-icon name="resize-outline"></ion-icon>
+      </button>
+      <button class="fab-button" [class.active]="measureMode === 'area'" (click)="toggleMeasureArea()">
+        <ion-icon name="square-outline"></ion-icon>
+      </button>
+      <button class="fab-button" (click)="goToMeasurements()">
+        <ion-icon name="list-outline"></ion-icon>
+      </button>
+    </div>
+
+    <!-- Panel de medición en Earth View -->
+    <div class="measure-panel earth-measure" *ngIf="measureMode !== 'none'">
+      <div class="measure-info">
+        <ion-icon [name]="measureMode === 'distance' ? 'resize-outline' : 'square-outline'"></ion-icon>
+        <span *ngIf="measureMode === 'distance'">Distancia: {{ measureDistance | number:'1.2-2' }} m</span>
+        <span *ngIf="measureMode === 'area'">Area: {{ measureArea | number:'1.0-0' }} m²</span>
+      </div>
+      <button class="measure-stop" (click)="stopMeasure()">
+        <ion-icon name="checkmark-circle"></ion-icon>
+        Guardar
+      </button>
+    </div>
   </div>
 </ion-content>

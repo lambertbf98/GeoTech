@@ -42,6 +42,13 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
   private measurePolyline: L.Polyline | null = null;
   private measurePolygon: L.Polygon | null = null;
 
+  // Cesium measurement entities
+  private cesiumMeasureEntities: any[] = [];
+  private cesiumMeasureLine: any = null;
+  private cesiumMeasurePolygon: any = null;
+  private cesiumClickHandler: any = null;
+  private Cesium: any = null;
+
   constructor(
     private catastroService: CatastroService,
     private gpsService: GpsService,
@@ -220,7 +227,8 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     await loading.present();
     setTimeout(async () => {
       try {
-        const Cesium = await import('cesium');
+        this.Cesium = await import('cesium');
+        const Cesium = this.Cesium;
         (window as any).CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/';
 
         if (!document.getElementById('cesium-css')) {
@@ -231,13 +239,7 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
         const lat = parseFloat(this.latitude) || 40.416775;
         const lon = parseFloat(this.longitude) || -3.703790;
 
-        // Usar ArcGIS World Imagery (gratuito, sin token requerido)
-        const imageryProvider = new Cesium.ArcGisMapServerImageryProvider({
-          url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
-        });
-
         this.cesiumViewer = new Cesium.Viewer('earthView', {
-          imageryProvider,
           terrainProvider: new Cesium.EllipsoidTerrainProvider(),
           baseLayerPicker: false,
           geocoder: false,
@@ -249,10 +251,15 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
           fullscreenButton: false,
           infoBox: false,
           selectionIndicator: false,
-          creditContainer: document.createElement('div'),
-          skyBox: false,
-          skyAtmosphere: new Cesium.SkyAtmosphere()
+          creditContainer: document.createElement('div')
         });
+
+        // Añadir capa de imágenes ArcGIS (gratuita, sin token)
+        const imageryLayer = this.cesiumViewer.imageryLayers.addImageryProvider(
+          await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+            'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+          )
+        );
 
         this.cesiumViewer.camera.flyTo({
           destination: Cesium.Cartesian3.fromDegrees(lon, lat, 800),
@@ -365,11 +372,113 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     this.measurePoints = [];
     this.measureDistance = 0;
     this.measureArea = 0;
-    if (!this.map) return;
-    this.measureLayer = L.layerGroup().addTo(this.map);
-    this.showToast(mode === 'distance' ? 'Toca puntos para medir distancia' : 'Toca puntos para medir area', 'primary');
-    this.map.off('click');
-    this.map.on('click', (e: L.LeafletMouseEvent) => this.addMeasurePoint(e.latlng));
+
+    const msg = mode === 'distance' ? 'Toca puntos para medir distancia' : 'Toca puntos para medir area';
+    this.showToast(msg, 'primary');
+
+    if (this.viewMode === 'map' && this.map) {
+      // Modo Leaflet
+      this.measureLayer = L.layerGroup().addTo(this.map);
+      this.map.off('click');
+      this.map.on('click', (e: L.LeafletMouseEvent) => this.addMeasurePoint(e.latlng));
+    } else if (this.viewMode === 'earth' && this.cesiumViewer && this.Cesium) {
+      // Modo Cesium
+      this.startCesiumMeasure();
+    }
+  }
+
+  private startCesiumMeasure() {
+    if (!this.cesiumViewer || !this.Cesium) return;
+    const Cesium = this.Cesium;
+    const viewer = this.cesiumViewer;
+
+    // Configurar handler de clicks
+    this.cesiumClickHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    this.cesiumClickHandler.setInputAction((click: any) => {
+      const cartesian = viewer.camera.pickEllipsoid(click.position, viewer.scene.globe.ellipsoid);
+      if (cartesian) {
+        const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+        const lat = Cesium.Math.toDegrees(cartographic.latitude);
+        const lng = Cesium.Math.toDegrees(cartographic.longitude);
+        this.addCesiumMeasurePoint(lat, lng);
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  }
+
+  private addCesiumMeasurePoint(lat: number, lng: number) {
+    if (!this.cesiumViewer || !this.Cesium) return;
+    const Cesium = this.Cesium;
+    const viewer = this.cesiumViewer;
+
+    // Añadir punto a la lista usando L.LatLng para compatibilidad
+    this.measurePoints.push(L.latLng(lat, lng));
+
+    // Añadir marcador de punto
+    const pointEntity = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(lng, lat),
+      point: {
+        pixelSize: 10,
+        color: Cesium.Color.fromCssColorString('#ef4444'),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2
+      }
+    });
+    this.cesiumMeasureEntities.push(pointEntity);
+
+    // Actualizar línea o polígono
+    if (this.measureMode === 'distance' && this.measurePoints.length >= 2) {
+      this.updateCesiumLine();
+      this.measureDistance = this.calculateDistance();
+    } else if (this.measureMode === 'area' && this.measurePoints.length >= 3) {
+      this.updateCesiumPolygon();
+      this.measureArea = this.calculateArea();
+    }
+  }
+
+  private updateCesiumLine() {
+    if (!this.cesiumViewer || !this.Cesium) return;
+    const Cesium = this.Cesium;
+    const viewer = this.cesiumViewer;
+
+    // Eliminar línea anterior
+    if (this.cesiumMeasureLine) {
+      viewer.entities.remove(this.cesiumMeasureLine);
+    }
+
+    const positions = this.measurePoints.map(p => Cesium.Cartesian3.fromDegrees(p.lng, p.lat));
+    this.cesiumMeasureLine = viewer.entities.add({
+      polyline: {
+        positions,
+        width: 3,
+        material: new Cesium.PolylineDashMaterialProperty({
+          color: Cesium.Color.fromCssColorString('#ef4444'),
+          dashLength: 16
+        }),
+        clampToGround: true
+      }
+    });
+  }
+
+  private updateCesiumPolygon() {
+    if (!this.cesiumViewer || !this.Cesium) return;
+    const Cesium = this.Cesium;
+    const viewer = this.cesiumViewer;
+
+    // Eliminar polígono anterior
+    if (this.cesiumMeasurePolygon) {
+      viewer.entities.remove(this.cesiumMeasurePolygon);
+    }
+
+    const positions = this.measurePoints.map(p => Cesium.Cartesian3.fromDegrees(p.lng, p.lat));
+    this.cesiumMeasurePolygon = viewer.entities.add({
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(positions),
+        material: Cesium.Color.fromCssColorString('#3b82f6').withAlpha(0.3),
+        outline: true,
+        outlineColor: Cesium.Color.fromCssColorString('#3b82f6'),
+        outlineWidth: 2
+      }
+    });
   }
 
   private addMeasurePoint(latlng: L.LatLng) {
@@ -420,12 +529,32 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
       await this.saveMeasurement();
     }
 
+    // Limpiar Leaflet
     if (this.measureLayer && this.map) {
       this.map.removeLayer(this.measureLayer);
     }
     this.measureLayer = null;
     this.measurePolyline = null;
     this.measurePolygon = null;
+
+    // Limpiar Cesium
+    if (this.cesiumViewer) {
+      this.cesiumMeasureEntities.forEach(e => this.cesiumViewer.entities.remove(e));
+      this.cesiumMeasureEntities = [];
+      if (this.cesiumMeasureLine) {
+        this.cesiumViewer.entities.remove(this.cesiumMeasureLine);
+        this.cesiumMeasureLine = null;
+      }
+      if (this.cesiumMeasurePolygon) {
+        this.cesiumViewer.entities.remove(this.cesiumMeasurePolygon);
+        this.cesiumMeasurePolygon = null;
+      }
+      if (this.cesiumClickHandler) {
+        this.cesiumClickHandler.destroy();
+        this.cesiumClickHandler = null;
+      }
+    }
+
     this.measureMode = 'none';
     this.measurePoints = [];
     this.measureDistance = 0;

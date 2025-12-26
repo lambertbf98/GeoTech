@@ -680,6 +680,24 @@ $border-glass: rgba(255, 255, 255, 0.1);
 
 // FAB Button Active State
 .fab-button.active {
-  background: linear-gradient(135deg, $accent-orange, darken($accent-orange, 15%)) !important;
+  background: linear-gradient(135deg, $accent-orange, #cc7000) !important;
   @include glow-effect($accent-orange);
+}
+
+// FABs en Earth View
+.earth-fab-container {
+  position: absolute;
+  right: 16px;
+  bottom: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1000;
+}
+
+.earth-measure {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
 }
