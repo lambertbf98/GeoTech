@@ -9,11 +9,11 @@ WORKDIR /app
 # Copy all files
 COPY . .
 
-# Install backend dependencies
+# Install backend dependencies (include dev for TypeScript)
 WORKDIR /app/backend
-RUN npm ci
+RUN npm ci --include=dev
 RUN npx prisma generate
-RUN npm run build
+RUN npx tsc
 
 # Install frontend dependencies and build
 WORKDIR /app/frontend
