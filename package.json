@@ -1,0 +1,9 @@
+{
+  "name": "geotech",
+  "version": "1.0.0",
+  "description": "GeoTech - Full Stack Application",
+  "scripts": {
+    "build": "cd backend && npm ci && npx prisma generate && npm run build && cd ../frontend && npm ci && npm run build && cp -r www ../backend/public",
+    "start": "cd backend && npm run start"
+  }
+}
