@@ -47,21 +47,12 @@ export class LoginPage implements OnInit {
     }
 
     this.isLoading = true;
-    const loading = await this.loadingCtrl.create({
-      message: 'Iniciando sesion...',
-      spinner: 'crescent'
-    });
-    await loading.present();
 
     try {
       const { email, password } = this.loginForm.value;
       await firstValueFrom(this.authService.login({ email, password }));
-
-      await loading.dismiss();
       this.router.navigate(['/tabs/projects'], { replaceUrl: true });
-
     } catch (error: any) {
-      await loading.dismiss();
       this.isLoading = false;
 
       const toast = await this.toastCtrl.create({

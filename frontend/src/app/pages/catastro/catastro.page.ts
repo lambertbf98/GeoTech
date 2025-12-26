@@ -182,16 +182,12 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async locateMe() {
-    const loading = await this.loadingCtrl.create({ message: 'Localizando...', spinner: 'crescent' });
-    await loading.present();
     try {
       const pos = await this.gpsService.getCurrentPosition();
       this.latitude = pos.latitude.toFixed(6);
       this.longitude = pos.longitude.toFixed(6);
       if (this.map) { this.map.setView([pos.latitude, pos.longitude], 18); this.addMarker(pos.latitude, pos.longitude); }
-      this.showToast('Ubicacion encontrada', 'success');
     } catch (e: any) { this.showToast(e.message || 'Error GPS', 'danger'); }
-    await loading.dismiss();
   }
 
   goToCoords() {
@@ -204,27 +200,19 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
 
   async searchCatastro() {
     if (!this.latitude || !this.longitude) { this.showToast('Toca el mapa primero', 'warning'); return; }
-    const loading = await this.loadingCtrl.create({ message: 'Consultando Catastro...', spinner: 'crescent' });
-    await loading.present();
     try {
       this.parcelData = await this.catastroService.getParcelByCoordinates(parseFloat(this.latitude), parseFloat(this.longitude));
       if (this.parcelData) {
         this.showInfoPanel = true;
-        this.showToast('Parcela encontrada', 'success');
-        console.log('Datos catastro:', this.parcelData);
       }
     } catch (error) {
       console.error('Error catastro:', error);
       this.parcelData = null;
-      this.showToast('Sin datos catastrales', 'warning');
     }
-    await loading.dismiss();
   }
 
   async openEarthView() {
     this.viewMode = 'earth';
-    const loading = await this.loadingCtrl.create({ message: 'Cargando 3D...', spinner: 'crescent' });
-    await loading.present();
     setTimeout(async () => {
       try {
         this.Cesium = await import('cesium');
@@ -285,10 +273,8 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
         }
       } catch (e) {
         console.error('Error cargando Cesium:', e);
-        this.showToast('Error cargando vista 3D', 'danger');
         this.viewMode = 'map';
       }
-      await loading.dismiss();
     }, 400);
   }
 
@@ -315,23 +301,16 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
   // ========== BÚSQUEDA POR DIRECCIÓN (Nominatim) ==========
   async searchByAddress() {
     if (!this.searchAddress || this.searchAddress.length < 3) {
-      this.showToast('Escribe al menos 3 caracteres', 'warning');
       return;
     }
-    const loading = await this.loadingCtrl.create({ message: 'Buscando...', spinner: 'crescent' });
-    await loading.present();
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(this.searchAddress)}&countrycodes=es&limit=5`;
       const results = await this.http.get<any[]>(url).toPromise();
       this.searchResults = results || [];
       this.showAddressResults = this.searchResults.length > 0;
-      if (this.searchResults.length === 0) {
-        this.showToast('No se encontraron resultados', 'warning');
-      }
     } catch (e) {
-      this.showToast('Error en la busqueda', 'danger');
+      console.error('Search error:', e);
     }
-    await loading.dismiss();
   }
 
   selectAddress(result: any) {
@@ -372,9 +351,6 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     this.measurePoints = [];
     this.measureDistance = 0;
     this.measureArea = 0;
-
-    const msg = mode === 'distance' ? 'Toca puntos para medir distancia' : 'Toca puntos para medir area';
-    this.showToast(msg, 'primary');
 
     if (this.viewMode === 'map' && this.map) {
       // Modo Leaflet
@@ -599,10 +575,6 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     };
 
     await this.storageService.saveMeasurement(measurement);
-    this.showToast(
-      `${this.measureMode === 'distance' ? 'Distancia' : 'Área'} guardada: ${measurement.value.toFixed(2)} ${this.measureMode === 'distance' ? 'm' : 'm²'}`,
-      'success'
-    );
   }
 
   goToMeasurements() {
@@ -613,7 +585,6 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
   openInGoogleMaps() {
     // Cambiar a vista de mapa con capa de calle
     if (!this.latitude || !this.longitude) {
-      this.showToast('Selecciona una ubicacion primero', 'warning');
       return;
     }
     this.setMapType('street');
@@ -622,13 +593,11 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     if (this.map) {
       this.map.setView([lat, lon], 19);
     }
-    this.showToast('Vista de mapa activada', 'primary');
   }
 
   openInGoogleEarth() {
     // Abrir vista 3D de Cesium (interna)
     if (!this.latitude || !this.longitude) {
-      this.showToast('Selecciona una ubicacion primero', 'warning');
       return;
     }
     this.openEarthView();
@@ -644,7 +613,6 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
       const lon = parseFloat(this.longitude);
       this.map.setView([lat, lon], 20);
     }
-    this.showToast('Capa Catastro activada', 'primary');
   }
 
   private async showToast(msg: string, color: string) {

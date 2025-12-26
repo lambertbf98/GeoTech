@@ -11,6 +11,7 @@ export interface Photo {
   longitude: number;
   altitude?: number;
   accuracy?: number;
+  location?: string;
   catastroRef?: string;
   catastroData?: CatastroData;
   aiDescription?: string;

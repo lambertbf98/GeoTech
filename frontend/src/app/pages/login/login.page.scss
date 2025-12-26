@@ -2,18 +2,28 @@
 // LOGIN PAGE - DARK GLASSMORPHISM THEME
 // ============================================
 
-// Fix autofill styling - prevent gray/zoom on autofilled inputs
+// Fix autofill styling - prevent yellow/gray on autofilled inputs
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.3) inset !important;
-  -webkit-text-fill-color: var(--geotech-text-primary, #ffffff) !important;
-  background-color: rgba(0, 0, 0, 0.3) !important;
-  background-clip: content-box !important;
-  caret-color: var(--geotech-text-primary, #ffffff) !important;
+  -webkit-box-shadow: 0 0 0 1000px #0a0a0f inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: #0a0a0f !important;
+  caret-color: #ffffff !important;
   font-size: 16px !important;
-  transition: background-color 5000s ease-in-out 0s;
+  transition: background-color 9999s ease-in-out 0s !important;
+  transition-delay: 9999s !important;
+}
+
+ion-input input:-webkit-autofill,
+ion-input input:-webkit-autofill:hover,
+ion-input input:-webkit-autofill:focus,
+ion-input input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #0a0a0f inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: #0a0a0f !important;
+  caret-color: #ffffff !important;
 }
 
 // Prevent zoom on iOS when focusing inputs

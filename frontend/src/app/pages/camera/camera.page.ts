@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { LoadingController, ToastController, AlertController, NavController } from '@ionic/angular';
+import { HttpClient } from '@angular/common/http';
 import { CameraService } from '../../services/camera.service';
 import { GpsService } from '../../services/gps.service';
 import { StorageService } from '../../services/storage.service';
@@ -27,7 +28,8 @@ export class CameraPage implements OnInit {
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
-    private navCtrl: NavController
+    private navCtrl: NavController,
+    private http: HttpClient
   ) {}
 
   async ngOnInit() {
@@ -41,14 +43,16 @@ export class CameraPage implements OnInit {
       const photoData = await this.cameraService.takePhoto();
       let latitude = 0, longitude = 0;
       let altitude: number | undefined, accuracy: number | undefined;
+      let location = '';
       try {
         const pos = await Promise.race([this.gpsService.getCurrentPosition(), new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))]);
         latitude = pos.latitude; longitude = pos.longitude; altitude = pos.altitude; accuracy = pos.accuracy;
         this.gpsStatus = 'GPS: ' + latitude.toFixed(6) + ', ' + longitude.toFixed(6);
+        // Obtener ubicación (dirección) mediante reverse geocoding
+        location = await this.getLocationName(latitude, longitude);
       } catch { this.gpsStatus = 'GPS no disponible'; }
-      this.currentPhoto = { id: 'photo_' + Date.now(), projectId: this.selectedProjectId, imagePath: photoData.webPath || photoData.webviewPath || '', latitude, longitude, altitude, accuracy, timestamp: new Date().toISOString(), synced: false };
+      this.currentPhoto = { id: 'photo_' + Date.now(), projectId: this.selectedProjectId, imagePath: photoData.webPath || photoData.webviewPath || '', latitude, longitude, altitude, accuracy, location, timestamp: new Date().toISOString(), synced: false };
       await this.storageService.addPhoto(this.currentPhoto);
-      this.showToast(latitude ? 'Foto con GPS' : 'Foto sin GPS', latitude ? 'success' : 'warning');
     } catch (error: any) { this.showToast(error.message || 'Error', 'danger'); }
   }
 
@@ -57,21 +61,19 @@ export class CameraPage implements OnInit {
     const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
     input.onchange = async (event: any) => {
       const file = event.target.files?.[0]; if (!file) return;
-      const loading = await this.loadingCtrl.create({ message: 'Procesando imagen...', spinner: 'crescent' }); await loading.present();
+      this.isProcessing = true;
       try {
         let latitude = 0, longitude = 0;
         let altitude: number | undefined, accuracy: number | undefined;
-        let gpsSource = '';
+        let location = '';
 
         // 1. Intentar leer GPS del EXIF de la imagen
         try {
           const exifr = await import('exifr');
           const gps = await exifr.gps(file);
-          console.log('EXIF GPS:', gps);
           if (gps && gps.latitude && gps.longitude) {
             latitude = gps.latitude;
             longitude = gps.longitude;
-            gpsSource = 'EXIF';
             this.gpsStatus = 'EXIF: ' + latitude.toFixed(6) + ', ' + longitude.toFixed(6);
           }
         } catch (e) { console.log('EXIF error:', e); }
@@ -79,7 +81,6 @@ export class CameraPage implements OnInit {
         // 2. Si no hay GPS en EXIF, usar ubicacion del dispositivo
         if (!latitude || !longitude) {
           try {
-            loading.message = 'Obteniendo ubicacion actual...';
             const pos = await Promise.race([
               this.gpsService.getCurrentPosition(),
               new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
@@ -88,13 +89,15 @@ export class CameraPage implements OnInit {
             longitude = pos.longitude;
             altitude = pos.altitude;
             accuracy = pos.accuracy;
-            gpsSource = 'Dispositivo';
             this.gpsStatus = 'GPS: ' + latitude.toFixed(6) + ', ' + longitude.toFixed(6);
-            this.showToast('Ubicacion agregada automaticamente', 'success');
           } catch (e) {
-            console.log('GPS device error:', e);
             this.gpsStatus = 'Sin coordenadas GPS';
           }
+        }
+
+        // Obtener ubicación (dirección) mediante reverse geocoding
+        if (latitude && longitude) {
+          location = await this.getLocationName(latitude, longitude);
         }
 
         // Convertir imagen a base64 para persistencia
@@ -107,18 +110,13 @@ export class CameraPage implements OnInit {
           longitude,
           altitude,
           accuracy,
+          location,
           timestamp: new Date().toISOString(),
           synced: false
         };
         await this.storageService.addPhoto(this.currentPhoto);
-
-        if (latitude) {
-          this.showToast('GPS (' + gpsSource + '): ' + latitude.toFixed(4) + ', ' + longitude.toFixed(4), 'success');
-        } else {
-          this.showToast('Foto guardada sin GPS', 'warning');
-        }
       } catch (error: any) { this.showToast(error.message || 'Error', 'danger'); }
-      await loading.dismiss();
+      this.isProcessing = false;
     };
     input.click();
   }
@@ -159,14 +157,28 @@ export class CameraPage implements OnInit {
 
   async getAIDescription() {
     if (!this.currentPhoto?.imagePath) return;
-    const loading = await this.loadingCtrl.create({ message: 'IA...', spinner: 'crescent' }); await loading.present();
+    this.isProcessing = true;
     try {
       const desc = await this.claudeService.analyzeImage(this.currentPhoto.imagePath);
       this.currentPhoto.aiDescription = desc;
       await this.storageService.updatePhoto(this.currentPhoto);
-      this.showToast('OK', 'success');
-    } catch (e: any) { this.showToast(e.message || 'Error', 'danger'); }
-    await loading.dismiss();
+    } catch (e: any) { this.showToast(e.message || 'Error IA', 'danger'); }
+    this.isProcessing = false;
+  }
+
+  private async getLocationName(lat: number, lon: number): Promise<string> {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18`;
+      const result = await this.http.get<any>(url).toPromise();
+      if (result?.display_name) {
+        // Tomar las primeras partes de la dirección
+        const parts = result.display_name.split(',').slice(0, 3);
+        return parts.join(',').trim();
+      }
+    } catch (e) {
+      console.log('Geocoding error:', e);
+    }
+    return '';
   }
 
   async addNotes() {

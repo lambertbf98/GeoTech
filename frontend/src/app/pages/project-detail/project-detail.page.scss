@@ -367,6 +367,15 @@ ion-back-button {
   }
 }
 
+.viewer-section.location-section {
+  border-color: rgba(245, 158, 11, 0.3);
+
+  .viewer-section-header ion-icon,
+  .viewer-section-header span {
+    color: var(--geotech-accent-orange);
+  }
+}
+
 .viewer-date {
   text-align: center;
   font-size: 12px;

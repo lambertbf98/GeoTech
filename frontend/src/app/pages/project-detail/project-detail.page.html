@@ -78,6 +78,15 @@
       </div>
 
       <div class="viewer-content">
+        <!-- Location -->
+        <div class="viewer-section location-section" *ngIf="selectedPhoto.location">
+          <div class="viewer-section-header">
+            <ion-icon name="navigate"></ion-icon>
+            <span>Ubicacion</span>
+          </div>
+          <p class="viewer-text">{{ selectedPhoto.location }}</p>
+        </div>
+
         <!-- Coordinates -->
         <div class="viewer-section" *ngIf="selectedPhoto.latitude">
           <div class="viewer-section-header">

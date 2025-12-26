@@ -20,7 +20,6 @@
             <ion-input
               type="email"
               formControlName="email"
-              placeholder="tu@email.com"
               autocomplete="email"
               inputmode="email"
             ></ion-input>
@@ -38,7 +37,6 @@
             <ion-input
               [type]="showPassword ? 'text' : 'password'"
               formControlName="password"
-              placeholder="Tu contrasena"
               autocomplete="current-password"
             ></ion-input>
             <ion-button fill="clear" slot="end" (click)="togglePassword()" class="password-toggle">

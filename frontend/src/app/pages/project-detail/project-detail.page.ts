@@ -93,7 +93,6 @@ export class ProjectDetailPage implements OnInit {
       await this.storageService.deletePhoto(this.selectedPhoto.id);
       this.closePhotoViewer();
       await this.loadProject(this.project.id);
-      this.showToast('Foto eliminada', 'success');
     } catch (error) {
       this.showToast('Error al eliminar la foto', 'danger');
     }
