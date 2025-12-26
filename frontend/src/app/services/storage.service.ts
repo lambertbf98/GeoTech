@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Preferences } from '@capacitor/preferences';
-import { Project, Photo, SyncQueueItem } from '../models';
+import { Project, Photo, SyncQueueItem, Measurement } from '../models';
 
 @Injectable({
   providedIn: 'root'
@@ -9,6 +9,7 @@ export class StorageService {
   private readonly PROJECTS_KEY = 'geotech_projects';
   private readonly PHOTOS_KEY = 'geotech_photos';
   private readonly SYNC_QUEUE_KEY = 'geotech_sync_queue';
+  private readonly MEASUREMENTS_KEY = 'geotech_measurements';
 
   constructor() {}
 
@@ -160,5 +161,41 @@ export class StorageService {
 
   async clear(): Promise<void> {
     await Preferences.clear();
+  }
+
+  // ========== MEASUREMENTS ==========
+  async getMeasurements(): Promise<Measurement[]> {
+    const { value } = await Preferences.get({ key: this.MEASUREMENTS_KEY });
+    return value ? JSON.parse(value) : [];
+  }
+
+  async saveMeasurement(measurement: Measurement): Promise<void> {
+    const measurements = await this.getMeasurements();
+    const index = measurements.findIndex(m => m.id === measurement.id);
+    if (index >= 0) {
+      measurements[index] = measurement;
+    } else {
+      measurements.unshift(measurement); // Añadir al principio
+    }
+    await Preferences.set({
+      key: this.MEASUREMENTS_KEY,
+      value: JSON.stringify(measurements)
+    });
+  }
+
+  async deleteMeasurement(measurementId: string): Promise<void> {
+    const measurements = await this.getMeasurements();
+    const filtered = measurements.filter(m => m.id !== measurementId);
+    await Preferences.set({
+      key: this.MEASUREMENTS_KEY,
+      value: JSON.stringify(filtered)
+    });
+  }
+
+  async clearMeasurements(): Promise<void> {
+    await Preferences.set({
+      key: this.MEASUREMENTS_KEY,
+      value: JSON.stringify([])
+    });
   }
 }

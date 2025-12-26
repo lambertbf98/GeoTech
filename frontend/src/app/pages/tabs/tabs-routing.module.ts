@@ -24,6 +24,10 @@ const routes: Routes = [
         loadChildren: () => import('../settings/settings.module').then(m => m.SettingsPageModule)
       },
       {
+        path: 'mediciones',
+        loadChildren: () => import('../mediciones/mediciones.module').then(m => m.MedicionesPageModule)
+      },
+      {
         path: '',
         redirectTo: 'projects',
         pathMatch: 'full'

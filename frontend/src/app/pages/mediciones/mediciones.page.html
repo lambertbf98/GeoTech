@@ -1,0 +1,73 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Mediciones</ion-title>
+    <ion-buttons slot="end" *ngIf="measurements.length > 0">
+      <ion-button (click)="clearAll()" color="danger">
+        <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="mediciones-content">
+  <!-- Lista de mediciones -->
+  <div class="measurements-list" *ngIf="measurements.length > 0">
+    <div class="measurement-card" *ngFor="let m of measurements">
+      <div class="measurement-header">
+        <div class="measurement-type" [class.distance]="m.type === 'distance'" [class.area]="m.type === 'area'">
+          <ion-icon [name]="m.type === 'distance' ? 'resize-outline' : 'square-outline'"></ion-icon>
+          <span>{{ m.type === 'distance' ? 'Distancia' : 'Área' }}</span>
+        </div>
+        <div class="measurement-value">{{ formatValue(m) }}</div>
+      </div>
+
+      <div class="measurement-details">
+        <div class="detail-row" *ngIf="m.location">
+          <ion-icon name="location-outline"></ion-icon>
+          <span>{{ m.location }}</span>
+        </div>
+        <div class="detail-row">
+          <ion-icon name="navigate-outline"></ion-icon>
+          <span class="coords">{{ getCoords(m) }}</span>
+        </div>
+        <div class="detail-row">
+          <ion-icon name="time-outline"></ion-icon>
+          <span>{{ formatDate(m.createdAt) }}</span>
+        </div>
+        <div class="detail-row" *ngIf="m.points">
+          <ion-icon name="ellipse-outline"></ion-icon>
+          <span>{{ m.points.length }} puntos</span>
+        </div>
+      </div>
+
+      <div class="measurement-actions">
+        <button class="action-btn view" (click)="viewOnMap(m)">
+          <ion-icon name="map-outline"></ion-icon>
+          Ver en mapa
+        </button>
+        <button class="action-btn delete" (click)="confirmDelete(m)">
+          <ion-icon name="trash-outline"></ion-icon>
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estado vacío -->
+  <div class="empty-state" *ngIf="measurements.length === 0">
+    <div class="empty-icon">
+      <ion-icon name="analytics-outline"></ion-icon>
+    </div>
+    <h3>Sin mediciones</h3>
+    <p>Las mediciones que realices en el GeoVisor se guardarán aquí automáticamente.</p>
+    <button class="btn-primary" (click)="goBack()">
+      <ion-icon name="map-outline"></ion-icon>
+      Ir al GeoVisor
+    </button>
+  </div>
+</ion-content>

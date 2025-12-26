@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { LoadingController, ToastController, AlertController } from '@ionic/angular';
+import { LoadingController, ToastController, AlertController, NavController } from '@ionic/angular';
 import { CameraService } from '../../services/camera.service';
 import { GpsService } from '../../services/gps.service';
 import { StorageService } from '../../services/storage.service';
@@ -26,7 +26,8 @@ export class CameraPage implements OnInit {
     private claudeService: ClaudeService,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private navCtrl: NavController
   ) {}
 
   async ngOnInit() {
@@ -96,11 +97,12 @@ export class CameraPage implements OnInit {
           }
         }
 
-        const imageUrl = URL.createObjectURL(file);
+        // Convertir imagen a base64 para persistencia
+        const base64 = await this.fileToBase64(file);
         this.currentPhoto = {
           id: 'photo_' + Date.now(),
           projectId: this.selectedProjectId,
-          imagePath: imageUrl,
+          imagePath: base64,
           latitude,
           longitude,
           altitude,
@@ -121,22 +123,38 @@ export class CameraPage implements OnInit {
     input.click();
   }
 
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Navegar al GeoVisor con las coordenadas de la foto
+  openInGeoVisor(mode: 'map' | 'satellite' | 'earth' = 'map') {
+    if (!this.currentPhoto?.latitude || !this.currentPhoto?.longitude) {
+      this.showToast('No hay coordenadas GPS', 'warning');
+      return;
+    }
+    // Guardar coordenadas en storage para que el GeoVisor las use
+    localStorage.setItem('geovisor_lat', this.currentPhoto.latitude.toString());
+    localStorage.setItem('geovisor_lon', this.currentPhoto.longitude.toString());
+    localStorage.setItem('geovisor_mode', mode);
+    this.navCtrl.navigateForward('/tabs/catastro');
+  }
+
   openCatastroMap() {
-    if (!this.currentPhoto?.latitude || !this.currentPhoto?.longitude) { this.showToast('No hay coordenadas GPS', 'warning'); return; }
-    const url = 'https://www1.sedecatastro.gob.es/Cartografia/mapa.aspx?buscar=S&tipoBusqueda=Coordenadas&latitud=' + this.currentPhoto.latitude + '&longitud=' + this.currentPhoto.longitude + '&tipoCoords=2&zoom=17';
-    window.open(url, '_blank');
+    this.openInGeoVisor('satellite');
   }
 
   openGoogleMaps() {
-    if (!this.currentPhoto?.latitude || !this.currentPhoto?.longitude) { this.showToast('No hay coordenadas GPS', 'warning'); return; }
-    const url = 'https://www.google.com/maps/@' + this.currentPhoto.latitude + ',' + this.currentPhoto.longitude + ',18z/data=!3m1!1e3';
-    window.open(url, '_blank');
+    this.openInGeoVisor('map');
   }
 
   openGoogleEarth() {
-    if (!this.currentPhoto?.latitude || !this.currentPhoto?.longitude) { this.showToast('No hay coordenadas GPS', 'warning'); return; }
-    const url = 'https://earth.google.com/web/@' + this.currentPhoto.latitude + ',' + this.currentPhoto.longitude + ',100a,500d,35y,0h,0t,0r';
-    window.open(url, '_blank');
+    this.openInGeoVisor('earth');
   }
 
   async getAIDescription() {

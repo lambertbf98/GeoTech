@@ -613,11 +613,11 @@ $border-glass: rgba(255, 255, 255, 0.1);
     gap: 6px;
     padding: 10px 16px;
     border: none;
-    background: rgba($accent-red, 0.3);
+    background: rgba($accent-green, 0.3);
     border-radius: 10px;
     font-size: 13px;
     font-weight: 600;
-    color: $accent-red;
+    color: $accent-green;
     cursor: pointer;
     transition: all 0.2s ease;
 
@@ -626,8 +626,41 @@ $border-glass: rgba(255, 255, 255, 0.1);
     }
 
     &:hover {
-      background: rgba($accent-red, 0.5);
+      background: rgba($accent-green, 0.5);
     }
+  }
+}
+
+// FAB para ver mediciones guardadas
+.fab-measurements {
+  position: absolute;
+  left: 16px;
+  bottom: 100px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  @include glass-effect;
+  @include glow-effect($accent-orange);
+  z-index: 1000;
+
+  ion-icon {
+    font-size: 22px;
+    color: $accent-orange;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    background: rgba($accent-orange, 0.2);
+  }
+
+  &:active {
+    transform: scale(0.92);
   }
 }
 

@@ -1,0 +1,248 @@
+// ============================================
+// MEDICIONES PAGE - DARK GLASSMORPHISM THEME
+// ============================================
+
+$bg-dark: #0a0a0f;
+$bg-glass: rgba(30, 30, 45, 0.7);
+$bg-glass-light: rgba(40, 40, 60, 0.5);
+$accent-cyan: #00d4ff;
+$accent-purple: #7c3aed;
+$accent-green: #10b981;
+$accent-orange: #f59e0b;
+$accent-red: #ef4444;
+$accent-blue: #3b82f6;
+$text-primary: #f1f5f9;
+$text-secondary: #94a3b8;
+$text-muted: #64748b;
+$border-glass: rgba(255, 255, 255, 0.1);
+
+@mixin glass-effect {
+  background: $bg-glass;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid $border-glass;
+}
+
+@mixin glow-effect($color) {
+  box-shadow: 0 0 20px rgba($color, 0.3), 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+ion-header {
+  ion-toolbar {
+    --background: #{$bg-dark};
+    --color: #{$text-primary};
+    --border-color: #{$border-glass};
+  }
+}
+
+.mediciones-content {
+  --background: #{$bg-dark};
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.measurements-list {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.measurement-card {
+  @include glass-effect;
+  border-radius: 20px;
+  padding: 20px;
+  @include glow-effect($accent-purple);
+}
+
+.measurement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid $border-glass;
+}
+
+.measurement-type {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+
+  ion-icon {
+    font-size: 20px;
+  }
+
+  &.distance {
+    background: rgba($accent-red, 0.2);
+    color: $accent-red;
+  }
+
+  &.area {
+    background: rgba($accent-blue, 0.2);
+    color: $accent-blue;
+  }
+}
+
+.measurement-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: $text-primary;
+  font-family: monospace;
+}
+
+.measurement-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: $text-secondary;
+
+  ion-icon {
+    font-size: 18px;
+    color: $accent-cyan;
+    flex-shrink: 0;
+  }
+
+  span {
+    flex: 1;
+    line-height: 1.4;
+
+    &.coords {
+      font-family: monospace;
+      font-size: 13px;
+      color: $text-muted;
+    }
+  }
+}
+
+.measurement-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid $border-glass;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  ion-icon {
+    font-size: 18px;
+  }
+
+  &.view {
+    background: rgba($accent-cyan, 0.2);
+    color: $accent-cyan;
+
+    &:hover {
+      background: rgba($accent-cyan, 0.3);
+    }
+  }
+
+  &.delete {
+    background: rgba($accent-red, 0.2);
+    color: $accent-red;
+
+    &:hover {
+      background: rgba($accent-red, 0.3);
+    }
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// Estado vacío
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  text-align: center;
+  min-height: 60vh;
+}
+
+.empty-icon {
+  width: 100px;
+  height: 100px;
+  background: $bg-glass;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  border: 1px solid $border-glass;
+
+  ion-icon {
+    font-size: 48px;
+    color: $accent-orange;
+    opacity: 0.8;
+  }
+}
+
+.empty-state h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: $text-primary;
+  margin: 0 0 12px;
+}
+
+.empty-state p {
+  font-size: 15px;
+  color: $text-secondary;
+  margin: 0 0 32px;
+  line-height: 1.6;
+  max-width: 280px;
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 32px;
+  background: linear-gradient(135deg, $accent-cyan, darken($accent-cyan, 20%));
+  border: none;
+  border-radius: 14px;
+  color: $bg-dark;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  @include glow-effect($accent-cyan);
+
+  ion-icon {
+    font-size: 20px;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}

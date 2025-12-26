@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
-import { LoadingController, ToastController, AlertController } from '@ionic/angular';
+import { LoadingController, ToastController, AlertController, NavController } from '@ionic/angular';
 import { CatastroService } from '../../services/catastro.service';
 import { GpsService } from '../../services/gps.service';
+import { StorageService } from '../../services/storage.service';
+import { Measurement, MeasurementPoint } from '../../models';
 import { HttpClient } from '@angular/common/http';
 import * as L from 'leaflet';
 
@@ -43,13 +45,50 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private catastroService: CatastroService,
     private gpsService: GpsService,
+    private storageService: StorageService,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
+    private navCtrl: NavController,
     private http: HttpClient
   ) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    // Verificar si hay coordenadas desde otra página
+    this.checkIncomingCoordinates();
+  }
+
+  ionViewWillEnter() {
+    // También verificar al volver a la página
+    this.checkIncomingCoordinates();
+  }
+
+  private checkIncomingCoordinates() {
+    const lat = localStorage.getItem('geovisor_lat');
+    const lon = localStorage.getItem('geovisor_lon');
+    const mode = localStorage.getItem('geovisor_mode');
+
+    if (lat && lon) {
+      this.latitude = lat;
+      this.longitude = lon;
+      // Limpiar después de usar
+      localStorage.removeItem('geovisor_lat');
+      localStorage.removeItem('geovisor_lon');
+      localStorage.removeItem('geovisor_mode');
+
+      // Si el mapa ya existe, ir a las coordenadas
+      if (this.map) {
+        const latNum = parseFloat(lat);
+        const lonNum = parseFloat(lon);
+        this.map.setView([latNum, lonNum], 19);
+        this.addMarker(latNum, lonNum);
+
+        if (mode === 'earth') {
+          setTimeout(() => this.openEarthView(), 500);
+        }
+      }
+    }
+  }
 
   ngAfterViewInit() {
     setTimeout(() => this.initMap(), 400);
@@ -75,10 +114,23 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     const lat = parseFloat(this.latitude) || 40.416775;
     const lon = parseFloat(this.longitude) || -3.703790;
 
-    this.map = L.map('mainMap', { zoomControl: false }).setView([lat, lon], 17);
+    this.map = L.map('mainMap', {
+      zoomControl: false,
+      maxZoom: 22,
+      minZoom: 3
+    }).setView([lat, lon], 17);
 
-    this.satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '' });
-    this.streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '' });
+    // Capas con zoom máximo extendido
+    this.satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '',
+      maxZoom: 22,
+      maxNativeZoom: 19
+    });
+    this.streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '',
+      maxZoom: 22,
+      maxNativeZoom: 19
+    });
     this.catastroLayer = L.tileLayer.wms('https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx', {
       layers: 'Catastro', format: 'image/png', transparent: true, attribution: ''
     });
@@ -358,7 +410,12 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     return Math.round(area * metersPerDegreeLat * metersPerDegreeLon);
   }
 
-  stopMeasure() {
+  async stopMeasure() {
+    // Guardar medición automáticamente si hay puntos
+    if (this.measurePoints.length >= 2 && (this.measureDistance > 0 || this.measureArea > 0)) {
+      await this.saveMeasurement();
+    }
+
     if (this.measureLayer && this.map) {
       this.map.removeLayer(this.measureLayer);
     }
@@ -379,32 +436,82 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // ========== ABRIR EN GOOGLE MAPS / EARTH ==========
+  private async saveMeasurement() {
+    const points: MeasurementPoint[] = this.measurePoints.map(p => ({ lat: p.lat, lng: p.lng }));
+
+    // Obtener ubicación aproximada del centro
+    const centerLat = points.reduce((sum, p) => sum + p.lat, 0) / points.length;
+    const centerLng = points.reduce((sum, p) => sum + p.lng, 0) / points.length;
+
+    let location = '';
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${centerLat}&lon=${centerLng}&zoom=18`;
+      const result = await this.http.get<any>(url).toPromise();
+      if (result?.display_name) {
+        // Tomar solo las primeras partes de la dirección
+        const parts = result.display_name.split(',').slice(0, 3);
+        location = parts.join(',');
+      }
+    } catch (e) {
+      location = `${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
+    }
+
+    const measurement: Measurement = {
+      id: 'measure_' + Date.now(),
+      type: this.measureMode as 'distance' | 'area',
+      points,
+      value: this.measureMode === 'distance' ? this.measureDistance : this.measureArea,
+      location,
+      createdAt: new Date().toISOString()
+    };
+
+    await this.storageService.saveMeasurement(measurement);
+    this.showToast(
+      `${this.measureMode === 'distance' ? 'Distancia' : 'Área'} guardada: ${measurement.value.toFixed(2)} ${this.measureMode === 'distance' ? 'm' : 'm²'}`,
+      'success'
+    );
+  }
+
+  goToMeasurements() {
+    this.navCtrl.navigateForward('/tabs/mediciones');
+  }
+
+  // ========== VISTAS INTERNAS (sin abrir navegador externo) ==========
   openInGoogleMaps() {
+    // Cambiar a vista de mapa con capa de calle
     if (!this.latitude || !this.longitude) {
       this.showToast('Selecciona una ubicacion primero', 'warning');
       return;
     }
-    const url = `https://www.google.com/maps?q=${this.latitude},${this.longitude}`;
-    window.open(url, '_blank');
+    this.setMapType('street');
+    const lat = parseFloat(this.latitude);
+    const lon = parseFloat(this.longitude);
+    if (this.map) {
+      this.map.setView([lat, lon], 19);
+    }
+    this.showToast('Vista de mapa activada', 'primary');
   }
 
   openInGoogleEarth() {
+    // Abrir vista 3D de Cesium (interna)
     if (!this.latitude || !this.longitude) {
       this.showToast('Selecciona una ubicacion primero', 'warning');
       return;
     }
-    const url = `https://earth.google.com/web/@${this.latitude},${this.longitude},200a,500d,35y,0h,0t,0r`;
-    window.open(url, '_blank');
+    this.openEarthView();
   }
 
   openInCatastro() {
-    if (this.parcelData?.referenciaCatastral) {
-      const url = this.catastroService.getViewerUrl(this.parcelData.referenciaCatastral);
-      window.open(url, '_blank');
-    } else {
-      this.showToast('Consulta el catastro primero', 'warning');
+    // Activar capa de catastro y hacer zoom
+    if (!this.showCatastro) {
+      this.toggleCatastro();
     }
+    if (this.map && this.latitude && this.longitude) {
+      const lat = parseFloat(this.latitude);
+      const lon = parseFloat(this.longitude);
+      this.map.setView([lat, lon], 20);
+    }
+    this.showToast('Capa Catastro activada', 'primary');
   }
 
   private async showToast(msg: string, color: string) {

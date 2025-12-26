@@ -88,10 +88,15 @@
         <span *ngIf="measureMode === 'area'">Area: {{ measureArea | number:'1.0-0' }} m²</span>
       </div>
       <button class="measure-stop" (click)="stopMeasure()">
-        <ion-icon name="close-circle"></ion-icon>
-        Terminar
+        <ion-icon name="checkmark-circle"></ion-icon>
+        Guardar
       </button>
     </div>
+
+    <!-- FAB para ver mediciones guardadas -->
+    <button class="fab-measurements" (click)="goToMeasurements()">
+      <ion-icon name="list-outline"></ion-icon>
+    </button>
 
     <!-- Info Panel -->
     <div class="info-panel" [class.visible]="showInfoPanel">
