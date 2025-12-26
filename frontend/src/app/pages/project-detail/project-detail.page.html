@@ -109,6 +109,12 @@
         <div class="viewer-date" *ngIf="selectedPhoto.timestamp">
           {{ formatDate(selectedPhoto.timestamp) }}
         </div>
+
+        <!-- Delete Button -->
+        <button class="delete-photo-btn" (click)="confirmDeletePhoto()">
+          <ion-icon name="trash-outline"></ion-icon>
+          Eliminar foto
+        </button>
       </div>
     </div>
   </div>

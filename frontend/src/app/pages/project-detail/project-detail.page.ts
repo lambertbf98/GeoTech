@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { NavController, ModalController } from '@ionic/angular';
+import { NavController, AlertController, ToastController } from '@ionic/angular';
 import { StorageService } from '../../services/storage.service';
 import { Project, Photo } from '../../models';
 
@@ -21,7 +21,9 @@ export class ProjectDetailPage implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private storageService: StorageService,
-    private navCtrl: NavController
+    private navCtrl: NavController,
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController
   ) {}
 
   async ngOnInit() {
@@ -62,5 +64,48 @@ export class ProjectDetailPage implements OnInit {
   closePhotoViewer() {
     this.showPhotoViewer = false;
     this.selectedPhoto = null;
+  }
+
+  async confirmDeletePhoto() {
+    if (!this.selectedPhoto) return;
+
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar foto',
+      message: '¿Estás seguro de que quieres eliminar esta foto? Esta acción no se puede deshacer.',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: async () => {
+            await this.deletePhoto();
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async deletePhoto() {
+    if (!this.selectedPhoto || !this.project) return;
+
+    try {
+      await this.storageService.deletePhoto(this.selectedPhoto.id);
+      this.closePhotoViewer();
+      await this.loadProject(this.project.id);
+      this.showToast('Foto eliminada', 'success');
+    } catch (error) {
+      this.showToast('Error al eliminar la foto', 'danger');
+    }
+  }
+
+  private async showToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      position: 'bottom',
+      color
+    });
+    await toast.present();
   }
 }
