@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "prisma generate && tsc",
+    "build": "prisma generate && tsc && npm run build:frontend",
+    "build:frontend": "cd ../frontend && npm ci && npm run build && cp -r www ../backend/public",
     "start": "node dist/index.js",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",

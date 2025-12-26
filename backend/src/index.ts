@@ -16,10 +16,7 @@ import syncRoutes from './routes/sync.routes';
 
 const app = express();
 
-// Simple root health check (before any middleware) - for Railway health checks
-app.get('/', (req, res) => {
-  res.send('GeoTech API is running');
-});
+// Health check endpoint (for Railway)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -56,6 +53,20 @@ app.use('/api/sync', syncRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Serve frontend static files
+const frontendPath = path.join(__dirname, '..', 'public');
+if (fs.existsSync(frontendPath)) {
+  app.use(express.static(frontendPath));
+
+  // SPA fallback - serve index.html for all non-API routes
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+}
 
 // Error handler
 app.use(errorHandler);
