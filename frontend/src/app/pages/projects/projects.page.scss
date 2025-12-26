@@ -1,14 +1,39 @@
+// ============================================
+// PROYECTOS PAGE - DARK GLASSMORPHISM THEME
+// ============================================
+
+// Searchbar oscuro
+ion-searchbar {
+  --background: var(--geotech-bg-glass) !important;
+  --color: var(--geotech-text-primary) !important;
+  --placeholder-color: var(--geotech-text-muted) !important;
+  --icon-color: var(--geotech-accent-cyan) !important;
+  --clear-button-color: var(--geotech-text-muted) !important;
+  --border-radius: var(--geotech-radius-md) !important;
+  padding: 8px 16px !important;
+}
+
+ion-searchbar .searchbar-input {
+  color: var(--geotech-text-primary) !important;
+  font-size: 14px !important;
+}
+
 .offline-banner {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px;
-  background: rgba(224, 159, 62, 0.15);
-  color: #e09f3e;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(245, 158, 11, 0.15);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--geotech-accent-orange);
   font-size: 13px;
-  font-weight: 500;
-  ion-icon { font-size: 18px; }
+  font-weight: 600;
+
+  ion-icon {
+    font-size: 18px;
+    filter: drop-shadow(0 0 4px var(--geotech-accent-orange));
+  }
 }
 
 .loading-container {
@@ -16,44 +41,60 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px;
-  ion-spinner { width: 40px; height: 40px; color: #1a5f7a; }
-  p { margin-top: 16px; color: #6b7280; font-size: 14px; }
+  padding: 64px;
+
+  ion-spinner {
+    width: 48px;
+    height: 48px;
+    color: var(--geotech-accent-cyan);
+  }
+
+  p {
+    margin-top: 20px;
+    color: var(--geotech-text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+  }
 }
 
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 48px 24px;
+  padding: 64px 24px;
   text-align: center;
 }
 
 .empty-icon {
-  width: 96px;
-  height: 96px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  background: #f4f5f8;
+  background: var(--geotech-bg-glass);
+  border: 1px solid var(--geotech-border-glass);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 24px;
-  ion-icon { font-size: 48px; color: #6b7280; }
+  margin-bottom: 28px;
+
+  ion-icon {
+    font-size: 48px;
+    color: var(--geotech-text-muted);
+  }
 }
 
 .empty-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--geotech-text-primary);
+  margin: 0 0 10px;
 }
 
 .empty-description {
   font-size: 15px;
-  color: #6b7280;
-  max-width: 280px;
-  margin: 0 0 24px;
-  line-height: 1.5;
+  color: var(--geotech-text-muted);
+  max-width: 300px;
+  margin: 0 0 28px;
+  line-height: 1.6;
 }
 
 ion-list.geotech-list {
@@ -62,63 +103,104 @@ ion-list.geotech-list {
 }
 
 ion-list.geotech-list ion-item {
-  --background: #ffffff;
-  --border-radius: 12px;
+  --background: var(--geotech-bg-glass);
+  --border-radius: var(--geotech-radius-lg);
   --padding-start: 16px;
-  --padding-end: 8px;
-  --min-height: 80px;
+  --padding-end: 12px;
+  --min-height: 88px;
   margin-bottom: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border: 1px solid var(--geotech-border-glass);
+  border-radius: var(--geotech-radius-lg);
+  backdrop-filter: blur(20px);
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba(0, 212, 255, 0.3);
+    box-shadow: var(--geotech-glow-cyan);
+  }
 }
 
 .project-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: rgba(26, 95, 122, 0.1);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--geotech-radius-md);
+  background: rgba(0, 212, 255, 0.15);
+  border: 1px solid rgba(0, 212, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  ion-icon { font-size: 24px; color: #1a5f7a; }
+
+  ion-icon {
+    font-size: 26px;
+    color: var(--geotech-accent-cyan);
+  }
 }
 
 .project-name {
   font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 4px;
+  font-weight: 700;
+  color: var(--geotech-text-primary);
+  margin-bottom: 6px;
 }
 
 .project-meta {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: #6b7280;
-  ion-icon { font-size: 14px; }
-  span { display: flex; align-items: center; gap: 4px; margin-left: 12px; }
+  gap: 6px;
+  font-size: 12px;
+  color: var(--geotech-text-muted);
+
+  ion-icon {
+    font-size: 14px;
+  }
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 12px;
+  }
 }
 
 .project-location {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: #6b7280;
-  margin-top: 4px;
-  ion-icon { font-size: 14px; }
+  gap: 6px;
+  font-size: 12px;
+  color: var(--geotech-text-secondary);
+  margin-top: 6px;
+
+  ion-icon {
+    font-size: 14px;
+    color: var(--geotech-accent-cyan);
+  }
 }
 
 ion-fab-button {
-  --background: #1a5f7a;
-  --background-activated: #17546c;
+  --background: linear-gradient(135deg, var(--geotech-accent-cyan), #0099cc);
+  --background-activated: var(--geotech-accent-cyan);
+  --box-shadow: var(--geotech-glow-cyan);
+  color: var(--geotech-bg-dark);
 }
 
 .geotech-btn-primary {
-  --background: #1a5f7a;
-  --border-radius: 12px;
-  height: 48px;
+  --background: linear-gradient(135deg, var(--geotech-accent-cyan), #0099cc);
+  --border-radius: var(--geotech-radius-md);
+  --box-shadow: var(--geotech-glow-cyan);
+  height: 52px;
   font-weight: 600;
   text-transform: none;
+  color: var(--geotech-bg-dark);
+}
+
+// Boton 3 puntos sin fondo
+ion-list.geotech-list ion-item ion-button[fill="clear"] {
+  --background: transparent !important;
+  --background-hover: transparent !important;
+  --background-focused: transparent !important;
+  --color: var(--geotech-text-muted);
+
+  &:hover {
+    --color: var(--geotech-accent-cyan);
+  }
 }

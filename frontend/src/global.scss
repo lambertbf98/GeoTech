@@ -1,126 +1,514 @@
 /*
- * App Global CSS
+ * GeoTech Pro - Dark Glassmorphism Global Styles
  */
 
-/* Core CSS required for Ionic components to work properly */
+/* Core Ionic CSS */
 @import "@ionic/angular/css/core.css";
-
-/* Basic CSS for apps built with Ionic */
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
-
-/* Optional CSS utils */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-// Force light mode
-:root {
-  --ion-background-color: #ffffff;
-  --ion-text-color: #1e293b;
-  --ion-card-background: #ffffff;
-}
-
-// ============================================================================
-// FIX: Disable Ionic input focus highlight completely
-// ============================================================================
-ion-input,
-ion-textarea {
-  --highlight-height: 0 !important;
-  --highlight-color-focused: transparent !important;
-  --highlight-color-valid: transparent !important;
-  --highlight-color-invalid: transparent !important;
-}
-
-// Target the internal highlight element
-ion-input .input-highlight,
-ion-input .input-bottom,
-ion-textarea .input-highlight,
-ion-textarea .input-bottom {
-  display: none !important;
-  height: 0 !important;
-  opacity: 0 !important;
-}
-
-// Ensure native input has proper color
-ion-input input.native-input,
-ion-textarea textarea.native-textarea {
-  color: #1e293b !important;
-  background: transparent !important;
-}
-
-// ============================================================================
-// GeoTech Professional Styles
-// ============================================================================
-
 // Import Google Font Inter
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-// Global typography
+// ============================================
+// GLOBAL DARK THEME
+// ============================================
+
+html, body {
+  background: var(--geotech-bg-dark) !important;
+}
+
+ion-app {
+  background: var(--geotech-bg-dark) !important;
+}
+
+ion-content {
+  --background: var(--geotech-bg-dark);
+}
+
+// ============================================
+// TYPOGRAPHY
+// ============================================
+
 body {
   font-family: var(--ion-font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--geotech-text-primary);
 }
 
-// Professional card styles
-.geotech-card {
-  background: var(--ion-card-background);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
+// ============================================
+// GLASSMORPHISM MIXINS (como clases globales)
+// ============================================
+
+.glass-card {
+  background: var(--geotech-bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--geotech-border-glass);
+  border-radius: var(--geotech-radius-lg);
+}
+
+.glass-card-light {
+  background: var(--geotech-bg-glass-light);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--geotech-border-glass);
+  border-radius: var(--geotech-radius-md);
+}
+
+// ============================================
+// TOOLBAR STYLES
+// ============================================
+
+ion-toolbar {
+  --background: transparent;
+  --color: var(--geotech-text-primary);
+  --border-width: 0;
+  --padding-start: 16px;
+  --padding-end: 16px;
+}
+
+ion-header {
+  background: linear-gradient(180deg, rgba(10, 10, 15, 0.98) 0%, rgba(10, 10, 15, 0.9) 100%);
+
+  &::after {
+    display: none;
+  }
+}
+
+ion-toolbar ion-title {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--geotech-text-primary);
+  letter-spacing: -0.02em;
+}
+
+ion-back-button {
+  --color: var(--geotech-accent-cyan);
+}
+
+// ============================================
+// TAB BAR - DARK GLASSMORPHISM (FORZADO)
+// ============================================
+
+ion-tab-bar {
+  --background: #0d0d14 !important;
+  background: #0d0d14 !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--geotech-border-glass) !important;
+  height: 70px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+ion-tab-button {
+  --background: transparent !important;
+  background: transparent !important;
+  --color: var(--geotech-text-muted);
+  --color-selected: var(--geotech-accent-cyan);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+
+  &.tab-selected {
+    ion-icon {
+      filter: drop-shadow(0 0 8px var(--geotech-accent-cyan));
+    }
+  }
+}
+
+ion-tab-button ion-icon {
+  font-size: 22px;
+  margin-bottom: 4px;
+  transition: all 0.3s ease;
+}
+
+ion-tab-button ion-label {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// ============================================
+// CARDS - GLASSMORPHISM
+// ============================================
+
+ion-card {
+  --background: var(--geotech-bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--geotech-border-glass);
+  border-radius: var(--geotech-radius-lg);
+  box-shadow: var(--geotech-shadow-md);
   margin: 16px;
-  padding: 16px;
 }
 
-// Header text
+ion-card-header {
+  padding: 20px 20px 12px;
+}
+
+ion-card-title {
+  color: var(--geotech-text-primary);
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+ion-card-subtitle {
+  color: var(--geotech-text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+}
+
+ion-card-content {
+  color: var(--geotech-text-secondary);
+  padding: 12px 20px 20px;
+}
+
+// ============================================
+// ITEMS / LISTS
+// ============================================
+
+ion-item {
+  --background: transparent;
+  --color: var(--geotech-text-primary);
+  --border-color: var(--geotech-border-glass);
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --inner-padding-end: 0;
+}
+
+ion-item-divider {
+  --background: transparent;
+  --color: var(--geotech-text-muted);
+  border-bottom: 1px solid var(--geotech-border-glass);
+}
+
+ion-list {
+  background: transparent;
+  padding: 0;
+}
+
+ion-list-header {
+  --background: transparent;
+  --color: var(--geotech-accent-cyan);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+// ============================================
+// INPUTS - DARK GLASSMORPHISM
+// ============================================
+
+ion-input, ion-textarea {
+  --background: rgba(0, 0, 0, 0.3);
+  --color: var(--geotech-text-primary);
+  --placeholder-color: var(--geotech-text-muted);
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --highlight-height: 0;
+  border: 1px solid var(--geotech-border-glass);
+  border-radius: var(--geotech-radius-md);
+  transition: all 0.3s ease;
+
+  &.has-focus {
+    border-color: var(--geotech-accent-cyan);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+  }
+}
+
+ion-input input.native-input,
+ion-textarea textarea.native-textarea {
+  color: var(--geotech-text-primary) !important;
+}
+
+ion-label {
+  color: var(--geotech-text-secondary) !important;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// ============================================
+// BUTTONS - GLASSMORPHISM WITH GLOW
+// ============================================
+
+ion-button {
+  --border-radius: var(--geotech-radius-md);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  height: 48px;
+}
+
+ion-button.button-solid {
+  --background: linear-gradient(135deg, var(--geotech-accent-cyan), #0099cc);
+  --background-activated: var(--geotech-accent-cyan);
+  --box-shadow: var(--geotech-glow-cyan);
+  color: #000;
+}
+
+ion-button.button-outline {
+  --border-color: var(--geotech-border-glass);
+  --color: var(--geotech-text-primary);
+  --background: var(--geotech-bg-glass-light);
+  backdrop-filter: blur(10px);
+}
+
+ion-fab-button {
+  --background: linear-gradient(135deg, var(--geotech-accent-cyan), #0099cc) !important;
+  --background-activated: var(--geotech-accent-cyan);
+  --background-focused: var(--geotech-accent-cyan);
+  --background-hover: var(--geotech-accent-cyan);
+  --color: #000 !important;
+  --box-shadow: 0 0 20px rgba(0, 212, 255, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+  --border-radius: 50% !important;
+  border: none !important;
+}
+
+ion-fab-button::part(native) {
+  border-radius: 50% !important;
+  box-shadow: none !important;
+}
+
+// ============================================
+// MODALS / ALERTS
+// ============================================
+
+ion-modal {
+  --background: var(--geotech-bg-dark);
+  --border-radius: var(--geotech-radius-xl);
+}
+
+ion-alert {
+  .alert-wrapper {
+    background: var(--geotech-bg-glass) !important;
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--geotech-border-glass);
+    border-radius: var(--geotech-radius-lg) !important;
+  }
+
+  .alert-head {
+    padding: 20px 20px 12px;
+  }
+
+  .alert-title {
+    color: var(--geotech-text-primary) !important;
+    font-weight: 700;
+  }
+
+  .alert-message {
+    color: var(--geotech-text-secondary) !important;
+  }
+
+  .alert-button {
+    color: var(--geotech-accent-cyan) !important;
+    font-weight: 600;
+  }
+}
+
+ion-toast {
+  --background: var(--geotech-bg-glass);
+  --color: var(--geotech-text-primary);
+  --border-radius: var(--geotech-radius-md);
+  backdrop-filter: blur(20px);
+}
+
+// Action Sheet - Menu de opciones oscuro
+ion-action-sheet {
+  --background: var(--geotech-bg-dark) !important;
+  --backdrop-opacity: 0.7;
+
+  .action-sheet-wrapper {
+    background: transparent !important;
+  }
+
+  .action-sheet-group {
+    background: var(--geotech-bg-glass) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--geotech-border-glass) !important;
+    border-radius: var(--geotech-radius-xl) !important;
+    margin: 8px !important;
+  }
+
+  .action-sheet-title {
+    color: var(--geotech-text-muted) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: transparent !important;
+    border-bottom: 1px solid var(--geotech-border-glass) !important;
+  }
+
+  .action-sheet-button {
+    background: transparent !important;
+    color: var(--geotech-text-primary) !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .action-sheet-icon {
+      color: var(--geotech-accent-cyan) !important;
+    }
+
+    &.action-sheet-destructive {
+      color: var(--geotech-accent-red) !important;
+
+      .action-sheet-icon {
+        color: var(--geotech-accent-red) !important;
+      }
+    }
+
+    &.action-sheet-cancel {
+      background: var(--geotech-bg-glass) !important;
+      color: var(--geotech-accent-cyan) !important;
+      font-weight: 700 !important;
+    }
+  }
+}
+
+ion-loading {
+  --background: var(--geotech-bg-glass);
+  --spinner-color: var(--geotech-accent-cyan);
+
+  .loading-wrapper {
+    backdrop-filter: blur(20px);
+    border-radius: var(--geotech-radius-lg);
+    border: 1px solid var(--geotech-border-glass);
+  }
+}
+
+// ============================================
+// SEGMENT / TOGGLE
+// ============================================
+
+ion-segment {
+  --background: var(--geotech-bg-glass-light);
+  border-radius: var(--geotech-radius-md);
+  border: 1px solid var(--geotech-border-glass);
+}
+
+ion-segment-button {
+  --color: var(--geotech-text-secondary);
+  --color-checked: var(--geotech-bg-dark);
+  --indicator-color: var(--geotech-accent-cyan);
+  --border-radius: var(--geotech-radius-sm);
+  font-weight: 600;
+}
+
+ion-toggle {
+  --background: rgba(100, 116, 139, 0.3);
+  --background-checked: var(--geotech-accent-cyan);
+  --handle-background: var(--geotech-text-primary);
+  --handle-background-checked: var(--geotech-bg-dark);
+}
+
+// ============================================
+// SELECT / PICKER
+// ============================================
+
+ion-select {
+  --placeholder-color: var(--geotech-text-muted);
+  color: var(--geotech-text-primary);
+}
+
+ion-select-popover {
+  --background: var(--geotech-bg-glass);
+}
+
+// ============================================
+// BADGES
+// ============================================
+
+ion-badge {
+  --background: var(--geotech-accent-cyan);
+  --color: var(--geotech-bg-dark);
+  font-weight: 700;
+  border-radius: 100px;
+  padding: 4px 10px;
+}
+
+// ============================================
+// CUSTOM GEOTECH COMPONENTS
+// ============================================
+
+.geotech-card {
+  background: var(--geotech-bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--geotech-border-glass);
+  border-radius: var(--geotech-radius-lg);
+  box-shadow: var(--geotech-shadow-md);
+  padding: 20px;
+  margin: 16px;
+}
+
 .geotech-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--ion-text-color);
-  letter-spacing: -0.025em;
+  color: var(--geotech-text-primary);
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
 .geotech-subtitle {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--ion-text-color);
+  color: var(--geotech-text-primary);
   margin: 0;
 }
 
 .geotech-text {
   font-size: 0.9375rem;
-  color: var(--ion-text-color);
+  color: var(--geotech-text-secondary);
   line-height: 1.6;
 }
 
 .geotech-caption {
   font-size: 0.8125rem;
-  color: #64748b;
+  color: var(--geotech-text-muted);
   line-height: 1.5;
 }
 
-// Form group
-.geotech-form-group {
-  margin-bottom: 20px;
-}
-
-// Form label
 .geotech-label {
   display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--ion-text-color);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--geotech-accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 1px;
   margin-bottom: 8px;
 }
 
-// Sync status badges
+// GPS coordinates display
+.gps-coords {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 0.875rem;
+  color: var(--geotech-accent-cyan);
+  background: rgba(0, 212, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: var(--geotech-radius-sm);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+// Sync badges
 .sync-badge {
   display: inline-flex;
   align-items: center;
@@ -131,18 +519,16 @@ body {
   border-radius: 100px;
 }
 
-.sync-badge ion-icon {
-  font-size: 14px;
-}
-
 .sync-badge.synced {
-  background: rgba(64, 145, 108, 0.12);
-  color: #40916c;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--geotech-accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .sync-badge.pending {
-  background: rgba(224, 159, 62, 0.12);
-  color: #e09f3e;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--geotech-accent-orange);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 // Empty state
@@ -159,7 +545,8 @@ body {
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: #f1f5f9;
+  background: var(--geotech-bg-glass);
+  border: 1px solid var(--geotech-border-glass);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -168,61 +555,90 @@ body {
 
 .empty-state .empty-icon ion-icon {
   font-size: 48px;
-  color: #94a3b8;
+  color: var(--geotech-text-muted);
 }
 
 .empty-state .empty-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--ion-text-color);
+  color: var(--geotech-text-primary);
   margin-bottom: 8px;
 }
 
 .empty-state .empty-description {
   font-size: 0.9375rem;
-  color: #64748b;
+  color: var(--geotech-text-muted);
   max-width: 280px;
   line-height: 1.5;
 }
 
-// GPS coordinates display
-.gps-coords {
-  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 0.8125rem;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 4px 8px;
-  border-radius: 4px;
+// Glow effects for interactive elements
+.glow-cyan {
+  box-shadow: var(--geotech-glow-cyan);
 }
 
-// Toolbar customization
-ion-toolbar {
-  --background: #ffffff;
-  --color: #1e293b;
-  --border-width: 0;
+.glow-purple {
+  box-shadow: var(--geotech-glow-purple);
 }
 
-ion-toolbar ion-title {
+.glow-green {
+  box-shadow: var(--geotech-glow-green);
+}
+
+// Action buttons grid
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 16px;
+  background: var(--geotech-bg-glass-light);
+  border: 1px solid var(--geotech-border-glass);
+  border-radius: var(--geotech-radius-lg);
+  color: var(--geotech-text-primary);
+  font-size: 0.875rem;
   font-weight: 600;
-  font-size: 1.125rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  ion-icon {
+    font-size: 28px;
+    color: var(--geotech-accent-cyan);
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 }
 
-// Tab bar customization
-ion-tab-bar {
-  --background: #ffffff;
-  --border: 1px solid #e2e8f0;
-  height: 64px;
-  padding-bottom: env(safe-area-inset-bottom);
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-ion-tab-button {
-  --color: #64748b;
-  --color-selected: #1a5f7a;
-  font-size: 0.75rem;
-  font-weight: 500;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-ion-tab-button ion-icon {
-  font-size: 24px;
-  margin-bottom: 4px;
+::-webkit-scrollbar-thumb {
+  background: var(--geotech-border-glass);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--geotech-text-muted);
 }

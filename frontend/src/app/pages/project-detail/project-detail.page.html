@@ -14,22 +14,22 @@
     <div class="info-card">
       <h2 class="project-name">{{ project.name }}</h2>
       <p class="project-description" *ngIf="project.description">{{ project.description }}</p>
-      
+
       <div class="info-row">
         <ion-icon name="location-outline"></ion-icon>
         <span>{{ project.location || 'Sin ubicacion' }}</span>
       </div>
-      
+
       <div class="info-row">
         <ion-icon name="calendar-outline"></ion-icon>
         <span>Creado: {{ formatDate(project.createdAt) }}</span>
       </div>
-      
+
       <div class="info-row">
         <ion-icon name="images-outline"></ion-icon>
         <span>{{ photos.length }} fotos</span>
       </div>
-      
+
       <div class="sync-status">
         <span class="sync-badge" [class.synced]="project.synced" [class.pending]="!project.synced">
           <ion-icon [name]="project.synced ? 'cloud-done-outline' : 'cloud-offline-outline'"></ion-icon>
@@ -42,13 +42,17 @@
   <div class="photos-section" *ngIf="photos.length > 0">
     <h3 class="section-title">Fotos del proyecto</h3>
     <div class="photos-grid">
-      <div class="photo-card" *ngFor="let photo of photos">
+      <div class="photo-card" *ngFor="let photo of photos" (click)="openPhotoViewer(photo)">
         <img [src]="photo.imagePath" alt="Foto" *ngIf="photo.imagePath">
         <div class="photo-info">
           <span class="photo-date" *ngIf="photo.timestamp">{{ formatDate($any(photo.timestamp)) }}</span>
           <span class="photo-coords" *ngIf="photo.latitude">
             {{ photo.latitude.toFixed(4) }}, {{ photo.longitude.toFixed(4) }}
           </span>
+        </div>
+        <div class="photo-indicators">
+          <ion-icon name="sparkles" *ngIf="photo.aiDescription" class="indicator-ai"></ion-icon>
+          <ion-icon name="document-text" *ngIf="photo.notes" class="indicator-notes"></ion-icon>
         </div>
       </div>
     </div>
@@ -59,6 +63,53 @@
       <ion-icon name="images-outline"></ion-icon>
     </div>
     <p class="empty-title">Sin fotos</p>
-    <p class="empty-description">Este proyecto aun no tiene fotos. Ve a la camara para agregar fotos.</p>
+    <p class="empty-description">Este proyecto aun no tiene fotos. Ve a Registro para agregar fotos.</p>
+  </div>
+
+  <!-- Photo Viewer Overlay -->
+  <div class="photo-viewer-overlay" *ngIf="showPhotoViewer && selectedPhoto" (click)="closePhotoViewer()">
+    <div class="photo-viewer-container" (click)="$event.stopPropagation()">
+      <button class="close-btn" (click)="closePhotoViewer()">
+        <ion-icon name="close"></ion-icon>
+      </button>
+
+      <div class="viewer-image">
+        <img [src]="selectedPhoto.imagePath" alt="Foto">
+      </div>
+
+      <div class="viewer-content">
+        <!-- Coordinates -->
+        <div class="viewer-section" *ngIf="selectedPhoto.latitude">
+          <div class="viewer-section-header">
+            <ion-icon name="location"></ion-icon>
+            <span>Coordenadas</span>
+          </div>
+          <p class="viewer-coords">{{ selectedPhoto.latitude.toFixed(6) }}, {{ selectedPhoto.longitude.toFixed(6) }}</p>
+        </div>
+
+        <!-- AI Description -->
+        <div class="viewer-section ai-section" *ngIf="selectedPhoto.aiDescription">
+          <div class="viewer-section-header">
+            <ion-icon name="sparkles"></ion-icon>
+            <span>Descripcion IA</span>
+          </div>
+          <p class="viewer-text">{{ selectedPhoto.aiDescription }}</p>
+        </div>
+
+        <!-- User Notes -->
+        <div class="viewer-section notes-section" *ngIf="selectedPhoto.notes">
+          <div class="viewer-section-header">
+            <ion-icon name="document-text"></ion-icon>
+            <span>Mis notas</span>
+          </div>
+          <p class="viewer-text">{{ selectedPhoto.notes }}</p>
+        </div>
+
+        <!-- Date -->
+        <div class="viewer-date" *ngIf="selectedPhoto.timestamp">
+          {{ formatDate(selectedPhoto.timestamp) }}
+        </div>
+      </div>
+    </div>
   </div>
 </ion-content>

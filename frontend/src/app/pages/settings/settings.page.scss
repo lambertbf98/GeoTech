@@ -1,36 +1,157 @@
-.settings-content { --background: #f8fafc; }
+// ============================================
+// CONFIGURACION PAGE - DARK GLASSMORPHISM THEME
+// ============================================
+
+.settings-content {
+  --background: var(--geotech-bg-dark);
+}
 
 .user-card {
-  background: linear-gradient(135deg, #1a5f7a 0%, #2d6a4f 100%);
-  padding: 32px 20px; display: flex; align-items: center; gap: 16px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--geotech-border-glass);
+  padding: 32px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
+
 .user-avatar {
-  width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,0.2);
-  display: flex; align-items: center; justify-content: center;
-  ion-icon { font-size: 32px; color: #fff; }
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--geotech-bg-glass);
+  border: 2px solid var(--geotech-accent-cyan);
+  box-shadow: var(--geotech-glow-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  ion-icon {
+    font-size: 36px;
+    color: var(--geotech-accent-cyan);
+  }
 }
-.user-info h2 { color: #fff; font-size: 20px; font-weight: 600; margin: 0 0 4px; }
-.user-info p { color: rgba(255,255,255,0.8); font-size: 14px; margin: 0; }
 
-.section { padding: 16px; }
-.section-header { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding-left: 4px; }
+.user-info {
+  h2 {
+    color: var(--geotech-text-primary);
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
 
-.settings-list { background: transparent; padding: 0; }
+  p {
+    color: var(--geotech-text-secondary);
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+.section {
+  padding: 20px;
+}
+
+.section-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--geotech-accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+  padding-left: 4px;
+}
+
+.settings-list {
+  background: transparent;
+  padding: 0;
+}
+
 .settings-list ion-item {
-  --background: #fff; --border-radius: 12px; --padding-start: 16px; --min-height: 64px;
-  margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 12px;
-  ion-icon { font-size: 24px; }
-  h3 { font-size: 15px; font-weight: 600; color: #1e293b; }
-  p { font-size: 13px; color: #6b7280; }
+  --background: var(--geotech-bg-glass);
+  --border-radius: var(--geotech-radius-lg);
+  --padding-start: 16px;
+  --min-height: 72px;
+  margin-bottom: 10px;
+  border: 1px solid var(--geotech-border-glass);
+  border-radius: var(--geotech-radius-lg);
+  backdrop-filter: blur(20px);
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba(0, 212, 255, 0.3);
+  }
+
+  ion-icon[slot="start"] {
+    font-size: 24px;
+    color: var(--geotech-accent-cyan);
+    margin-right: 16px;
+  }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--geotech-text-primary);
+    margin: 0 0 4px;
+  }
+
+  p {
+    font-size: 13px;
+    color: var(--geotech-text-muted);
+    margin: 0;
+  }
 }
 
 .status-indicator {
-  width: 10px; height: 10px; border-radius: 50%; background: #6b7280;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--geotech-text-muted);
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.2);
 }
-.status-indicator.online { background: #40916c; }
 
-.logout-section { padding: 16px; }
-.logout-section ion-button { --border-radius: 12px; height: 48px; font-weight: 600; text-transform: none; }
+.status-indicator.online {
+  background: var(--geotech-accent-green);
+  box-shadow: 0 0 8px var(--geotech-accent-green), 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
 
-.footer { text-align: center; padding: 24px 16px; }
-.footer p { font-size: 12px; color: #6b7280; margin: 0; line-height: 1.6; }
+.logout-section {
+  padding: 20px;
+
+  ion-button {
+    --background: rgba(239, 68, 68, 0.15);
+    --color: var(--geotech-accent-red);
+    --border-radius: var(--geotech-radius-md);
+    --border-width: 1px;
+    --border-color: rgba(239, 68, 68, 0.3);
+    height: 52px;
+    font-weight: 600;
+    text-transform: none;
+    backdrop-filter: blur(10px);
+
+    &:hover {
+      --background: rgba(239, 68, 68, 0.25);
+    }
+  }
+}
+
+.footer {
+  text-align: center;
+  padding: 32px 20px;
+  border-top: 1px solid var(--geotech-border-glass);
+
+  p {
+    font-size: 12px;
+    color: var(--geotech-text-muted);
+    margin: 0;
+    line-height: 1.8;
+  }
+}
+
+// Toggle styles
+ion-toggle {
+  --background: rgba(100, 116, 139, 0.3);
+  --background-checked: var(--geotech-accent-cyan);
+  --handle-background: var(--geotech-text-primary);
+  --handle-background-checked: var(--geotech-bg-dark);
+}

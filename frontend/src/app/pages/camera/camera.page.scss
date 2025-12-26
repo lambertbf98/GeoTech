@@ -1,53 +1,278 @@
-.camera-content { --background: #f8fafc; }
+// ============================================
+// CAPTURA PAGE - DARK GLASSMORPHISM THEME
+// ============================================
+
+.camera-content {
+  --background: var(--geotech-bg-dark);
+}
 
 .project-selector {
-  padding: 16px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-  ion-select { width: 100%; --background: #f8fafc; --border-radius: 8px; --padding-start: 12px; margin-top: 8px; border: 1px solid #e2e8f0; border-radius: 8px; }
+  padding: 20px;
+  background: transparent;
+
+  .geotech-label {
+    color: var(--geotech-accent-cyan);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  ion-select {
+    width: 100%;
+    --background: transparent !important;
+    --placeholder-color: var(--geotech-text-muted);
+    color: var(--geotech-text-primary) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 8px 0 !important;
+    font-weight: 600;
+    font-size: 20px;
+    box-shadow: none !important;
+    --highlight-color-focused: transparent;
+    --ripple-color: transparent;
+  }
+
+  // Quitar el borde/marco del ion-item si existe
+  ion-item {
+    --background: transparent !important;
+    --border-color: transparent !important;
+    --inner-border-width: 0 !important;
+    --padding-start: 0 !important;
+    --inner-padding-end: 0 !important;
+  }
 }
 
 .gps-status {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 12px; background: rgba(26, 95, 122, 0.1); color: #1a5f7a; font-size: 13px; font-weight: 500;
-  ion-icon { font-size: 18px; }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: var(--geotech-bg-glass);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--geotech-border-glass);
+  color: var(--geotech-accent-cyan);
+  font-size: 13px;
+  font-weight: 600;
+
+  ion-icon {
+    font-size: 18px;
+    filter: drop-shadow(0 0 6px var(--geotech-accent-cyan));
+  }
 }
 
-.photo-area { padding: 16px; }
+.photo-area {
+  padding: 20px;
+}
+
+// Grid layout for capture buttons
+.capture-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
 
 .capture-area {
-  aspect-ratio: 4/3; background: #fff; border: 2px dashed #e2e8f0; border-radius: 16px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
-  transition: all 0.2s;
+  aspect-ratio: 1;
+  background: var(--geotech-bg-glass);
+  backdrop-filter: blur(20px);
+  border: 2px dashed var(--geotech-border-glass);
+  border-radius: var(--geotech-radius-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: var(--geotech-accent-cyan);
+    background: rgba(0, 212, 255, 0.05);
+  }
+
+  &:active {
+    transform: scale(0.98);
+    border-color: var(--geotech-accent-cyan);
+    box-shadow: var(--geotech-glow-cyan);
+  }
+
+  &.import {
+    .capture-icon {
+      background: rgba(124, 58, 237, 0.2);
+      ion-icon { color: var(--geotech-accent-purple); }
+    }
+
+    &:hover {
+      border-color: var(--geotech-accent-purple);
+      background: rgba(124, 58, 237, 0.05);
+    }
+
+    &:active {
+      box-shadow: var(--geotech-glow-purple);
+    }
+  }
 }
-.capture-area:active { background: #f8fafc; border-color: #1a5f7a; }
 
 .capture-icon {
-  width: 80px; height: 80px; border-radius: 50%; background: rgba(26, 95, 122, 0.1);
-  display: flex; align-items: center; justify-content: center; margin-bottom: 16px;
-  ion-icon { font-size: 40px; color: #1a5f7a; }
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(0, 212, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+
+  ion-icon {
+    font-size: 36px;
+    color: var(--geotech-accent-cyan);
+  }
 }
 
-.capture-area p { color: #6b7280; font-size: 15px; }
+.capture-area p {
+  color: var(--geotech-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
 
 .photo-preview {
-  position: relative; border-radius: 16px; overflow: hidden;
-  img { width: 100%; display: block; }
-  .clear-btn { position: absolute; top: 8px; right: 8px; --color: #fff; --background: rgba(0,0,0,0.5); --border-radius: 50%; width: 36px; height: 36px; }
+  position: relative;
+  border-radius: var(--geotech-radius-xl);
+  overflow: hidden;
+  box-shadow: var(--geotech-shadow-lg);
+  border: 1px solid var(--geotech-border-glass);
+
+  img {
+    width: 100%;
+    display: block;
+  }
+
+  .clear-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    --color: #fff;
+    --background: rgba(239, 68, 68, 0.8);
+    --border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    backdrop-filter: blur(10px);
+  }
 }
 
-.photo-info { padding: 0 16px 16px; }
+.photo-info {
+  padding: 0 20px 20px;
+}
 
 .info-card {
-  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px;
-  .info-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 600; color: #1e293b; ion-icon { color: #1a5f7a; font-size: 20px; } }
-  .coords { display: flex; flex-wrap: wrap; gap: 12px; font-family: monospace; font-size: 13px; color: #6b7280; }
-  .catastro-ref { font-family: monospace; font-size: 14px; color: #1e293b; margin: 0; }
-  .ai-description { font-size: 14px; color: #6b7280; line-height: 1.5; margin: 0; }
+  background: var(--geotech-bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--geotech-border-glass);
+  border-radius: var(--geotech-radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+
+  .info-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--geotech-text-primary);
+
+    ion-icon {
+      color: var(--geotech-accent-cyan);
+      font-size: 22px;
+    }
+  }
+
+  .coords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 13px;
+    color: var(--geotech-accent-cyan);
+    background: rgba(0, 212, 255, 0.1);
+    padding: 12px 16px;
+    border-radius: var(--geotech-radius-sm);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+  }
+
+  .no-gps {
+    color: var(--geotech-accent-orange);
+    font-style: italic;
+    font-family: inherit;
+  }
+
+  .ai-description {
+    font-size: 14px;
+    color: var(--geotech-text-secondary);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .user-notes {
+    font-size: 14px;
+    color: var(--geotech-text-primary);
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-wrap;
+  }
+
+  &.notes-card {
+    border-color: rgba(124, 58, 237, 0.3);
+    background: rgba(124, 58, 237, 0.08);
+
+    .info-header ion-icon {
+      color: var(--geotech-accent-purple);
+    }
+  }
 }
 
 .action-buttons {
-  ion-button { --border-radius: 12px; height: 48px; font-weight: 600; text-transform: none; margin-bottom: 12px; }
-}
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 
-.geotech-label { font-size: 14px; font-weight: 600; color: #1e293b; }
+  ion-button {
+    --border-radius: var(--geotech-radius-md);
+    height: 52px;
+    font-weight: 600;
+    text-transform: none;
+    margin: 0;
+
+    &.button-solid {
+      --background: linear-gradient(135deg, var(--geotech-accent-cyan), #0099cc);
+      --box-shadow: var(--geotech-glow-cyan);
+      color: var(--geotech-bg-dark);
+    }
+
+    &[color="success"] {
+      --background: linear-gradient(135deg, var(--geotech-accent-green), #0d9668);
+      --box-shadow: var(--geotech-glow-green);
+    }
+
+    &[color="tertiary"] {
+      --background: linear-gradient(135deg, #3b82f6, #2563eb);
+      --box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    &[color="secondary"] {
+      --background: linear-gradient(135deg, var(--geotech-accent-purple), #6d28d9);
+      --box-shadow: var(--geotech-glow-purple);
+    }
+
+    &[fill="outline"] {
+      --border-color: var(--geotech-border-glass);
+      --background: var(--geotech-bg-glass-light);
+      --color: var(--geotech-text-primary);
+    }
+  }
+}

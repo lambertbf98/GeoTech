@@ -9,7 +9,10 @@ import { ApiService } from './api.service';
   providedIn: 'root'
 })
 export class CatastroService {
+  // URL directa del Catastro - usar CORS proxy si es necesario
   private readonly CATASTRO_URL = 'https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR';
+  // Proxy CORS público para evitar problemas con ngrok
+  private readonly CORS_PROXY = 'https://corsproxy.io/?';
 
   constructor(
     private http: HttpClient,
@@ -17,7 +20,8 @@ export class CatastroService {
   ) {}
 
   async getParcelByCoordinates(latitude: number, longitude: number): Promise<any> {
-    const response = await firstValueFrom(this.lookupByCoordinates(latitude, longitude));
+    // Usar lookupDirectly para consultar directamente la API del Catastro español
+    const response = await firstValueFrom(this.lookupDirectly(latitude, longitude));
     if (response.success && response.data) {
       return response.data;
     }
@@ -47,7 +51,11 @@ export class CatastroService {
       Coordenada_Y: latitude.toString()
     };
 
-    const url = `${this.CATASTRO_URL}?SRS=${params.SRS}&Coordenada_X=${params.Coordenada_X}&Coordenada_Y=${params.Coordenada_Y}`;
+    // Construir URL del catastro
+    const catastroUrl = `${this.CATASTRO_URL}?SRS=${params.SRS}&Coordenada_X=${params.Coordenada_X}&Coordenada_Y=${params.Coordenada_Y}`;
+
+    // Usar proxy CORS para evitar bloqueos
+    const url = `${this.CORS_PROXY}${encodeURIComponent(catastroUrl)}`;
 
     return this.http.get(url, { responseType: 'text' }).pipe(
       map(xmlResponse => this.parseXmlResponse(xmlResponse)),
@@ -55,7 +63,7 @@ export class CatastroService {
         console.error('Error consultando Catastro:', error);
         return of({
           success: false,
-          error: 'Error al consultar el Catastro'
+          error: 'Error al consultar el Catastro. Verifica tu conexion.'
         });
       })
     );
@@ -66,31 +74,30 @@ export class CatastroService {
       const parser = new DOMParser();
       const doc = parser.parseFromString(xml, 'text/xml');
 
-      const error = doc.querySelector('err');
-      if (error) {
-        return {
-          success: false,
-          error: error.textContent || 'Error en la consulta'
-        };
+      // Check for errors
+      const cuerr = doc.querySelector('cuerr');
+      if (cuerr && cuerr.textContent !== '0') {
+        const errMsg = doc.querySelector('des')?.textContent || 'Error en la consulta';
+        return { success: false, error: errMsg };
       }
 
-      const rc = doc.querySelector('rc');
-      const ldt = doc.querySelector('ldt');
+      // The structure is: coordenadas > coord > pc > pc1, pc2
+      const coord = doc.querySelector('coord');
+      const pc = coord?.querySelector('pc');
+      const ldt = coord?.querySelector('ldt');
 
-      if (!rc) {
+      if (!pc) {
         return {
           success: false,
           error: 'No se encontraron datos catastrales para esta ubicacion'
         };
       }
 
-      const pc1 = rc.querySelector('pc1')?.textContent || '';
-      const pc2 = rc.querySelector('pc2')?.textContent || '';
-      const car = rc.querySelector('car')?.textContent || '';
-      const cc1 = rc.querySelector('cc1')?.textContent || '';
-      const cc2 = rc.querySelector('cc2')?.textContent || '';
+      const pc1 = pc.querySelector('pc1')?.textContent || '';
+      const pc2 = pc.querySelector('pc2')?.textContent || '';
 
-      const referenciaCatastral = `${pc1}${pc2}${car}${cc1}${cc2}`;
+      // La referencia catastral completa es pc1 + pc2
+      const referenciaCatastral = `${pc1}${pc2}`;
       const direccion = ldt?.textContent || '';
 
       return {

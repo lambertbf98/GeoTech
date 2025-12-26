@@ -1,5 +1,9 @@
+// ============================================
+// LOGIN PAGE - DARK GLASSMORPHISM THEME
+// ============================================
+
 .login-content {
-  --background: linear-gradient(180deg, #1a5f7a 0%, #2d6a4f 100%);
+  --background: var(--geotech-bg-dark);
 }
 
 .login-container {
@@ -9,148 +13,164 @@
   padding: 24px;
   padding-top: calc(24px + var(--ion-safe-area-top));
   padding-bottom: calc(24px + var(--ion-safe-area-bottom));
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.05) 0%, var(--geotech-bg-dark) 50%);
 }
 
 // Header Section
 .login-header {
   text-align: center;
-  padding: 40px 0 32px;
+  padding: 48px 0 40px;
 }
 
 .logo-container {
-  width: 88px;
-  height: 88px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 24px;
+  width: 100px;
+  height: 100px;
+  background: var(--geotech-bg-glass);
+  backdrop-filter: blur(20px);
+  border-radius: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin: 0 auto 24px;
+  border: 1px solid var(--geotech-border-glass);
+  box-shadow: var(--geotech-glow-cyan);
 }
 
 .logo-icon {
-  font-size: 48px;
-  color: #ffffff;
+  font-size: 52px;
+  color: var(--geotech-accent-cyan);
+  filter: drop-shadow(0 0 10px var(--geotech-accent-cyan));
 }
 
 .app-title {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--geotech-text-primary);
   margin: 0 0 8px;
   letter-spacing: -0.5px;
 }
 
 .app-subtitle {
   font-size: 15px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--geotech-text-secondary);
   margin: 0;
   font-weight: 400;
 }
 
 // Form Section
 .login-form-container {
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 28px 24px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  background: var(--geotech-bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 32px 24px;
+  border: 1px solid var(--geotech-border-glass);
+  box-shadow: var(--geotech-shadow-lg);
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
 .geotech-form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .geotech-label {
   display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--geotech-accent-cyan);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
 }
 
 .input-item {
-  --background: #f8fafc;
-  --border-radius: 12px;
+  --background: rgba(0, 0, 0, 0.3) !important;
+  --border-radius: 14px !important;
   --padding-start: 16px;
   --padding-end: 16px;
-  --min-height: 52px;
-  --color: #1e293b;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
-  transition: all 0.2s ease;
+  --min-height: 56px;
+  --color: var(--geotech-text-primary);
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid var(--geotech-border-glass) !important;
+  border-radius: 14px !important;
+  transition: all 0.3s ease;
 
   ion-input {
-    --color: #1e293b;
-    --placeholder-color: #9ca3af;
+    --color: var(--geotech-text-primary) !important;
+    --placeholder-color: var(--geotech-text-muted) !important;
   }
 
   &.item-has-focus {
-    border-color: #1a5f7a;
-    --background: #ffffff;
+    border-color: var(--geotech-accent-cyan) !important;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
   }
 
   &.input-error {
-    border-color: #c1292e;
+    border-color: var(--geotech-accent-red) !important;
   }
 }
 
 .input-icon {
-  color: #6b7280;
-  font-size: 20px;
+  color: var(--geotech-accent-cyan) !important;
+  font-size: 22px;
   margin-right: 12px;
 }
 
 .password-toggle {
-  --color: #6b7280;
+  --color: var(--geotech-text-muted);
   margin: 0;
   height: 40px;
 
   ion-icon {
     font-size: 22px;
   }
+
+  &:hover {
+    --color: var(--geotech-accent-cyan);
+  }
 }
 
 .error-text {
   display: block;
   font-size: 12px;
-  color: #c1292e;
-  margin-top: 6px;
+  color: var(--geotech-accent-red);
+  margin-top: 8px;
   padding-left: 4px;
 }
 
 .forgot-password {
   text-align: right;
-  margin-bottom: 24px;
-  margin-top: -8px;
+  margin-bottom: 28px;
+  margin-top: -12px;
 }
 
 .forgot-btn {
-  --color: #1a5f7a;
+  --color: var(--geotech-accent-cyan);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
 }
 
 .login-btn {
-  --background: #1a5f7a;
-  --background-hover: #17546c;
-  --border-radius: 12px;
-  height: 52px;
+  --background: linear-gradient(135deg, var(--geotech-accent-cyan), #0099cc) !important;
+  --background-hover: var(--geotech-accent-cyan);
+  --border-radius: 14px;
+  --box-shadow: var(--geotech-glow-cyan);
+  height: 56px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: none;
   letter-spacing: 0;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  color: var(--geotech-bg-dark) !important;
 
   ion-spinner {
     width: 24px;
     height: 24px;
+    color: var(--geotech-bg-dark);
   }
 }
 
@@ -159,43 +179,51 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .divider-line {
   flex: 1;
   height: 1px;
-  background: #e2e8f0;
+  background: var(--geotech-border-glass);
 }
 
 .divider-text {
-  color: #6b7280;
+  color: var(--geotech-text-muted);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .register-btn {
-  --border-color: #1a5f7a;
-  --border-width: 1.5px;
-  --color: #1a5f7a;
-  --border-radius: 12px;
-  height: 52px;
+  --border-color: var(--geotech-border-glass) !important;
+  --border-width: 1px;
+  --color: var(--geotech-text-primary);
+  --background: var(--geotech-bg-glass-light);
+  --border-radius: 14px;
+  height: 56px;
   font-size: 16px;
   font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
+  backdrop-filter: blur(10px);
+
+  &:hover {
+    --background: rgba(255, 255, 255, 0.1);
+  }
 }
 
 // Footer
 .login-footer {
   text-align: center;
-  padding-top: 24px;
+  padding-top: 32px;
   margin-top: auto;
 }
 
 .footer-text {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--geotech-text-muted);
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.8;
 }

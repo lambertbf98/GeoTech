@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { NavController } from '@ionic/angular';
+import { NavController, ModalController } from '@ionic/angular';
 import { StorageService } from '../../services/storage.service';
 import { Project, Photo } from '../../models';
 
@@ -13,6 +13,10 @@ import { Project, Photo } from '../../models';
 export class ProjectDetailPage implements OnInit {
   project: Project | null = null;
   photos: Photo[] = [];
+
+  // Photo viewer
+  selectedPhoto: Photo | null = null;
+  showPhotoViewer = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -47,5 +51,16 @@ export class ProjectDetailPage implements OnInit {
       month: 'short',
       year: 'numeric'
     });
+  }
+
+  // Photo viewer methods
+  openPhotoViewer(photo: Photo) {
+    this.selectedPhoto = photo;
+    this.showPhotoViewer = true;
+  }
+
+  closePhotoViewer() {
+    this.showPhotoViewer = false;
+    this.selectedPhoto = null;
   }
 }

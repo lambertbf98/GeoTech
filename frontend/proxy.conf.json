@@ -1,0 +1,11 @@
+{
+  "/catastro-api": {
+    "target": "https://ovc.catastro.meh.es",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/catastro-api": ""
+    },
+    "logLevel": "debug"
+  }
+}

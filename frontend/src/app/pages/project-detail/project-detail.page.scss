@@ -1,45 +1,50 @@
-// Back button visibility
+// ============================================
+// PROJECT DETAIL - DARK GLASSMORPHISM THEME
+// ============================================
+
 ion-back-button {
-  --color: #1a5f7a;
+  --color: var(--geotech-accent-cyan) !important;
   display: block !important;
 }
 
 .project-detail-content {
-  --background: #f8fafc;
+  --background: var(--geotech-bg-dark);
 }
 
 .project-info {
-  padding: 16px;
+  padding: 20px;
 }
 
 .info-card {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid #e2e8f0;
+  background: var(--geotech-bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--geotech-radius-lg);
+  padding: 24px;
+  border: 1px solid var(--geotech-border-glass);
 }
 
 .project-name {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--geotech-text-primary);
   margin: 0 0 8px 0;
 }
 
 .project-description {
   font-size: 15px;
-  color: #64748b;
-  margin: 0 0 16px 0;
-  line-height: 1.5;
+  color: var(--geotech-text-secondary);
+  margin: 0 0 20px 0;
+  line-height: 1.6;
 }
 
 .info-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid #f1f5f9;
-  color: #475569;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--geotech-border-glass);
+  color: var(--geotech-text-secondary);
   font-size: 14px;
 }
 
@@ -49,22 +54,22 @@ ion-back-button {
 
 .info-row ion-icon {
   font-size: 20px;
-  color: #1a5f7a;
+  color: var(--geotech-accent-cyan);
 }
 
 .sync-status {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e2e8f0;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--geotech-border-glass);
 }
 
 .sync-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 100px;
 }
 
@@ -73,24 +78,28 @@ ion-back-button {
 }
 
 .sync-badge.synced {
-  background: rgba(64, 145, 108, 0.12);
-  color: #40916c;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--geotech-accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .sync-badge.pending {
-  background: rgba(224, 159, 62, 0.12);
-  color: #e09f3e;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--geotech-accent-orange);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .photos-section {
-  padding: 0 16px 16px;
+  padding: 0 20px 20px;
 }
 
 .section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 12px 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--geotech-accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 0 0 16px 0;
 }
 
 .photos-grid {
@@ -100,10 +109,17 @@ ion-back-button {
 }
 
 .photo-card {
-  background: #ffffff;
-  border-radius: 12px;
+  background: var(--geotech-bg-glass);
+  backdrop-filter: blur(20px);
+  border-radius: var(--geotech-radius-md);
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--geotech-border-glass);
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba(0, 212, 255, 0.3);
+    box-shadow: var(--geotech-glow-cyan);
+  }
 }
 
 .photo-card img {
@@ -113,20 +129,21 @@ ion-back-button {
 }
 
 .photo-info {
-  padding: 10px;
+  padding: 12px;
 }
 
 .photo-date {
   display: block;
   font-size: 12px;
-  color: #64748b;
+  color: var(--geotech-text-secondary);
+  font-weight: 500;
 }
 
 .photo-coords {
   display: block;
   font-size: 11px;
-  color: #94a3b8;
-  font-family: monospace;
+  color: var(--geotech-accent-cyan);
+  font-family: 'SF Mono', monospace;
   margin-top: 4px;
 }
 
@@ -135,36 +152,226 @@ ion-back-button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
+  padding: 64px 24px;
   text-align: center;
 }
 
 .empty-icon {
-  width: 80px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
-  background: #f1f5f9;
+  background: var(--geotech-bg-glass);
+  border: 1px solid var(--geotech-border-glass);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .empty-icon ion-icon {
   font-size: 40px;
-  color: #94a3b8;
+  color: var(--geotech-text-muted);
 }
 
 .empty-title {
   font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: 700;
+  color: var(--geotech-text-primary);
   margin: 0 0 8px 0;
 }
 
 .empty-description {
   font-size: 14px;
-  color: #64748b;
-  max-width: 250px;
+  color: var(--geotech-text-muted);
+  max-width: 260px;
   margin: 0;
+  line-height: 1.5;
+}
+
+// Photo card clickable
+.photo-card {
+  cursor: pointer;
+  position: relative;
+}
+
+// Photo indicators (AI, Notes)
+.photo-indicators {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+
+  ion-icon {
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+    border-radius: 6px;
+    backdrop-filter: blur(10px);
+  }
+
+  .indicator-ai {
+    background: rgba(124, 58, 237, 0.8);
+    color: white;
+  }
+
+  .indicator-notes {
+    background: rgba(0, 212, 255, 0.8);
+    color: white;
+  }
+}
+
+// ============================================
+// PHOTO VIEWER OVERLAY
+// ============================================
+
+.photo-viewer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.photo-viewer-container {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--geotech-bg-glass);
+  backdrop-filter: blur(20px);
+  border-radius: var(--geotech-radius-xl);
+  border: 1px solid var(--geotech-border-glass);
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+
+  ion-icon {
+    font-size: 24px;
+    color: white;
+  }
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.8);
+  }
+}
+
+.viewer-image {
+  width: 100%;
+
+  img {
+    width: 100%;
+    display: block;
+    border-radius: var(--geotech-radius-xl) var(--geotech-radius-xl) 0 0;
+  }
+}
+
+.viewer-content {
+  padding: 20px;
+}
+
+.viewer-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--geotech-radius-md);
+  border: 1px solid var(--geotech-border-glass);
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+}
+
+.viewer-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  ion-icon {
+    font-size: 20px;
+    color: var(--geotech-accent-cyan);
+  }
+
+  span {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--geotech-accent-cyan);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+}
+
+.viewer-coords {
+  font-family: 'SF Mono', monospace;
+  font-size: 14px;
+  color: var(--geotech-accent-cyan);
+  margin: 0;
+}
+
+.viewer-text {
+  font-size: 14px;
+  color: var(--geotech-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.viewer-section.ai-section {
+  border-color: rgba(124, 58, 237, 0.3);
+
+  .viewer-section-header ion-icon,
+  .viewer-section-header span {
+    color: var(--geotech-accent-purple);
+  }
+}
+
+.viewer-section.notes-section {
+  border-color: rgba(16, 185, 129, 0.3);
+
+  .viewer-section-header ion-icon,
+  .viewer-section-header span {
+    color: var(--geotech-accent-green);
+  }
+
+  .viewer-text {
+    color: var(--geotech-text-primary);
+  }
+}
+
+.viewer-date {
+  text-align: center;
+  font-size: 12px;
+  color: var(--geotech-text-muted);
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--geotech-border-glass);
 }
