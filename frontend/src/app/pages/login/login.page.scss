@@ -2,6 +2,27 @@
 // LOGIN PAGE - DARK GLASSMORPHISM THEME
 // ============================================
 
+// Fix autofill styling - prevent gray/zoom on autofilled inputs
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.3) inset !important;
+  -webkit-text-fill-color: var(--geotech-text-primary, #ffffff) !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  background-clip: content-box !important;
+  caret-color: var(--geotech-text-primary, #ffffff) !important;
+  font-size: 16px !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+// Prevent zoom on iOS when focusing inputs
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 .login-content {
   --background: var(--geotech-bg-dark);
 }
