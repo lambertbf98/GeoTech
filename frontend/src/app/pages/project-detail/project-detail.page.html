@@ -22,7 +22,7 @@
 
       <div class="info-row">
         <ion-icon name="calendar-outline"></ion-icon>
-        <span>Creado: {{ formatDate(project.createdAt) }}</span>
+        <span>Creado: {{ formatDateTime(project.createdAt) }}</span>
       </div>
 
       <div class="info-row">
@@ -31,9 +31,9 @@
       </div>
 
       <div class="sync-status">
-        <span class="sync-badge" [class.synced]="project.synced" [class.pending]="!project.synced">
-          <ion-icon [name]="project.synced ? 'cloud-done-outline' : 'cloud-offline-outline'"></ion-icon>
-          {{ project.synced ? 'Sincronizado' : 'Pendiente' }}
+        <span class="sync-badge local">
+          <ion-icon name="phone-portrait-outline"></ion-icon>
+          Guardado localmente
         </span>
       </div>
     </div>

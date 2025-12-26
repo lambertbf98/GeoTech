@@ -77,16 +77,10 @@ ion-back-button {
   font-size: 16px;
 }
 
-.sync-badge.synced {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--geotech-accent-green);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.sync-badge.pending {
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--geotech-accent-orange);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+.sync-badge.local {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--geotech-accent-cyan);
+  border: 1px solid rgba(0, 212, 255, 0.3);
 }
 
 .photos-section {

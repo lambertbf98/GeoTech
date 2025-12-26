@@ -1,9 +1,11 @@
 import { Component, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 import { AlertController, LoadingController, ToastController, ActionSheetController } from "@ionic/angular";
+import { HttpClient } from "@angular/common/http";
 import { ApiService } from "../../services/api.service";
 import { StorageService } from "../../services/storage.service";
 import { SyncService } from "../../services/sync.service";
+import { GpsService } from "../../services/gps.service";
 import { Project } from "../../models";
 import { firstValueFrom } from "rxjs";
 
@@ -23,11 +25,13 @@ export class ProjectsPage implements OnInit {
     private apiService: ApiService,
     private storageService: StorageService,
     private syncService: SyncService,
+    private gpsService: GpsService,
     private router: Router,
     private alertCtrl: AlertController,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
-    private actionSheetCtrl: ActionSheetController
+    private actionSheetCtrl: ActionSheetController,
+    private http: HttpClient
   ) {}
 
   async ngOnInit() { await this.loadProjects(); }
@@ -59,12 +63,24 @@ export class ProjectsPage implements OnInit {
   }
 
   async createProject() {
+    // Obtener ubicación actual automáticamente
+    let currentLocation = '';
+    try {
+      const pos = await Promise.race([
+        this.gpsService.getCurrentPosition(),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+      ]);
+      currentLocation = await this.getLocationName(pos.latitude, pos.longitude);
+    } catch (e) {
+      console.log('No se pudo obtener ubicación:', e);
+    }
+
     const alert = await this.alertCtrl.create({
       header: "Nuevo Proyecto",
       inputs: [
         { name: "name", type: "text", placeholder: "Nombre *" },
         { name: "description", type: "textarea", placeholder: "Descripcion" },
-        { name: "location", type: "text", placeholder: "Ubicacion" }
+        { name: "location", type: "text", placeholder: "Ubicacion", value: currentLocation }
       ],
       buttons: [
         { text: "Cancelar", role: "cancel" },
@@ -74,9 +90,21 @@ export class ProjectsPage implements OnInit {
     await alert.present();
   }
 
+  private async getLocationName(lat: number, lon: number): Promise<string> {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18`;
+      const result = await this.http.get<any>(url).toPromise();
+      if (result?.display_name) {
+        const parts = result.display_name.split(',').slice(0, 3);
+        return parts.join(',').trim();
+      }
+    } catch (e) {
+      console.log('Geocoding error:', e);
+    }
+    return '';
+  }
+
   private async saveProject(data: any) {
-    const loading = await this.loadingCtrl.create({ message: "Creando...", spinner: "crescent" });
-    await loading.present();
     try {
       const newProject = { name: data.name.trim(), description: data.description, location: data.location };
       if (this.isOnline) {
@@ -99,7 +127,6 @@ export class ProjectsPage implements OnInit {
     } catch (error) {
       console.error('Error creating project:', error);
     }
-    await loading.dismiss();
   }
 
   openProject(project: Project) { this.router.navigate(["/project-detail", project.id]); }
@@ -124,6 +151,7 @@ export class ProjectsPage implements OnInit {
 
   formatDate(dateString: string | Date): string {
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-    return date.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
+    return date.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) +
+      ' - ' + date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   }
 }
