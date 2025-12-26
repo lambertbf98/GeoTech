@@ -114,9 +114,9 @@
           <p class="viewer-text">{{ selectedPhoto.notes }}</p>
         </div>
 
-        <!-- Date -->
+        <!-- Date and Time -->
         <div class="viewer-date" *ngIf="selectedPhoto.timestamp">
-          {{ formatDate(selectedPhoto.timestamp) }}
+          {{ formatDateTime(selectedPhoto.timestamp) }}
         </div>
 
         <!-- Delete Button -->

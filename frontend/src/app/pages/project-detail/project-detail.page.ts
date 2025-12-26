@@ -55,6 +55,18 @@ export class ProjectDetailPage implements OnInit {
     });
   }
 
+  formatDateTime(date: Date | string): string {
+    const d = new Date(date);
+    return d.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }) + ' - ' + d.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
   // Photo viewer methods
   openPhotoViewer(photo: Photo) {
     this.selectedPhoto = photo;
