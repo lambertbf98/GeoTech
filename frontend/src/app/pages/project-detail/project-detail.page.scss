@@ -249,11 +249,12 @@ ion-back-button {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.95);
-  z-index: 9999;
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  padding-top: calc(20px + var(--ion-safe-area-top, 0px));
   animation: fadeIn 0.2s ease;
 }
 
@@ -655,7 +656,7 @@ ion-back-button {
   right: 0;
   bottom: 0;
   background: white;
-  z-index: 9999;
+  z-index: 99999;
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.2s ease;
@@ -664,20 +665,27 @@ ion-back-button {
 .report-viewer-header,
 .kml-viewer-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
+  padding-top: calc(12px + var(--ion-safe-area-top, 0px));
   background: var(--ion-color-primary);
   color: white;
+  gap: 8px;
 
   h2 {
     margin: 0;
     font-size: 18px;
     font-weight: 600;
+    flex: 1;
   }
 
   ion-button {
     --color: white;
+    margin: 0;
+  }
+
+  .header-spacer {
+    width: 40px;
   }
 }
 

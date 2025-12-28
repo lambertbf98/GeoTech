@@ -59,8 +59,8 @@
     <h3 class="section-title">Registro fotográfico</h3>
     <div class="photos-grid">
       <div class="photo-card" *ngFor="let photo of photos" (click)="openPhotoViewer(photo)">
-        <img [src]="photo.imagePath" alt="Foto" *ngIf="photo.imagePath" (error)="onImageError($event)">
-        <div class="photo-placeholder" *ngIf="!photo.imagePath">
+        <img [src]="photo.imageUrl || photo.localPath || photo.imagePath" alt="Foto" *ngIf="photo.imageUrl || photo.localPath || photo.imagePath" (error)="onImageError($event)">
+        <div class="photo-placeholder" *ngIf="!photo.imageUrl && !photo.localPath && !photo.imagePath">
           <ion-icon name="image-outline"></ion-icon>
         </div>
         <div class="photo-info">
@@ -118,113 +118,116 @@
     <p class="empty-description">Este proyecto aún no tiene contenido. Utiliza el editor de mapa para añadir elementos geográficos, fotografías y generar documentación.</p>
   </div>
 
-  <!-- Photo Viewer Overlay -->
-  <div class="photo-viewer-overlay" *ngIf="showPhotoViewer && selectedPhoto" (click)="closePhotoViewer()">
-    <div class="photo-viewer-container" (click)="$event.stopPropagation()">
-      <button class="close-btn" (click)="closePhotoViewer()">
-        <ion-icon name="close"></ion-icon>
-      </button>
-
-      <div class="viewer-image">
-        <img [src]="selectedPhoto.imagePath" alt="Foto" (error)="onImageError($event)">
-      </div>
-
-      <div class="viewer-content">
-        <!-- Location -->
-        <div class="viewer-section location-section" *ngIf="selectedPhoto.location">
-          <div class="viewer-section-header">
-            <ion-icon name="navigate"></ion-icon>
-            <span>Ubicacion</span>
-          </div>
-          <p class="viewer-text">{{ selectedPhoto.location }}</p>
-        </div>
-
-        <!-- Coordinates -->
-        <div class="viewer-section" *ngIf="selectedPhoto.latitude">
-          <div class="viewer-section-header">
-            <ion-icon name="location"></ion-icon>
-            <span>Coordenadas</span>
-          </div>
-          <p class="viewer-coords">{{ selectedPhoto.latitude.toFixed(6) }}, {{ selectedPhoto.longitude.toFixed(6) }}</p>
-        </div>
-
-        <!-- AI Description -->
-        <div class="viewer-section ai-section" *ngIf="selectedPhoto.aiDescription">
-          <div class="viewer-section-header">
-            <ion-icon name="sparkles"></ion-icon>
-            <span>Descripcion IA</span>
-          </div>
-          <p class="viewer-text">{{ selectedPhoto.aiDescription }}</p>
-        </div>
-
-        <!-- User Notes -->
-        <div class="viewer-section notes-section" *ngIf="selectedPhoto.notes">
-          <div class="viewer-section-header">
-            <ion-icon name="document-text"></ion-icon>
-            <span>Mis notas</span>
-          </div>
-          <p class="viewer-text">{{ selectedPhoto.notes }}</p>
-        </div>
-
-        <!-- Date and Time -->
-        <div class="viewer-date" *ngIf="selectedPhoto.timestamp">
-          {{ formatDateTime(selectedPhoto.timestamp) }}
-        </div>
-
-        <!-- Delete Button -->
-        <button class="delete-photo-btn" (click)="confirmDeletePhoto()">
-          <ion-icon name="trash-outline"></ion-icon>
-          Eliminar foto
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Report Viewer Overlay -->
-  <div class="report-viewer-overlay" *ngIf="showReportViewer && selectedReport">
-    <div class="report-viewer-header">
-      <h2>{{ selectedReport.name }}</h2>
-      <ion-button fill="clear" (click)="closeReportViewer()">
-        <ion-icon slot="icon-only" name="close"></ion-icon>
-      </ion-button>
-    </div>
-    <div class="report-viewer-content" [innerHTML]="selectedReportHtml"></div>
-    <div class="report-viewer-actions">
-      <ion-button color="danger" fill="outline" (click)="deleteReport(selectedReport)">
-        <ion-icon slot="start" name="trash-outline"></ion-icon>
-        Eliminar
-      </ion-button>
-      <ion-button color="primary" (click)="downloadReportAsWord(selectedReport)">
-        <ion-icon slot="start" name="download-outline"></ion-icon>
-        Descargar
-      </ion-button>
-    </div>
-  </div>
-
-  <!-- KML Viewer Overlay -->
-  <div class="kml-viewer-overlay" *ngIf="showKmlViewer && selectedKml">
-    <div class="kml-viewer-header">
-      <h2>{{ selectedKml.name }}</h2>
-      <ion-button fill="clear" (click)="closeKmlViewer()">
-        <ion-icon slot="icon-only" name="close"></ion-icon>
-      </ion-button>
-    </div>
-    <div class="kml-viewer-content">
-      <div class="kml-preview">
-        <ion-icon name="earth" class="kml-big-icon"></ion-icon>
-        <p class="kml-info">Archivo KML</p>
-        <p class="kml-date">Creado: {{ formatDateTime(selectedKml.createdAt) }}</p>
-      </div>
-    </div>
-    <div class="kml-viewer-actions">
-      <ion-button color="danger" fill="outline" (click)="deleteKml(selectedKml)">
-        <ion-icon slot="start" name="trash-outline"></ion-icon>
-        Eliminar
-      </ion-button>
-      <ion-button color="primary" (click)="downloadKml(selectedKml)">
-        <ion-icon slot="start" name="download-outline"></ion-icon>
-        Descargar KML
-      </ion-button>
-    </div>
-  </div>
 </ion-content>
+
+<!-- Photo Viewer Overlay - fuera de ion-content para cubrir toda la pantalla -->
+<div class="photo-viewer-overlay" *ngIf="showPhotoViewer && selectedPhoto" (click)="closePhotoViewer()">
+  <div class="photo-viewer-container" (click)="$event.stopPropagation()">
+    <button class="close-btn" (click)="closePhotoViewer()">
+      <ion-icon name="close"></ion-icon>
+    </button>
+
+    <div class="viewer-image">
+      <img [src]="selectedPhoto.imageUrl || selectedPhoto.localPath || selectedPhoto.imagePath" alt="Foto" (error)="onImageError($event)">
+    </div>
+
+    <div class="viewer-content">
+      <!-- Location -->
+      <div class="viewer-section location-section" *ngIf="selectedPhoto.location">
+        <div class="viewer-section-header">
+          <ion-icon name="navigate"></ion-icon>
+          <span>Ubicación</span>
+        </div>
+        <p class="viewer-text">{{ selectedPhoto.location }}</p>
+      </div>
+
+      <!-- Coordinates -->
+      <div class="viewer-section" *ngIf="selectedPhoto.latitude">
+        <div class="viewer-section-header">
+          <ion-icon name="location"></ion-icon>
+          <span>Coordenadas</span>
+        </div>
+        <p class="viewer-coords">{{ selectedPhoto.latitude.toFixed(6) }}, {{ selectedPhoto.longitude.toFixed(6) }}</p>
+      </div>
+
+      <!-- AI Description -->
+      <div class="viewer-section ai-section" *ngIf="selectedPhoto.aiDescription">
+        <div class="viewer-section-header">
+          <ion-icon name="sparkles"></ion-icon>
+          <span>Descripción IA</span>
+        </div>
+        <p class="viewer-text">{{ selectedPhoto.aiDescription }}</p>
+      </div>
+
+      <!-- User Notes -->
+      <div class="viewer-section notes-section" *ngIf="selectedPhoto.notes">
+        <div class="viewer-section-header">
+          <ion-icon name="document-text"></ion-icon>
+          <span>Mis notas</span>
+        </div>
+        <p class="viewer-text">{{ selectedPhoto.notes }}</p>
+      </div>
+
+      <!-- Date and Time -->
+      <div class="viewer-date" *ngIf="selectedPhoto.timestamp">
+        {{ formatDateTime(selectedPhoto.timestamp) }}
+      </div>
+
+      <!-- Delete Button -->
+      <button class="delete-photo-btn" (click)="confirmDeletePhoto()">
+        <ion-icon name="trash-outline"></ion-icon>
+        Eliminar foto
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Report Viewer Overlay - fuera de ion-content para cubrir toda la pantalla -->
+<div class="report-viewer-overlay" *ngIf="showReportViewer && selectedReport">
+  <div class="report-viewer-header">
+    <ion-button fill="clear" (click)="closeReportViewer()">
+      <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+    </ion-button>
+    <h2>{{ selectedReport.name }}</h2>
+    <div class="header-spacer"></div>
+  </div>
+  <div class="report-viewer-content" [innerHTML]="selectedReportHtml"></div>
+  <div class="report-viewer-actions">
+    <ion-button color="danger" fill="outline" (click)="deleteReport(selectedReport)">
+      <ion-icon slot="start" name="trash-outline"></ion-icon>
+      Eliminar
+    </ion-button>
+    <ion-button color="primary" (click)="downloadReportAsWord(selectedReport)">
+      <ion-icon slot="start" name="download-outline"></ion-icon>
+      Descargar
+    </ion-button>
+  </div>
+</div>
+
+<!-- KML Viewer Overlay - fuera de ion-content para cubrir toda la pantalla -->
+<div class="kml-viewer-overlay" *ngIf="showKmlViewer && selectedKml">
+  <div class="kml-viewer-header">
+    <ion-button fill="clear" (click)="closeKmlViewer()">
+      <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+    </ion-button>
+    <h2>{{ selectedKml.name }}</h2>
+    <div class="header-spacer"></div>
+  </div>
+  <div class="kml-viewer-content">
+    <div class="kml-preview">
+      <ion-icon name="earth" class="kml-big-icon"></ion-icon>
+      <p class="kml-info">Archivo KML</p>
+      <p class="kml-date">Creado: {{ formatDateTime(selectedKml.createdAt) }}</p>
+    </div>
+  </div>
+  <div class="kml-viewer-actions">
+    <ion-button color="danger" fill="outline" (click)="deleteKml(selectedKml)">
+      <ion-icon slot="start" name="trash-outline"></ion-icon>
+      Eliminar
+    </ion-button>
+    <ion-button color="primary" (click)="downloadKml(selectedKml)">
+      <ion-icon slot="start" name="download-outline"></ion-icon>
+      Descargar KML
+    </ion-button>
+  </div>
+</div>

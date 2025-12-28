@@ -458,21 +458,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
     await this.saveProject();
     this.renderProjectElements();
-
-    // Preguntar si quiere tomar una foto
-    this.promptPhotoForMarker(marker);
-  }
-
-  private async promptPhotoForMarker(marker: ProjectMarker) {
-    const alert = await this.alertCtrl.create({
-      header: 'Añadir fotografía',
-      message: `¿Deseas tomar una foto para el punto "${marker.name}"?`,
-      buttons: [
-        { text: 'No', role: 'cancel' },
-        { text: 'Sí, tomar foto', handler: () => this.takePhotoForMarker(marker) }
-      ]
-    });
-    await alert.present();
   }
 
   async takePhotoForMarker(marker: ProjectMarker) {
@@ -501,48 +486,9 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         await this.saveProject();
 
         this.renderProjectElements();
-
-        // Preguntar si quiere análisis IA
-        this.promptAIDescriptionForMarker(photo, marker);
       }
     } catch (error: any) {
       this.showToast(error.message || 'Error al tomar foto', 'danger');
-    }
-  }
-
-  private async promptAIDescriptionForMarker(photo: Photo, marker: ProjectMarker) {
-    const alert = await this.alertCtrl.create({
-      header: 'Análisis con IA',
-      message: '¿Deseas que la IA analice esta fotografía?',
-      buttons: [
-        { text: 'No', role: 'cancel' },
-        { text: 'Sí, analizar', handler: () => this.analyzePhotoForMarker(photo, marker) }
-      ]
-    });
-    await alert.present();
-  }
-
-  private async analyzePhotoForMarker(photo: Photo, marker: ProjectMarker) {
-    this.isAnalyzingPhoto = true;
-    try {
-      const imagePath = photo.imageUrl || photo.localPath || '';
-      const description = await this.claudeService.analyzeImage(imagePath);
-
-      photo.aiDescription = description;
-      await this.storageService.updatePhoto(photo);
-
-      // También guardar en el marcador
-      marker.aiDescription = description;
-      await this.saveProject();
-
-      const index = this.photos.findIndex(p => p.id === photo.id);
-      if (index >= 0) this.photos[index] = photo;
-
-      this.renderProjectElements();
-    } catch (error: any) {
-      // Error silencioso
-    } finally {
-      this.isAnalyzingPhoto = false;
     }
   }
 
@@ -581,14 +527,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         text: `Ver ${markerPhotos.length} foto${markerPhotos.length > 1 ? 's' : ''}`,
         icon: 'images-outline',
         handler: () => this.showMarkerPhotos(marker, markerPhotos)
-      });
-    }
-
-    if (!marker.aiDescription && hasPhotos) {
-      buttons.push({
-        text: 'Analizar con IA',
-        icon: 'sparkles-outline',
-        handler: () => this.analyzePhotoForMarker(markerPhotos[0], marker)
       });
     }
 
@@ -656,15 +594,22 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   async showPhotoDetail(photo: Photo, marker: ProjectMarker) {
+    // Construir mensaje sin HTML
+    let message = '';
+    if (photo.aiDescription) {
+      message += `Descripción IA: ${photo.aiDescription}\n\n`;
+    }
+    if (photo.notes) {
+      message += `Notas: ${photo.notes}`;
+    }
+    if (!message) {
+      message = 'Sin descripción. Puedes añadir notas.';
+    }
+
     const alert = await this.alertCtrl.create({
       header: marker.name,
-      message: `
-        <div style="text-align:center;">
-          <img src="${photo.imageUrl || photo.localPath}" style="max-width:100%;border-radius:8px;margin-bottom:10px;">
-          ${photo.aiDescription ? `<p><strong>IA:</strong> ${photo.aiDescription}</p>` : ''}
-          ${photo.notes ? `<p><strong>Notas:</strong> ${photo.notes}</p>` : ''}
-        </div>
-      `,
+      subHeader: `${marker.coordinate.lat.toFixed(5)}, ${marker.coordinate.lng.toFixed(5)}`,
+      message: message,
       buttons: [
         {
           text: 'Editar nota',
