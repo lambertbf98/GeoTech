@@ -16,6 +16,7 @@ import { Project, Photo, ProjectReport, ProjectKml } from '../../models';
 export class ProjectDetailPage implements OnInit {
   project: Project | null = null;
   photos: Photo[] = [];
+  private projectId: string | null = null;
 
   // Photo viewer
   selectedPhoto: Photo | null = null;
@@ -42,9 +43,16 @@ export class ProjectDetailPage implements OnInit {
   ) {}
 
   async ngOnInit() {
-    const projectId = this.route.snapshot.paramMap.get('id');
-    if (projectId) {
-      await this.loadProject(projectId);
+    this.projectId = this.route.snapshot.paramMap.get('id');
+    if (this.projectId) {
+      await this.loadProject(this.projectId);
+    }
+  }
+
+  // Refrescar datos cada vez que se entra a la página
+  async ionViewWillEnter() {
+    if (this.projectId) {
+      await this.loadProject(this.projectId);
     }
   }
 
@@ -262,6 +270,10 @@ export class ProjectDetailPage implements OnInit {
 
   get markerCount(): number {
     return this.project?.markers?.length || 0;
+  }
+
+  get totalDocuments(): number {
+    return this.reportCount + this.kmlCount;
   }
 
   private async showToast(message: string, color: string) {

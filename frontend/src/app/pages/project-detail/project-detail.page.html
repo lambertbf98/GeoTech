@@ -27,17 +27,17 @@
 
       <div class="info-row">
         <ion-icon name="images-outline"></ion-icon>
-        <span>{{ photos.length }} fotos</span>
+        <span>{{ photos.length }} {{ photos.length === 1 ? 'fotografía' : 'fotografías' }}</span>
       </div>
 
       <div class="info-row" *ngIf="zoneCount > 0 || pathCount > 0 || markerCount > 0">
         <ion-icon name="map-outline"></ion-icon>
-        <span>{{ zoneCount }} zonas, {{ pathCount }} viales, {{ markerCount }} puntos</span>
+        <span>{{ zoneCount }} {{ zoneCount === 1 ? 'área delimitada' : 'áreas delimitadas' }}, {{ pathCount }} {{ pathCount === 1 ? 'trazado vial' : 'trazados viales' }}, {{ markerCount }} {{ markerCount === 1 ? 'punto de interés' : 'puntos de interés' }}</span>
       </div>
 
-      <div class="info-row" *ngIf="reportCount > 0 || kmlCount > 0">
+      <div class="info-row">
         <ion-icon name="folder-outline"></ion-icon>
-        <span>{{ reportCount + kmlCount }} documentos generados</span>
+        <span>{{ totalDocuments }} {{ totalDocuments === 1 ? 'documento generado' : 'documentos generados' }}</span>
       </div>
 
       <div class="sync-status">
@@ -56,7 +56,7 @@
   </div>
 
   <div class="photos-section" *ngIf="photos.length > 0">
-    <h3 class="section-title">Fotos del proyecto</h3>
+    <h3 class="section-title">Registro fotográfico</h3>
     <div class="photos-grid">
       <div class="photo-card" *ngFor="let photo of photos" (click)="openPhotoViewer(photo)">
         <img [src]="photo.imagePath" alt="Foto" *ngIf="photo.imagePath" (error)="onImageError($event)">
@@ -77,23 +77,23 @@
     </div>
   </div>
 
-  <div class="empty-photos" *ngIf="photos.length === 0 && (reportCount > 0 || kmlCount > 0)">
+  <div class="empty-photos" *ngIf="photos.length === 0 && (totalDocuments > 0 || zoneCount > 0 || pathCount > 0 || markerCount > 0)">
     <div class="empty-photos-content">
       <ion-icon name="images-outline"></ion-icon>
-      <span>Sin fotos en este proyecto</span>
+      <span>Sin registro fotográfico</span>
     </div>
   </div>
 
   <!-- Documentos Generados Section -->
-  <div class="documents-section" *ngIf="reportCount > 0 || kmlCount > 0">
-    <h3 class="section-title">Documentos generados</h3>
+  <div class="documents-section" *ngIf="totalDocuments > 0">
+    <h3 class="section-title">Documentación técnica</h3>
     <div class="documents-grid">
       <!-- Informes PDD -->
       <div class="document-card report-card" *ngFor="let report of project?.reports" (click)="openReportViewer(report)">
         <div class="document-icon">
           <ion-icon name="document-text"></ion-icon>
         </div>
-        <div class="document-type">INFORME PDD</div>
+        <div class="document-type">INFORME TÉCNICO</div>
         <div class="document-name">{{ report.name }}</div>
         <div class="document-date">{{ formatDate(report.createdAt) }}</div>
       </div>
@@ -102,20 +102,20 @@
         <div class="document-icon">
           <ion-icon name="earth"></ion-icon>
         </div>
-        <div class="document-type">ARCHIVO KML</div>
+        <div class="document-type">GEODATOS KML</div>
         <div class="document-name">{{ kml.name }}</div>
         <div class="document-date">{{ formatDate(kml.createdAt) }}</div>
       </div>
     </div>
   </div>
 
-  <!-- Sin documentos -->
-  <div class="empty-state" *ngIf="photos.length === 0 && reportCount === 0 && kmlCount === 0">
+  <!-- Sin contenido -->
+  <div class="empty-state" *ngIf="photos.length === 0 && totalDocuments === 0 && zoneCount === 0 && pathCount === 0 && markerCount === 0">
     <div class="empty-icon">
       <ion-icon name="folder-open-outline"></ion-icon>
     </div>
-    <p class="empty-title">Sin contenido</p>
-    <p class="empty-description">Este proyecto aun no tiene fotos ni documentos. Usa el editor de mapa para agregar contenido.</p>
+    <p class="empty-title">Proyecto vacío</p>
+    <p class="empty-description">Este proyecto aún no tiene contenido. Utiliza el editor de mapa para añadir elementos geográficos, fotografías y generar documentación.</p>
   </div>
 
   <!-- Photo Viewer Overlay -->
