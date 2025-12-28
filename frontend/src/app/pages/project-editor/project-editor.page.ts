@@ -458,18 +458,271 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
     await this.saveProject();
     this.renderProjectElements();
+
+    // Preguntar si quiere tomar una foto
+    this.promptPhotoForMarker(marker);
+  }
+
+  private async promptPhotoForMarker(marker: ProjectMarker) {
+    const alert = await this.alertCtrl.create({
+      header: 'Añadir fotografía',
+      message: `¿Deseas tomar una foto para el punto "${marker.name}"?`,
+      buttons: [
+        { text: 'No', role: 'cancel' },
+        { text: 'Sí, tomar foto', handler: () => this.takePhotoForMarker(marker) }
+      ]
+    });
+    await alert.present();
+  }
+
+  async takePhotoForMarker(marker: ProjectMarker) {
+    try {
+      const photoData = await this.cameraService.takePhoto();
+
+      if (photoData && this.project) {
+        const photo: Photo = {
+          id: `photo_${Date.now()}`,
+          projectId: this.project.id,
+          localPath: photoData.filepath,
+          imageUrl: photoData.webviewPath || photoData.webPath,
+          latitude: marker.coordinate.lat,
+          longitude: marker.coordinate.lng,
+          timestamp: new Date().toISOString(),
+          synced: false,
+          notes: `Punto: ${marker.name}`
+        };
+
+        await this.storageService.savePhoto(photo);
+        this.photos.push(photo);
+
+        // Vincular foto al marcador
+        marker.photoIds = marker.photoIds || [];
+        marker.photoIds.push(photo.id);
+        await this.saveProject();
+
+        this.renderProjectElements();
+
+        // Preguntar si quiere análisis IA
+        this.promptAIDescriptionForMarker(photo, marker);
+      }
+    } catch (error: any) {
+      this.showToast(error.message || 'Error al tomar foto', 'danger');
+    }
+  }
+
+  private async promptAIDescriptionForMarker(photo: Photo, marker: ProjectMarker) {
+    const alert = await this.alertCtrl.create({
+      header: 'Análisis con IA',
+      message: '¿Deseas que la IA analice esta fotografía?',
+      buttons: [
+        { text: 'No', role: 'cancel' },
+        { text: 'Sí, analizar', handler: () => this.analyzePhotoForMarker(photo, marker) }
+      ]
+    });
+    await alert.present();
+  }
+
+  private async analyzePhotoForMarker(photo: Photo, marker: ProjectMarker) {
+    this.isAnalyzingPhoto = true;
+    try {
+      const imagePath = photo.imageUrl || photo.localPath || '';
+      const description = await this.claudeService.analyzeImage(imagePath);
+
+      photo.aiDescription = description;
+      await this.storageService.updatePhoto(photo);
+
+      // También guardar en el marcador
+      marker.aiDescription = description;
+      await this.saveProject();
+
+      const index = this.photos.findIndex(p => p.id === photo.id);
+      if (index >= 0) this.photos[index] = photo;
+
+      this.renderProjectElements();
+    } catch (error: any) {
+      // Error silencioso
+    } finally {
+      this.isAnalyzingPhoto = false;
+    }
   }
 
   private addMarkerToMap(marker: ProjectMarker) {
+    const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
     const icon = L.divIcon({
-      className: 'project-marker',
-      html: '<div class="marker-pin"></div>',
+      className: hasPhotos ? 'project-marker has-photo' : 'project-marker',
+      html: `<div class="marker-pin">${hasPhotos ? '<span class="photo-badge"></span>' : ''}</div>`,
       iconSize: [24, 32],
       iconAnchor: [12, 32]
     });
     const mapMarker = L.marker([marker.coordinate.lat, marker.coordinate.lng], { icon });
-    mapMarker.bindPopup(this.createMarkerPopup(marker));
+    mapMarker.on('click', () => this.showMarkerOptions(marker));
     mapMarker.addTo(this.markersLayer!);
+  }
+
+  async showMarkerOptions(marker: ProjectMarker) {
+    const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
+    const markerPhotos = hasPhotos ? this.photos.filter(p => marker.photoIds!.includes(p.id)) : [];
+
+    const buttons: any[] = [
+      {
+        text: 'Tomar foto',
+        icon: 'camera-outline',
+        handler: () => this.takePhotoForMarker(marker)
+      },
+      {
+        text: 'Editar notas',
+        icon: 'create-outline',
+        handler: () => this.editMarkerNotes(marker)
+      }
+    ];
+
+    if (hasPhotos) {
+      buttons.unshift({
+        text: `Ver ${markerPhotos.length} foto${markerPhotos.length > 1 ? 's' : ''}`,
+        icon: 'images-outline',
+        handler: () => this.showMarkerPhotos(marker, markerPhotos)
+      });
+    }
+
+    if (!marker.aiDescription && hasPhotos) {
+      buttons.push({
+        text: 'Analizar con IA',
+        icon: 'sparkles-outline',
+        handler: () => this.analyzePhotoForMarker(markerPhotos[0], marker)
+      });
+    }
+
+    buttons.push({
+      text: 'Eliminar punto',
+      icon: 'trash-outline',
+      role: 'destructive',
+      handler: () => this.deleteMarker(marker)
+    });
+
+    buttons.push({ text: 'Cancelar', icon: 'close', role: 'cancel' });
+
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: marker.name,
+      subHeader: marker.description || marker.aiDescription || `${marker.coordinate.lat.toFixed(5)}, ${marker.coordinate.lng.toFixed(5)}`,
+      buttons
+    });
+    await actionSheet.present();
+  }
+
+  async editMarkerNotes(marker: ProjectMarker) {
+    const alert = await this.alertCtrl.create({
+      header: 'Editar notas',
+      inputs: [
+        {
+          name: 'notes',
+          type: 'textarea',
+          placeholder: 'Escribe tus notas aquí...',
+          value: marker.description || ''
+        }
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Guardar',
+          handler: async (data) => {
+            marker.description = data.notes;
+            await this.saveProject();
+            this.renderProjectElements();
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async showMarkerPhotos(marker: ProjectMarker, photos: Photo[]) {
+    if (photos.length === 1) {
+      // Mostrar directamente la foto
+      this.showPhotoDetail(photos[0], marker);
+    } else {
+      // Mostrar lista para seleccionar
+      const buttons = photos.map((photo, i) => ({
+        text: `Foto ${i + 1} - ${new Date(photo.timestamp || '').toLocaleDateString('es-ES')}`,
+        handler: () => this.showPhotoDetail(photo, marker)
+      }));
+      buttons.push({ text: 'Cancelar', role: 'cancel' } as any);
+
+      const actionSheet = await this.actionSheetCtrl.create({
+        header: 'Seleccionar foto',
+        buttons
+      });
+      await actionSheet.present();
+    }
+  }
+
+  async showPhotoDetail(photo: Photo, marker: ProjectMarker) {
+    const alert = await this.alertCtrl.create({
+      header: marker.name,
+      message: `
+        <div style="text-align:center;">
+          <img src="${photo.imageUrl || photo.localPath}" style="max-width:100%;border-radius:8px;margin-bottom:10px;">
+          ${photo.aiDescription ? `<p><strong>IA:</strong> ${photo.aiDescription}</p>` : ''}
+          ${photo.notes ? `<p><strong>Notas:</strong> ${photo.notes}</p>` : ''}
+        </div>
+      `,
+      buttons: [
+        {
+          text: 'Editar nota',
+          handler: () => { this.editPhotoNotes(photo); return false; }
+        },
+        { text: 'Cerrar', role: 'cancel' }
+      ]
+    });
+    await alert.present();
+  }
+
+  async editPhotoNotes(photo: Photo) {
+    const alert = await this.alertCtrl.create({
+      header: 'Editar notas de la foto',
+      inputs: [
+        {
+          name: 'notes',
+          type: 'textarea',
+          placeholder: 'Escribe tus notas...',
+          value: photo.notes || ''
+        }
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Guardar',
+          handler: async (data) => {
+            photo.notes = data.notes;
+            await this.storageService.updatePhoto(photo);
+            const index = this.photos.findIndex(p => p.id === photo.id);
+            if (index >= 0) this.photos[index] = photo;
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async deleteMarker(marker: ProjectMarker) {
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar punto',
+      message: `¿Seguro que quieres eliminar "${marker.name}"?`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: async () => {
+            if (this.project) {
+              this.project.markers = this.project.markers?.filter(m => m.id !== marker.id);
+              await this.saveProject();
+              this.renderProjectElements();
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 
   // ========== POPUP CREATION ==========
@@ -668,11 +921,19 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     if (!this.pendingReportData || !this.project) return;
     try {
       await this.reportService.downloadReport(this.pendingReportData);
+      this.closeReportPreview();
+    } catch (error: any) {
+      console.error('Error descargando informe:', error);
+    }
+  }
 
+  async saveReportToProject() {
+    if (!this.pendingReportData || !this.project) return;
+    try {
       // Guardar el informe en el proyecto
       const report = {
         id: `report_${Date.now()}`,
-        name: `Informe ${new Date().toLocaleDateString('es-ES')}`,
+        name: `Informe PDD ${new Date().toLocaleDateString('es-ES')}`,
         htmlContent: this.reportPreviewRawHtml,
         createdAt: new Date().toISOString()
       };
@@ -681,8 +942,10 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       await this.saveProject();
 
       this.closeReportPreview();
+      this.showToast('Informe guardado en el proyecto', 'success');
     } catch (error: any) {
-      console.error('Error descargando informe:', error);
+      console.error('Error guardando informe:', error);
+      this.showToast('Error al guardar el informe', 'danger');
     }
   }
 
@@ -702,8 +965,9 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           longitude: p.longitude,
           timestamp: p.timestamp
         })),
-        zones: this.project.zones?.map(z => ({ name: z.name, coordinates: z.coordinates })),
-        paths: this.project.paths?.map(p => ({ name: p.name, coordinates: p.coordinates }))
+        zones: this.project.zones?.map(z => ({ name: z.name, description: z.description, coordinates: z.coordinates })),
+        paths: this.project.paths?.map(p => ({ name: p.name, description: p.description, coordinates: p.coordinates })),
+        markers: this.project.markers?.map(m => ({ name: m.name, description: m.description, coordinate: m.coordinate }))
       };
 
       // Generar KML content

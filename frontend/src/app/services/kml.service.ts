@@ -38,11 +38,18 @@ export interface ProjectExportData {
   }[];
   zones?: {
     name: string;
+    description?: string;
     coordinates: { lat: number; lng: number }[];
   }[];
   paths?: {
     name: string;
+    description?: string;
     coordinates: { lat: number; lng: number }[];
+  }[];
+  markers?: {
+    name: string;
+    description?: string;
+    coordinate: { lat: number; lng: number };
   }[];
   measurements?: {
     type: 'distance' | 'area';
@@ -170,6 +177,17 @@ export class KmlService {
       <color>4000ff00</color>
     </PolyStyle>
   </Style>
+  <Style id="markerStyle">
+    <IconStyle>
+      <scale>1.2</scale>
+      <Icon>
+        <href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href>
+      </Icon>
+    </IconStyle>
+    <LabelStyle>
+      <scale>0.9</scale>
+    </LabelStyle>
+  </Style>
 
   <Folder>
     <name>${this.escapeXml(data.name)}</name>
@@ -246,6 +264,27 @@ export class KmlService {
           <tessellate>1</tessellate>
           <coordinates>${coords}</coordinates>
         </LineString>
+      </Placemark>
+`;
+      });
+      kml += `    </Folder>
+`;
+    }
+
+    // Add markers as points
+    if (data.markers && data.markers.length > 0) {
+      kml += `    <Folder>
+      <name>Puntos de interés</name>
+`;
+      data.markers.forEach((marker, index) => {
+        const description = marker.description || '';
+        kml += `      <Placemark>
+        <name>${this.escapeXml(marker.name || `Punto ${index + 1}`)}</name>
+        <description><![CDATA[${this.escapeXml(description)}]]></description>
+        <styleUrl>#markerStyle</styleUrl>
+        <Point>
+          <coordinates>${marker.coordinate.lng},${marker.coordinate.lat},0</coordinates>
+        </Point>
       </Placemark>
 `;
       });

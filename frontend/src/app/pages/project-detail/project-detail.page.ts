@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { NavController, AlertController, ToastController } from '@ionic/angular';
+import { NavController, AlertController, ToastController, Platform } from '@ionic/angular';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Subscription } from 'rxjs';
 import { StorageService } from '../../services/storage.service';
 import { KmlService } from '../../services/kml.service';
 import { ReportService } from '../../services/report.service';
@@ -13,10 +14,11 @@ import { Project, Photo, ProjectReport, ProjectKml } from '../../models';
   templateUrl: './project-detail.page.html',
   styleUrls: ['./project-detail.page.scss'],
 })
-export class ProjectDetailPage implements OnInit {
+export class ProjectDetailPage implements OnInit, OnDestroy {
   project: Project | null = null;
   photos: Photo[] = [];
   private projectId: string | null = null;
+  private backButtonSub: Subscription | null = null;
 
   // Photo viewer
   selectedPhoto: Photo | null = null;
@@ -39,7 +41,8 @@ export class ProjectDetailPage implements OnInit {
     private sanitizer: DomSanitizer,
     private navCtrl: NavController,
     private alertCtrl: AlertController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private platform: Platform
   ) {}
 
   async ngOnInit() {
@@ -53,6 +56,37 @@ export class ProjectDetailPage implements OnInit {
   async ionViewWillEnter() {
     if (this.projectId) {
       await this.loadProject(this.projectId);
+    }
+    // Registrar manejador de botón de retroceso
+    this.backButtonSub = this.platform.backButton.subscribeWithPriority(10, () => {
+      this.handleBackButton();
+    });
+  }
+
+  ionViewWillLeave() {
+    // Desregistrar manejador de botón de retroceso
+    if (this.backButtonSub) {
+      this.backButtonSub.unsubscribe();
+      this.backButtonSub = null;
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.backButtonSub) {
+      this.backButtonSub.unsubscribe();
+    }
+  }
+
+  private handleBackButton() {
+    // Si hay un visor abierto, cerrarlo en lugar de navegar atrás
+    if (this.showPhotoViewer) {
+      this.closePhotoViewer();
+    } else if (this.showReportViewer) {
+      this.closeReportViewer();
+    } else if (this.showKmlViewer) {
+      this.closeKmlViewer();
+    } else {
+      this.goBack();
     }
   }
 
