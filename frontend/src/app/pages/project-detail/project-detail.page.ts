@@ -47,6 +47,12 @@ export class ProjectDetailPage implements OnInit {
     this.navCtrl.navigateBack('/tabs/projects');
   }
 
+  openMapEditor() {
+    if (this.project) {
+      this.navCtrl.navigateForward(`/project-editor/${this.project.id}`);
+    }
+  }
+
   formatDate(date: Date | string): string {
     return new Date(date).toLocaleDateString('es-ES', {
       day: '2-digit',

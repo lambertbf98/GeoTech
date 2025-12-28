@@ -11,6 +11,10 @@ const routes: Routes = [
     path: 'mediciones',
     loadChildren: () => import('./pages/mediciones/mediciones.module').then( m => m.MedicionesPageModule)
   },
+  {
+    path: 'project-editor/:id',
+    loadChildren: () => import('./pages/project-editor/project-editor.module').then( m => m.ProjectEditorPageModule)
+  },
 ];
 
 @NgModule({

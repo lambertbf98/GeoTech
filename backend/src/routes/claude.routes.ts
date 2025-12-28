@@ -40,6 +40,39 @@ router.post(
   }
 );
 
+// POST /api/claude/generate-report - Generate technical report summary
+router.post(
+  '/generate-report',
+  [
+    body('prompt').notEmpty().withMessage('prompt es requerido')
+  ],
+  async (req: any, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: errors.array()[0].msg
+        }
+      });
+    }
+
+    try {
+      const { prompt } = req.body;
+
+      // Call Claude service to generate report summary
+      const summary = await claudeService.generateReport(prompt);
+
+      res.json({
+        summary,
+        photoDescriptions: []
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.use(authenticate);
 
 // POST /api/claude/describe

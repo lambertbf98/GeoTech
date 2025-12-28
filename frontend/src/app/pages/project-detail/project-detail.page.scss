@@ -83,6 +83,15 @@ ion-back-button {
   border: 1px solid rgba(0, 212, 255, 0.3);
 }
 
+// Edit on Map Button
+.edit-map-btn {
+  margin-top: 20px;
+  --border-radius: 12px;
+  --background: var(--ion-color-primary);
+  --box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  font-weight: 600;
+}
+
 .photos-section {
   padding: 0 20px 20px;
 }

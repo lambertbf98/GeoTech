@@ -173,6 +173,36 @@ export class ClaudeService {
       throw new AppError('Error IA', 502, 'CLAUDE_ERROR');
     }
   }
+
+  async generateReport(prompt: string): Promise<string> {
+    if (!config.claude.apiKey) {
+      throw new AppError('Claude API no configurada', 503, 'CLAUDE_NOT_CONFIGURED');
+    }
+
+    try {
+      const response = await this.client.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1000,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      });
+
+      const textBlock = response.content.find(block => block.type === 'text');
+      if (!textBlock || textBlock.type !== 'text') {
+        throw new AppError('Respuesta inesperada', 502, 'CLAUDE_ERROR');
+      }
+
+      return textBlock.text;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      console.error('Claude API error:', error);
+      throw new AppError('Error IA: ' + (error as Error).message, 502, 'CLAUDE_ERROR');
+    }
+  }
 }
 
 export const claudeService = new ClaudeService();
