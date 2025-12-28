@@ -35,14 +35,9 @@
         <span>{{ zoneCount }} zonas, {{ pathCount }} viales, {{ markerCount }} puntos</span>
       </div>
 
-      <div class="info-row" *ngIf="reportCount > 0">
-        <ion-icon name="document-text-outline"></ion-icon>
-        <span>{{ reportCount }} informes</span>
-      </div>
-
-      <div class="info-row" *ngIf="kmlCount > 0">
-        <ion-icon name="earth-outline"></ion-icon>
-        <span>{{ kmlCount }} archivos KML</span>
+      <div class="info-row" *ngIf="reportCount > 0 || kmlCount > 0">
+        <ion-icon name="folder-outline"></ion-icon>
+        <span>{{ reportCount + kmlCount }} documentos generados</span>
       </div>
 
       <div class="sync-status">
@@ -82,52 +77,45 @@
     </div>
   </div>
 
-  <div class="empty-state" *ngIf="photos.length === 0">
-    <div class="empty-icon">
+  <div class="empty-photos" *ngIf="photos.length === 0 && (reportCount > 0 || kmlCount > 0)">
+    <div class="empty-photos-content">
       <ion-icon name="images-outline"></ion-icon>
+      <span>Sin fotos en este proyecto</span>
     </div>
-    <p class="empty-title">Sin fotos</p>
-    <p class="empty-description">Este proyecto aun no tiene fotos. Ve a Registro para agregar fotos.</p>
   </div>
 
-  <!-- Reports Section -->
-  <div class="reports-section" *ngIf="project?.reports?.length">
-    <h3 class="section-title">
-      <ion-icon name="document-text-outline"></ion-icon>
-      Informes generados
-    </h3>
-    <div class="files-list">
-      <div class="file-card" *ngFor="let report of project?.reports" (click)="openReportViewer(report)">
-        <div class="file-icon report-icon">
+  <!-- Documentos Generados Section -->
+  <div class="documents-section" *ngIf="reportCount > 0 || kmlCount > 0">
+    <h3 class="section-title">Documentos generados</h3>
+    <div class="documents-grid">
+      <!-- Informes PDD -->
+      <div class="document-card report-card" *ngFor="let report of project?.reports" (click)="openReportViewer(report)">
+        <div class="document-icon">
           <ion-icon name="document-text"></ion-icon>
         </div>
-        <div class="file-info">
-          <span class="file-name">{{ report.name }}</span>
-          <span class="file-date">{{ formatDate(report.createdAt) }}</span>
+        <div class="document-type">INFORME PDD</div>
+        <div class="document-name">{{ report.name }}</div>
+        <div class="document-date">{{ formatDate(report.createdAt) }}</div>
+      </div>
+      <!-- Archivos KML -->
+      <div class="document-card kml-card" *ngFor="let kml of project?.kmls" (click)="openKmlViewer(kml)">
+        <div class="document-icon">
+          <ion-icon name="earth"></ion-icon>
         </div>
-        <ion-icon name="chevron-forward-outline" class="file-arrow"></ion-icon>
+        <div class="document-type">ARCHIVO KML</div>
+        <div class="document-name">{{ kml.name }}</div>
+        <div class="document-date">{{ formatDate(kml.createdAt) }}</div>
       </div>
     </div>
   </div>
 
-  <!-- KML Section -->
-  <div class="kml-section" *ngIf="project?.kmls?.length">
-    <h3 class="section-title">
-      <ion-icon name="earth-outline"></ion-icon>
-      Archivos KML
-    </h3>
-    <div class="files-list">
-      <div class="file-card" *ngFor="let kml of project?.kmls" (click)="openKmlViewer(kml)">
-        <div class="file-icon kml-icon">
-          <ion-icon name="earth"></ion-icon>
-        </div>
-        <div class="file-info">
-          <span class="file-name">{{ kml.name }}</span>
-          <span class="file-date">{{ formatDate(kml.createdAt) }}</span>
-        </div>
-        <ion-icon name="chevron-forward-outline" class="file-arrow"></ion-icon>
-      </div>
+  <!-- Sin documentos -->
+  <div class="empty-state" *ngIf="photos.length === 0 && reportCount === 0 && kmlCount === 0">
+    <div class="empty-icon">
+      <ion-icon name="folder-open-outline"></ion-icon>
     </div>
+    <p class="empty-title">Sin contenido</p>
+    <p class="empty-description">Este proyecto aun no tiene fotos ni documentos. Usa el editor de mapa para agregar contenido.</p>
   </div>
 
   <!-- Photo Viewer Overlay -->
