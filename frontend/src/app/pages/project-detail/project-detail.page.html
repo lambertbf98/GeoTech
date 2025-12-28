@@ -30,6 +30,21 @@
         <span>{{ photos.length }} fotos</span>
       </div>
 
+      <div class="info-row" *ngIf="zoneCount > 0 || pathCount > 0">
+        <ion-icon name="map-outline"></ion-icon>
+        <span>{{ zoneCount }} zonas, {{ pathCount }} viales</span>
+      </div>
+
+      <div class="info-row" *ngIf="reportCount > 0">
+        <ion-icon name="document-text-outline"></ion-icon>
+        <span>{{ reportCount }} informes</span>
+      </div>
+
+      <div class="info-row" *ngIf="kmlCount > 0">
+        <ion-icon name="earth-outline"></ion-icon>
+        <span>{{ kmlCount }} archivos KML</span>
+      </div>
+
       <div class="sync-status">
         <span class="sync-badge local">
           <ion-icon name="phone-portrait-outline"></ion-icon>
@@ -73,6 +88,46 @@
     </div>
     <p class="empty-title">Sin fotos</p>
     <p class="empty-description">Este proyecto aun no tiene fotos. Ve a Registro para agregar fotos.</p>
+  </div>
+
+  <!-- Reports Section -->
+  <div class="reports-section" *ngIf="project?.reports?.length">
+    <h3 class="section-title">
+      <ion-icon name="document-text-outline"></ion-icon>
+      Informes generados
+    </h3>
+    <div class="files-list">
+      <div class="file-card" *ngFor="let report of project?.reports" (click)="openReportViewer(report)">
+        <div class="file-icon report-icon">
+          <ion-icon name="document-text"></ion-icon>
+        </div>
+        <div class="file-info">
+          <span class="file-name">{{ report.name }}</span>
+          <span class="file-date">{{ formatDate(report.createdAt) }}</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" class="file-arrow"></ion-icon>
+      </div>
+    </div>
+  </div>
+
+  <!-- KML Section -->
+  <div class="kml-section" *ngIf="project?.kmls?.length">
+    <h3 class="section-title">
+      <ion-icon name="earth-outline"></ion-icon>
+      Archivos KML
+    </h3>
+    <div class="files-list">
+      <div class="file-card" *ngFor="let kml of project?.kmls" (click)="openKmlViewer(kml)">
+        <div class="file-icon kml-icon">
+          <ion-icon name="earth"></ion-icon>
+        </div>
+        <div class="file-info">
+          <span class="file-name">{{ kml.name }}</span>
+          <span class="file-date">{{ formatDate(kml.createdAt) }}</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" class="file-arrow"></ion-icon>
+      </div>
+    </div>
   </div>
 
   <!-- Photo Viewer Overlay -->
@@ -134,6 +189,54 @@
           Eliminar foto
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Report Viewer Overlay -->
+  <div class="report-viewer-overlay" *ngIf="showReportViewer && selectedReport">
+    <div class="report-viewer-header">
+      <h2>{{ selectedReport.name }}</h2>
+      <ion-button fill="clear" (click)="closeReportViewer()">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </div>
+    <div class="report-viewer-content" [innerHTML]="selectedReport.htmlContent"></div>
+    <div class="report-viewer-actions">
+      <ion-button color="danger" fill="outline" (click)="deleteReport(selectedReport)">
+        <ion-icon slot="start" name="trash-outline"></ion-icon>
+        Eliminar
+      </ion-button>
+      <ion-button color="primary" (click)="downloadReportAsWord(selectedReport)">
+        <ion-icon slot="start" name="download-outline"></ion-icon>
+        Descargar
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- KML Viewer Overlay -->
+  <div class="kml-viewer-overlay" *ngIf="showKmlViewer && selectedKml">
+    <div class="kml-viewer-header">
+      <h2>{{ selectedKml.name }}</h2>
+      <ion-button fill="clear" (click)="closeKmlViewer()">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </div>
+    <div class="kml-viewer-content">
+      <div class="kml-preview">
+        <ion-icon name="earth" class="kml-big-icon"></ion-icon>
+        <p class="kml-info">Archivo KML</p>
+        <p class="kml-date">Creado: {{ formatDateTime(selectedKml.createdAt) }}</p>
+      </div>
+    </div>
+    <div class="kml-viewer-actions">
+      <ion-button color="danger" fill="outline" (click)="deleteKml(selectedKml)">
+        <ion-icon slot="start" name="trash-outline"></ion-icon>
+        Eliminar
+      </ion-button>
+      <ion-button color="primary" (click)="downloadKml(selectedKml)">
+        <ion-icon slot="start" name="download-outline"></ion-icon>
+        Descargar KML
+      </ion-button>
     </div>
   </div>
 </ion-content>

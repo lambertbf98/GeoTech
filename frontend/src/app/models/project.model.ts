@@ -31,6 +31,20 @@ export interface ProjectMarker {
   createdAt: string;
 }
 
+export interface ProjectReport {
+  id: string;
+  name: string;
+  htmlContent: string;
+  createdAt: string;
+}
+
+export interface ProjectKml {
+  id: string;
+  name: string;
+  kmlContent: string;
+  createdAt: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -41,6 +55,8 @@ export interface Project {
   zones?: ProjectZone[];
   paths?: ProjectPath[];
   markers?: ProjectMarker[];
+  reports?: ProjectReport[];
+  kmls?: ProjectKml[];
   notes?: string;
   createdAt: Date;
   updatedAt: Date;

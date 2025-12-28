@@ -571,29 +571,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
   async exportToKMZ() {
     if (!this.project) return;
-
-    try {
-      const exportData: ProjectExportData = {
-        name: this.project.name,
-        description: this.project.description,
-        location: this.project.location,
-        createdAt: this.project.createdAt.toString(),
-        photos: this.photos.map(p => ({
-          id: p.id,
-          url: p.imageUrl || p.localPath || '',
-          description: p.notes || p.aiDescription,
-          latitude: p.latitude,
-          longitude: p.longitude,
-          timestamp: p.timestamp
-        })),
-        zones: this.project.zones?.map(z => ({ name: z.name, coordinates: z.coordinates })),
-        paths: this.project.paths?.map(p => ({ name: p.name, coordinates: p.coordinates }))
-      };
-
-      await this.kmlService.downloadKmz(exportData, `${this.project.name}.kmz`);
-    } catch (error: any) {
-      // Error silencioso
-    }
+    await this.saveKmlToProject();
   }
 
   async exportToWord() {
@@ -601,36 +579,16 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
     this.isGeneratingPDD = true;
     try {
-      // 1. Generar resumen con IA
-      const aiInput = {
-        projectName: this.project.name,
-        projectLocation: this.project.location,
-        zones: this.project.zones?.map(z => ({ name: z.name, description: z.description })),
-        paths: this.project.paths?.map(p => ({ name: p.name, description: p.description })),
-        photos: this.photos.map(p => ({
-          description: p.notes,
-          aiDescription: p.aiDescription,
-          location: p.location,
-          latitude: p.latitude,
-          longitude: p.longitude
-        }))
-      };
-
-      const aiReport = await this.claudeService.generateProjectReport(aiInput);
-
-      // 2. Preparar fotos con base64
+      // 1. Preparar fotos con base64
       const reportPhotos = [];
       for (const photo of this.photos) {
         let base64 = '';
-        if (photo.localPath) {
+        // Intentar obtener la imagen
+        if (photo.imageUrl) {
+          base64 = photo.imageUrl;
+        } else if (photo.localPath) {
           try {
             base64 = await this.cameraService.getPhotoBase64(photo.localPath);
-          } catch (e) { /* ignore */ }
-        } else if (photo.imageUrl) {
-          try {
-            const response = await fetch(photo.imageUrl);
-            const blob = await response.blob();
-            base64 = await this.blobToBase64(blob);
           } catch (e) { /* ignore */ }
         }
 
@@ -647,13 +605,36 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         });
       }
 
+      // 2. Intentar generar resumen con IA (opcional)
+      let aiSummary = '';
+      try {
+        const aiInput = {
+          projectName: this.project.name,
+          projectLocation: this.project.location,
+          zones: this.project.zones?.map(z => ({ name: z.name, description: z.description })),
+          paths: this.project.paths?.map(p => ({ name: p.name, description: p.description })),
+          photos: this.photos.map(p => ({
+            description: p.notes,
+            aiDescription: p.aiDescription,
+            location: p.location,
+            latitude: p.latitude,
+            longitude: p.longitude
+          }))
+        };
+        const aiReport = await this.claudeService.generateProjectReport(aiInput);
+        aiSummary = aiReport.summary || '';
+      } catch (e) {
+        // IA no disponible, continuar sin resumen
+        aiSummary = 'Resumen no disponible (sin conexión a IA)';
+      }
+
       // 3. Preparar datos del reporte
       const reportData: ReportData = {
         projectName: this.project.name,
         projectDescription: this.project.description,
         projectLocation: this.project.location,
         createdAt: this.project.createdAt.toString(),
-        aiSummary: aiReport.summary,
+        aiSummary,
         photos: reportPhotos,
         zones: this.project.zones?.map(z => ({ name: z.name, description: z.description })),
         paths: this.project.paths?.map(p => ({ name: p.name, description: p.description })),
@@ -666,7 +647,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       this.showReportPreview = true;
 
     } catch (error: any) {
-      // Error silencioso
+      console.error('Error generando informe:', error);
     } finally {
       this.isGeneratingPDD = false;
     }
@@ -679,12 +660,65 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   async downloadReport() {
-    if (!this.pendingReportData) return;
+    if (!this.pendingReportData || !this.project) return;
     try {
       await this.reportService.downloadReport(this.pendingReportData);
+
+      // Guardar el informe en el proyecto
+      const report = {
+        id: `report_${Date.now()}`,
+        name: `Informe ${new Date().toLocaleDateString('es-ES')}`,
+        htmlContent: this.reportPreviewHtml,
+        createdAt: new Date().toISOString()
+      };
+      this.project.reports = this.project.reports || [];
+      this.project.reports.push(report);
+      await this.saveProject();
+
       this.closeReportPreview();
     } catch (error: any) {
       // Error silencioso
+    }
+  }
+
+  async saveKmlToProject() {
+    if (!this.project) return;
+    try {
+      const exportData = {
+        name: this.project.name,
+        description: this.project.description,
+        location: this.project.location,
+        createdAt: this.project.createdAt.toString(),
+        photos: this.photos.map(p => ({
+          id: p.id,
+          url: p.imageUrl || p.localPath || '',
+          description: p.notes || p.aiDescription,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          timestamp: p.timestamp
+        })),
+        zones: this.project.zones?.map(z => ({ name: z.name, coordinates: z.coordinates })),
+        paths: this.project.paths?.map(p => ({ name: p.name, coordinates: p.coordinates }))
+      };
+
+      // Generar KML content
+      const kmlContent = this.kmlService.generateKml(exportData);
+
+      // Guardar en el proyecto
+      const kml = {
+        id: `kml_${Date.now()}`,
+        name: `${this.project.name}_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`,
+        kmlContent,
+        createdAt: new Date().toISOString()
+      };
+      this.project.kmls = this.project.kmls || [];
+      this.project.kmls.push(kml);
+      await this.saveProject();
+
+      // También descargar
+      await this.kmlService.downloadKmz(exportData, `${this.project.name}.kmz`);
+    } catch (error: any) {
+      console.error('Error guardando KML:', error);
     }
   }
 

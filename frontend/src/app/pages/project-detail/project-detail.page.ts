@@ -2,7 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController, AlertController, ToastController } from '@ionic/angular';
 import { StorageService } from '../../services/storage.service';
-import { Project, Photo } from '../../models';
+import { KmlService } from '../../services/kml.service';
+import { ReportService } from '../../services/report.service';
+import { Project, Photo, ProjectReport, ProjectKml } from '../../models';
 
 @Component({
   standalone: false,
@@ -18,9 +20,19 @@ export class ProjectDetailPage implements OnInit {
   selectedPhoto: Photo | null = null;
   showPhotoViewer = false;
 
+  // Report viewer
+  selectedReport: ProjectReport | null = null;
+  showReportViewer = false;
+
+  // KML viewer
+  selectedKml: ProjectKml | null = null;
+  showKmlViewer = false;
+
   constructor(
     private route: ActivatedRoute,
     private storageService: StorageService,
+    private kmlService: KmlService,
+    private reportService: ReportService,
     private navCtrl: NavController,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
@@ -127,6 +139,120 @@ export class ProjectDetailPage implements OnInit {
       placeholder.innerHTML = '<ion-icon name="image-outline"></ion-icon>';
       parent.insertBefore(placeholder, event.target);
     }
+  }
+
+  // ========== REPORTS METHODS ==========
+
+  openReportViewer(report: ProjectReport) {
+    this.selectedReport = report;
+    this.showReportViewer = true;
+  }
+
+  closeReportViewer() {
+    this.showReportViewer = false;
+    this.selectedReport = null;
+  }
+
+  async downloadReportAsWord(report: ProjectReport) {
+    if (!report || !this.project) return;
+
+    // Crear un blob con el HTML y descargarlo como archivo
+    const blob = new Blob([report.htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${report.name.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async deleteReport(report: ProjectReport) {
+    if (!this.project) return;
+
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar informe',
+      message: '¿Seguro que quieres eliminar este informe?',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: async () => {
+            this.project!.reports = this.project!.reports?.filter(r => r.id !== report.id);
+            await this.storageService.saveProject(this.project!);
+            this.closeReportViewer();
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  // ========== KML METHODS ==========
+
+  openKmlViewer(kml: ProjectKml) {
+    this.selectedKml = kml;
+    this.showKmlViewer = true;
+  }
+
+  closeKmlViewer() {
+    this.showKmlViewer = false;
+    this.selectedKml = null;
+  }
+
+  downloadKml(kml: ProjectKml) {
+    if (!kml) return;
+
+    const blob = new Blob([kml.kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${kml.name}.kml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async deleteKml(kml: ProjectKml) {
+    if (!this.project) return;
+
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar archivo KML',
+      message: '¿Seguro que quieres eliminar este archivo?',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: async () => {
+            this.project!.kmls = this.project!.kmls?.filter(k => k.id !== kml.id);
+            await this.storageService.saveProject(this.project!);
+            this.closeKmlViewer();
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  // Getters for counts
+  get reportCount(): number {
+    return this.project?.reports?.length || 0;
+  }
+
+  get kmlCount(): number {
+    return this.project?.kmls?.length || 0;
+  }
+
+  get zoneCount(): number {
+    return this.project?.zones?.length || 0;
+  }
+
+  get pathCount(): number {
+    return this.project?.paths?.length || 0;
   }
 
   private async showToast(message: string, color: string) {
