@@ -518,33 +518,41 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
     const markerPhotos = hasPhotos ? this.photos.filter(p => marker.photoIds!.includes(p.id)) : [];
 
-    const buttons: any[] = [
-      {
-        text: 'Tomar foto',
-        icon: 'camera-outline',
-        handler: () => this.takePhotoForMarker(marker)
-      },
-      {
-        text: 'Editar notas',
-        icon: 'create-outline',
-        handler: () => this.editMarkerNotes(marker)
-      }
-    ];
+    const buttons: any[] = [];
 
+    // Si hay fotos, mostrar opción de ver
     if (hasPhotos) {
-      buttons.unshift({
+      buttons.push({
         text: `Ver ${markerPhotos.length} foto${markerPhotos.length > 1 ? 's' : ''}`,
         icon: 'images-outline',
         handler: () => this.showMarkerPhotos(marker, markerPhotos)
       });
-
-      // Opcion de analisis IA siempre visible si hay fotos
-      buttons.push({
-        text: 'Analizar fotos con IA',
-        icon: 'sparkles-outline',
-        handler: () => this.analyzeMarkerPhotosWithAI(markerPhotos)
-      });
     }
+
+    buttons.push({
+      text: 'Tomar foto',
+      icon: 'camera-outline',
+      handler: () => this.takePhotoForMarker(marker)
+    });
+
+    // Opción de análisis IA siempre visible
+    buttons.push({
+      text: 'Analizar con IA',
+      icon: 'sparkles-outline',
+      handler: () => {
+        if (hasPhotos) {
+          this.analyzeMarkerPhotosWithAI(markerPhotos);
+        } else {
+          this.showNoPhotosAlert();
+        }
+      }
+    });
+
+    buttons.push({
+      text: 'Editar notas',
+      icon: 'create-outline',
+      handler: () => this.editMarkerNotes(marker)
+    });
 
     buttons.push({
       text: 'Eliminar punto',
@@ -561,6 +569,15 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       buttons
     });
     await actionSheet.present();
+  }
+
+  async showNoPhotosAlert() {
+    const alert = await this.alertCtrl.create({
+      header: 'Sin fotos',
+      message: 'Primero debes tomar una foto para poder analizarla con IA.',
+      buttons: ['Entendido']
+    });
+    await alert.present();
   }
 
   async analyzeMarkerPhotosWithAI(photos: Photo[]) {

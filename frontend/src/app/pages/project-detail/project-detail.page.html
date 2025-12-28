@@ -30,7 +30,7 @@
         <span>{{ photos.length }} {{ photos.length === 1 ? 'fotografía' : 'fotografías' }}</span>
       </div>
 
-      <div class="info-row" *ngIf="zoneCount > 0 || pathCount > 0 || markerCount > 0">
+      <div class="info-row">
         <ion-icon name="map-outline"></ion-icon>
         <span>{{ zoneCount }} {{ zoneCount === 1 ? 'área delimitada' : 'áreas delimitadas' }}, {{ pathCount }} {{ pathCount === 1 ? 'trazado vial' : 'trazados viales' }}, {{ markerCount }} {{ markerCount === 1 ? 'punto de interés' : 'puntos de interés' }}</span>
       </div>
@@ -77,7 +77,7 @@
     </div>
   </div>
 
-  <div class="empty-photos" *ngIf="photos.length === 0 && (totalDocuments > 0 || zoneCount > 0 || pathCount > 0 || markerCount > 0)">
+  <div class="empty-photos" *ngIf="photos.length === 0">
     <div class="empty-photos-content">
       <ion-icon name="images-outline"></ion-icon>
       <span>Sin registro fotográfico</span>
@@ -109,14 +109,6 @@
     </div>
   </div>
 
-  <!-- Sin contenido -->
-  <div class="empty-state" *ngIf="photos.length === 0 && totalDocuments === 0 && zoneCount === 0 && pathCount === 0 && markerCount === 0">
-    <div class="empty-icon">
-      <ion-icon name="folder-open-outline"></ion-icon>
-    </div>
-    <p class="empty-title">Proyecto vacío</p>
-    <p class="empty-description">Este proyecto aún no tiene contenido. Utiliza el editor de mapa para añadir elementos geográficos, fotografías y generar documentación.</p>
-  </div>
 
 </ion-content>
 
