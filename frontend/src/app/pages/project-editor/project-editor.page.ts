@@ -122,6 +122,17 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       minZoom: 3
     }).setView([lat, lng], 16);
 
+    // Crear panes personalizados con diferentes z-index para controlar clicks
+    // Los panes con z-index más alto reciben los clicks primero
+    this.map.createPane('zonesPane');
+    this.map.getPane('zonesPane')!.style.zIndex = '400';  // Zonas debajo
+
+    this.map.createPane('pathsPane');
+    this.map.getPane('pathsPane')!.style.zIndex = '450';  // Trazados encima de zonas
+
+    this.map.createPane('markersPane');
+    this.map.getPane('markersPane')!.style.zIndex = '500';  // Marcadores encima de todo
+
     // Satellite layer
     this.satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 22,
@@ -152,14 +163,15 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     this.pathsLayer?.clearLayers();
     this.markersLayer?.clearLayers();
 
-    // Render zones - con click handler para mostrar opciones
+    // Render zones - con click handler para mostrar opciones (en zonesPane)
     this.project.zones?.forEach(zone => {
       const latlngs = zone.coordinates.map(c => L.latLng(c.lat, c.lng));
       const polygon = L.polygon(latlngs, {
         color: zone.color || '#ef4444',
         weight: 5,
         fillOpacity: 0.25,
-        opacity: 0.9
+        opacity: 0.9,
+        pane: 'zonesPane'  // Usar pane personalizado
       });
       polygon.on('click', (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
@@ -168,15 +180,16 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       polygon.addTo(this.zonesLayer!);
     });
 
-    // Render paths - con click handler para mostrar opciones
+    // Render paths - con click handler para mostrar opciones (en pathsPane - encima de zonas)
     this.project.paths?.forEach(path => {
       const latlngs = path.coordinates.map(c => L.latLng(c.lat, c.lng));
 
       // Línea invisible más ancha para facilitar el click (área de hit)
       const hitArea = L.polyline(latlngs, {
         color: 'transparent',
-        weight: 25,
-        opacity: 0
+        weight: 30,
+        opacity: 0,
+        pane: 'pathsPane'  // Usar pane personalizado
       });
       hitArea.on('click', (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
@@ -187,10 +200,11 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       // Línea visible más gruesa
       const polyline = L.polyline(latlngs, {
         color: path.color || '#3b82f6',
-        weight: 8,
-        opacity: 0.9,
+        weight: 10,
+        opacity: 0.95,
         lineCap: 'round',
-        lineJoin: 'round'
+        lineJoin: 'round',
+        pane: 'pathsPane'  // Usar pane personalizado
       });
       polyline.on('click', (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
@@ -219,7 +233,10 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           iconSize: [24, 24],
           iconAnchor: [12, 12]
         });
-        const mapMarker = L.marker([photo.latitude, photo.longitude], { icon });
+        const mapMarker = L.marker([photo.latitude, photo.longitude], {
+          icon,
+          pane: 'markersPane'  // Usar pane personalizado
+        });
         mapMarker.on('click', () => this.showOrphanPhotoOptions(photo));
         mapMarker.addTo(this.markersLayer!);
       }
@@ -535,12 +552,27 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       iconSize: [24, 32],
       iconAnchor: [12, 32]
     });
-    const mapMarker = L.marker([marker.coordinate.lat, marker.coordinate.lng], { icon });
-    mapMarker.on('click', () => this.showMarkerOptions(marker));
+    const mapMarker = L.marker([marker.coordinate.lat, marker.coordinate.lng], {
+      icon,
+      pane: 'markersPane'  // Usar pane personalizado
+    });
+    // Importante: pasar solo el ID para que showMarkerOptions busque la versión actualizada
+    mapMarker.on('click', () => this.showMarkerOptionsById(marker.id));
     mapMarker.addTo(this.markersLayer!);
   }
 
+  // Buscar marcador por ID para siempre usar la versión actualizada
+  async showMarkerOptionsById(markerId: string) {
+    const marker = this.project?.markers?.find(m => m.id === markerId);
+    if (marker) {
+      await this.showMarkerOptions(marker);
+    }
+  }
+
   async showMarkerOptions(marker: ProjectMarker) {
+    // Guardar el ID para buscar la versión actualizada en cada handler
+    const markerId = marker.id;
+
     const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
     const markerPhotos = hasPhotos ? this.photos.filter(p => marker.photoIds!.includes(p.id)) : [];
 
@@ -551,14 +583,23 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       buttons.push({
         text: `Ver ${markerPhotos.length} foto${markerPhotos.length > 1 ? 's' : ''}`,
         icon: 'images-outline',
-        handler: () => this.showMarkerPhotos(marker, markerPhotos)
+        handler: () => {
+          const m = this.project?.markers?.find(x => x.id === markerId);
+          if (m) {
+            const photos = this.photos.filter(p => m.photoIds?.includes(p.id));
+            this.showMarkerPhotos(m, photos);
+          }
+        }
       });
     }
 
     buttons.push({
       text: 'Tomar foto',
       icon: 'camera-outline',
-      handler: () => this.takePhotoForMarker(marker)
+      handler: () => {
+        const m = this.project?.markers?.find(x => x.id === markerId);
+        if (m) this.takePhotoForMarker(m);
+      }
     });
 
     // Opción de análisis IA siempre visible
@@ -566,8 +607,10 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       text: 'Analizar con IA',
       icon: 'sparkles-outline',
       handler: () => {
-        if (hasPhotos) {
-          this.analyzeMarkerPhotosWithAI(markerPhotos);
+        const m = this.project?.markers?.find(x => x.id === markerId);
+        if (m && m.photoIds && m.photoIds.length > 0) {
+          const photos = this.photos.filter(p => m.photoIds?.includes(p.id));
+          this.analyzeMarkerPhotosWithAI(photos);
         } else {
           this.showNoPhotosAlert();
         }
@@ -577,14 +620,20 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     buttons.push({
       text: 'Editar notas',
       icon: 'create-outline',
-      handler: () => this.editMarkerNotes(marker)
+      handler: () => {
+        const m = this.project?.markers?.find(x => x.id === markerId);
+        if (m) this.editMarkerNotes(m);
+      }
     });
 
     buttons.push({
       text: 'Eliminar punto',
       icon: 'trash-outline',
       role: 'destructive',
-      handler: () => this.deleteMarker(marker)
+      handler: () => {
+        const m = this.project?.markers?.find(x => x.id === markerId);
+        if (m) this.deleteMarker(m);
+      }
     });
 
     buttons.push({ text: 'Cancelar', icon: 'close', role: 'cancel' });
@@ -799,14 +848,18 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   async deleteMarker(marker: ProjectMarker) {
-    const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
-    const photoCount = marker.photoIds?.length || 0;
+    // IMPORTANTE: Buscar la versión actualizada del marcador en el proyecto
+    const currentMarker = this.project?.markers?.find(m => m.id === marker.id);
+    if (!currentMarker) return;
+
+    const hasPhotos = currentMarker.photoIds && currentMarker.photoIds.length > 0;
+    const photoCount = currentMarker.photoIds?.length || 0;
 
     const alert = await this.alertCtrl.create({
       header: 'Eliminar punto',
       message: hasPhotos
-        ? `¿Seguro que quieres eliminar "${marker.name}" y sus ${photoCount} foto${photoCount > 1 ? 's' : ''} asociada${photoCount > 1 ? 's' : ''}?`
-        : `¿Seguro que quieres eliminar "${marker.name}"?`,
+        ? `¿Seguro que quieres eliminar "${currentMarker.name}" y sus ${photoCount} foto${photoCount > 1 ? 's' : ''} asociada${photoCount > 1 ? 's' : ''}?`
+        : `¿Seguro que quieres eliminar "${currentMarker.name}"?`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
@@ -814,9 +867,12 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           role: 'destructive',
           handler: async () => {
             if (this.project) {
+              // Buscar de nuevo para asegurar datos actualizados
+              const markerToDelete = this.project.markers?.find(m => m.id === marker.id);
+
               // Eliminar fotos asociadas al marcador
-              if (marker.photoIds && marker.photoIds.length > 0) {
-                for (const photoId of marker.photoIds) {
+              if (markerToDelete?.photoIds && markerToDelete.photoIds.length > 0) {
+                for (const photoId of markerToDelete.photoIds) {
                   await this.storageService.deletePhoto(photoId);
                   this.photos = this.photos.filter(p => p.id !== photoId);
                 }
