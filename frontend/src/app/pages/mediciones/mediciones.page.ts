@@ -71,8 +71,9 @@ export class MedicionesPage implements OnInit {
         {
           text: 'Eliminar',
           role: 'destructive',
-          handler: async () => {
-            await this.deleteMeasurement(measurement);
+          handler: () => {
+            // Ejecutar en siguiente tick para que el alert cierre primero
+            setTimeout(() => this.deleteMeasurement(measurement), 100);
           }
         }
       ]
@@ -97,10 +98,12 @@ export class MedicionesPage implements OnInit {
         {
           text: 'Eliminar todas',
           role: 'destructive',
-          handler: async () => {
-            await this.storageService.clearMeasurements();
-            await this.loadMeasurements();
-            this.showToast('Todas las mediciones eliminadas', 'success');
+          handler: () => {
+            setTimeout(async () => {
+              await this.storageService.clearMeasurements();
+              await this.loadMeasurements();
+              this.showToast('Todas las mediciones eliminadas', 'success');
+            }, 100);
           }
         }
       ]

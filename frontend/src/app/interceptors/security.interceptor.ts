@@ -20,7 +20,9 @@ export class SecurityInterceptor implements HttpInterceptor {
     'ovc.catastro.meh.es',
     'services.arcgisonline.com',
     'api.anthropic.com',
-    'cesium.com'
+    'cesium.com',
+    'corsproxy.io',
+    'unpkg.com'
   ];
 
   intercept(

@@ -10,11 +10,13 @@
   <!-- Security Headers -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self' data: blob: https: capacitor: ionic:;
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cesium.com https://services.arcgisonline.com;
-    style-src 'self' 'unsafe-inline' https://cesium.com https://fonts.googleapis.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:;
+    style-src 'self' 'unsafe-inline' https:;
     img-src 'self' data: blob: https: http:;
-    font-src 'self' data: https://fonts.gstatic.com;
+    font-src 'self' data: https:;
     connect-src 'self' https: wss: data: blob:;
+    worker-src 'self' blob: https:;
+    child-src 'self' blob:;
     frame-src 'self' https:;
     media-src 'self' blob: data:;
     object-src 'none';
