@@ -1,6 +1,6 @@
 import { Component, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
-import { AlertController, LoadingController, ToastController, ActionSheetController } from "@ionic/angular";
+import { AlertController, ToastController, ActionSheetController } from "@ionic/angular";
 import { HttpClient } from "@angular/common/http";
 import { ApiService } from "../../services/api.service";
 import { StorageService } from "../../services/storage.service";
@@ -28,7 +28,6 @@ export class ProjectsPage implements OnInit {
     private gpsService: GpsService,
     private router: Router,
     private alertCtrl: AlertController,
-    private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private actionSheetCtrl: ActionSheetController,
     private http: HttpClient

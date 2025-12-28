@@ -47,21 +47,11 @@ export interface ReportData {
   createdAt: string;
   technicianName?: string;
   companyName?: string;
-
-  // Imagen de portada (mapa o captura)
   coverImage?: string;
-
-  // Resumen generado por IA
   aiSummary?: string;
-
-  // Fotos del proyecto
   photos: ReportPhoto[];
-
-  // Zonas y viales
   zones?: ReportZone[];
   paths?: ReportPath[];
-
-  // Notas adicionales
   notes?: string;
 }
 
@@ -69,6 +59,9 @@ export interface ReportData {
   providedIn: 'root'
 })
 export class ReportService {
+  // Almacenar el último reporte generado para visualización
+  private lastReportHtml: string = '';
+  private lastReportData: ReportData | null = null;
 
   constructor() {}
 
@@ -76,6 +69,7 @@ export class ReportService {
    * Genera un documento Word con formato PDD profesional
    */
   async generateReport(data: ReportData): Promise<Blob> {
+    this.lastReportData = data;
     const children: any[] = [];
 
     // ===== PORTADA =====
@@ -86,23 +80,39 @@ export class ReportService {
       children.push(...this.createSummarySection(data.aiSummary));
     }
 
-    // Salto de página
-    children.push(new Paragraph({ children: [new PageBreak()] }));
+    // ===== ZONAS Y VIALES (antes de las fotos) =====
+    if ((data.zones && data.zones.length > 0) || (data.paths && data.paths.length > 0)) {
+      children.push(new Paragraph({ children: [new PageBreak()] }));
+      children.push(...this.createZonesPathsSection(data.zones, data.paths));
+    }
 
     // ===== DOCUMENTACIÓN FOTOGRÁFICA =====
     if (data.photos && data.photos.length > 0) {
+      children.push(new Paragraph({ children: [new PageBreak()] }));
       children.push(...await this.createPhotosSection(data.photos));
-    }
-
-    // ===== ZONAS Y VIALES =====
-    if ((data.zones && data.zones.length > 0) || (data.paths && data.paths.length > 0)) {
-      children.push(...this.createZonesPathsSection(data.zones, data.paths));
     }
 
     // ===== OBSERVACIONES =====
     if (data.notes) {
+      children.push(new Paragraph({ children: [new PageBreak()] }));
       children.push(...this.createNotesSection(data.notes));
     }
+
+    // Pie de documento
+    children.push(
+      new Paragraph({
+        spacing: { before: 600 },
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: '— Documento generado por GeoTech —',
+            size: 18,
+            color: '999999',
+            italics: true
+          })
+        ]
+      })
+    );
 
     // Crear el documento
     const doc = new Document({
@@ -110,10 +120,10 @@ export class ReportService {
         properties: {
           page: {
             margin: {
-              top: 1000,
-              right: 1000,
-              bottom: 1000,
-              left: 1000
+              top: 720,  // 0.5 inch
+              right: 720,
+              bottom: 720,
+              left: 720
             }
           }
         },
@@ -125,126 +135,297 @@ export class ReportService {
   }
 
   /**
+   * Genera HTML para previsualización en la app
+   */
+  generateHtmlPreview(data: ReportData): string {
+    this.lastReportData = data;
+
+    let html = `
+    <div class="report-preview">
+      <style>
+        .report-preview {
+          font-family: 'Segoe UI', Arial, sans-serif;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+          background: white;
+          color: #333;
+        }
+        .report-cover {
+          text-align: center;
+          padding: 40px 20px;
+          border: 2px solid #1a365d;
+          margin-bottom: 30px;
+        }
+        .report-title {
+          font-size: 32px;
+          font-weight: bold;
+          color: #1a365d;
+          margin-bottom: 20px;
+        }
+        .report-info {
+          font-size: 14px;
+          color: #666;
+          margin: 10px 0;
+        }
+        .report-section {
+          margin: 25px 0;
+          padding: 15px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+        }
+        .section-title {
+          font-size: 20px;
+          font-weight: bold;
+          color: #1a365d;
+          margin-bottom: 15px;
+          padding-bottom: 10px;
+          border-bottom: 2px solid #1a365d;
+        }
+        .ai-summary {
+          background: #f8f9fa;
+          padding: 15px;
+          border-radius: 8px;
+          font-style: italic;
+          line-height: 1.6;
+        }
+        .zone-item, .path-item {
+          padding: 10px;
+          margin: 8px 0;
+          background: #f0f4f8;
+          border-radius: 6px;
+        }
+        .zone-item strong, .path-item strong {
+          color: #1a365d;
+        }
+        .photo-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 20px;
+        }
+        .photo-card {
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .photo-card img {
+          width: 100%;
+          height: 200px;
+          object-fit: cover;
+        }
+        .photo-card .photo-details {
+          padding: 12px;
+          font-size: 13px;
+        }
+        .photo-card .photo-details p {
+          margin: 5px 0;
+        }
+        .photo-card .coords {
+          color: #666;
+          font-family: monospace;
+        }
+        .photo-card .ai-desc {
+          background: #e8f4fd;
+          padding: 8px;
+          border-radius: 4px;
+          margin-top: 8px;
+        }
+        .no-image {
+          width: 100%;
+          height: 200px;
+          background: #f0f0f0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #999;
+        }
+        .footer {
+          text-align: center;
+          color: #999;
+          font-size: 12px;
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 1px solid #ddd;
+        }
+      </style>
+
+      <!-- Portada -->
+      <div class="report-cover">
+        <div class="report-title">INFORME VISITA TÉCNICA</div>
+        <div class="report-info"><strong>Proyecto:</strong> ${this.escapeHtml(data.projectName)}</div>
+        <div class="report-info"><strong>Fecha:</strong> ${this.formatDate(data.createdAt)}</div>
+        <div class="report-info"><strong>Ubicación:</strong> ${this.escapeHtml(data.projectLocation || 'No especificada')}</div>
+        ${data.technicianName ? `<div class="report-info"><strong>Técnico:</strong> ${this.escapeHtml(data.technicianName)}</div>` : ''}
+      </div>
+    `;
+
+    // Resumen IA
+    if (data.aiSummary) {
+      html += `
+      <div class="report-section">
+        <div class="section-title">Resumen (generado con IA)</div>
+        <div class="ai-summary">${this.escapeHtml(data.aiSummary)}</div>
+      </div>
+      `;
+    }
+
+    // Zonas y Viales
+    if ((data.zones && data.zones.length > 0) || (data.paths && data.paths.length > 0)) {
+      html += `<div class="report-section"><div class="section-title">Zonas y Viales</div>`;
+
+      if (data.zones && data.zones.length > 0) {
+        html += `<h4 style="margin: 15px 0 10px;">Zonas de Estudio:</h4>`;
+        data.zones.forEach(zone => {
+          html += `<div class="zone-item"><strong>${this.escapeHtml(zone.name)}</strong>${zone.description ? `: ${this.escapeHtml(zone.description)}` : ''}</div>`;
+        });
+      }
+
+      if (data.paths && data.paths.length > 0) {
+        html += `<h4 style="margin: 15px 0 10px;">Viales:</h4>`;
+        data.paths.forEach(path => {
+          html += `<div class="path-item"><strong>${this.escapeHtml(path.name)}</strong>${path.description ? `: ${this.escapeHtml(path.description)}` : ''}</div>`;
+        });
+      }
+
+      html += `</div>`;
+    }
+
+    // Fotos
+    if (data.photos && data.photos.length > 0) {
+      html += `
+      <div class="report-section">
+        <div class="section-title">Documentación Fotográfica (${data.photos.length} fotos)</div>
+        <div class="photo-grid">
+      `;
+
+      data.photos.forEach((photo, i) => {
+        html += `
+        <div class="photo-card">
+          ${photo.base64 ? `<img src="${photo.base64}" alt="Foto ${i + 1}">` : '<div class="no-image">Sin imagen</div>'}
+          <div class="photo-details">
+            <p><strong>Foto ${i + 1}</strong></p>
+            ${photo.latitude && photo.longitude ? `<p class="coords">${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}</p>` : ''}
+            ${photo.location ? `<p>${this.escapeHtml(photo.location)}</p>` : ''}
+            ${photo.timestamp ? `<p>${this.formatDateTime(photo.timestamp)}</p>` : ''}
+            ${photo.aiDescription ? `<div class="ai-desc">${this.escapeHtml(photo.aiDescription)}</div>` : ''}
+          </div>
+        </div>
+        `;
+      });
+
+      html += `</div></div>`;
+    }
+
+    // Observaciones
+    if (data.notes) {
+      html += `
+      <div class="report-section">
+        <div class="section-title">Observaciones</div>
+        <p>${this.escapeHtml(data.notes)}</p>
+      </div>
+      `;
+    }
+
+    html += `<div class="footer">Documento generado por GeoTech</div></div>`;
+
+    this.lastReportHtml = html;
+    return html;
+  }
+
+  /**
+   * Obtener el último HTML generado
+   */
+  getLastReportHtml(): string {
+    return this.lastReportHtml;
+  }
+
+  /**
+   * Obtener los últimos datos del reporte
+   */
+  getLastReportData(): ReportData | null {
+    return this.lastReportData;
+  }
+
+  /**
    * Crea la página de portada
    */
   private createCoverPage(data: ReportData): Paragraph[] {
     const elements: Paragraph[] = [];
 
-    // Tabla principal de portada
-    const coverRows: TableRow[] = [];
+    // Espacio inicial
+    elements.push(new Paragraph({ spacing: { before: 400 } }));
 
-    // Fila 1: Título e imagen
-    const titleAndImageCells: TableCell[] = [
-      new TableCell({
+    // Título principal
+    elements.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 600, after: 200 },
         children: [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 400 },
-            children: [
-              new TextRun({
-                text: 'INFORME VISITA',
-                bold: true,
-                size: 72,
-                color: '1a365d'
-              })
-            ]
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 200 },
-            children: [
-              new TextRun({
-                text: 'TÉCNICA',
-                bold: true,
-                size: 72,
-                color: '1a365d'
-              })
-            ]
-          }),
-          // Espacio para imagen de portada
-          ...(data.coverImage ? [
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              spacing: { before: 400 },
-              children: [
-                new ImageRun({
-                  data: this.extractBase64Data(data.coverImage),
-                  transformation: {
-                    width: 450,
-                    height: 400
-                  },
-                  type: 'jpg'
-                })
-              ]
-            })
-          ] : [])
-        ],
-        verticalAlign: VerticalAlign.CENTER,
-        borders: {
-          top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-          bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-          left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-          right: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
-        }
+          new TextRun({
+            text: 'INFORME VISITA TÉCNICA',
+            bold: true,
+            size: 56,
+            color: '1a365d'
+          })
+        ]
       })
+    );
+
+    // Línea decorativa
+    elements.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+            size: 24,
+            color: '1a365d'
+          })
+        ]
+      })
+    );
+
+    // Información del proyecto
+    const infoItems = [
+      { label: 'Proyecto', value: data.projectName },
+      { label: 'Fecha', value: this.formatDate(data.createdAt) },
+      { label: 'Ubicación', value: data.projectLocation || 'No especificada' },
     ];
 
-    coverRows.push(new TableRow({
-      children: titleAndImageCells,
-      height: { value: 8000, rule: 'atLeast' as any }
-    }));
+    if (data.technicianName) {
+      infoItems.push({ label: 'Técnico', value: data.technicianName });
+    }
 
-    // Fila 2: Información del proyecto
-    coverRows.push(new TableRow({
-      children: [
-        new TableCell({
+    infoItems.forEach(item => {
+      elements.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 200 },
           children: [
-            new Paragraph({
-              spacing: { before: 100 },
-              children: [
-                new TextRun({ text: 'Nombre Proyecto: ', bold: true, size: 24 }),
-                new TextRun({ text: data.projectName, size: 24 })
-              ]
-            }),
-            new Paragraph({
-              spacing: { before: 100 },
-              children: [
-                new TextRun({ text: 'Fecha visita: ', bold: true, size: 24 }),
-                new TextRun({ text: this.formatDate(data.createdAt), size: 24 })
-              ]
-            }),
-            new Paragraph({
-              spacing: { before: 100 },
-              children: [
-                new TextRun({ text: 'Ubicación: ', bold: true, size: 24 }),
-                new TextRun({ text: data.projectLocation || 'No especificada', size: 24 })
-              ]
-            }),
-            new Paragraph({
-              spacing: { before: 100, after: 100 },
-              children: [
-                new TextRun({ text: 'Técnico: ', bold: true, size: 24 }),
-                new TextRun({ text: data.technicianName || 'No especificado', size: 24 })
-              ]
-            })
-          ],
-          borders: {
-            top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-            bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-            left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-            right: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
-          }
+            new TextRun({ text: `${item.label}: `, bold: true, size: 28 }),
+            new TextRun({ text: item.value, size: 28 })
+          ]
         })
-      ]
-    }));
-
-    const coverTable = new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: coverRows
+      );
     });
 
-    elements.push(new Paragraph({ children: [] })); // Espacio inicial
-    elements.push(coverTable as any);
+    // Descripción si existe
+    if (data.projectDescription) {
+      elements.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 400 },
+          children: [
+            new TextRun({
+              text: data.projectDescription,
+              size: 24,
+              italics: true,
+              color: '666666'
+            })
+          ]
+        })
+      );
+    }
 
     return elements;
   }
@@ -254,43 +435,25 @@ export class ReportService {
    */
   private createSummarySection(summary: string): any[] {
     return [
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-          new TableRow({
-            children: [
-              new TableCell({
-                children: [
-                  new Paragraph({
-                    spacing: { before: 100 },
-                    children: [
-                      new TextRun({ text: 'RESUMEN ', bold: true, size: 28 }),
-                      new TextRun({ text: '(generado con IA)', italics: true, size: 22, color: '666666' })
-                    ]
-                  }),
-                  new Paragraph({
-                    spacing: { before: 200, after: 200 },
-                    children: [
-                      new TextRun({ text: summary, size: 24 })
-                    ]
-                  })
-                ],
-                borders: {
-                  top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-                  bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-                  left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-                  right: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
-                }
-              })
-            ]
-          })
+      new Paragraph({
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 },
+        children: [
+          new TextRun({ text: 'RESUMEN ', bold: true, size: 32, color: '1a365d' }),
+          new TextRun({ text: '(generado con IA)', italics: true, size: 22, color: '666666' })
+        ]
+      }),
+      new Paragraph({
+        spacing: { before: 100, after: 200 },
+        children: [
+          new TextRun({ text: summary, size: 24 })
         ]
       })
     ];
   }
 
   /**
-   * Crea la sección de fotos en formato tabla
+   * Crea la sección de fotos
    */
   private async createPhotosSection(photos: ReportPhoto[]): Promise<any[]> {
     const elements: any[] = [];
@@ -298,134 +461,122 @@ export class ReportService {
     elements.push(
       new Paragraph({
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
+        spacing: { before: 200, after: 200 },
         children: [
-          new TextRun({ text: 'DOCUMENTACIÓN FOTOGRÁFICA', bold: true, size: 32 })
+          new TextRun({ text: `DOCUMENTACIÓN FOTOGRÁFICA (${photos.length} fotos)`, bold: true, size: 32, color: '1a365d' })
         ]
       })
     );
 
     // Crear tabla de fotos
-    const photoRows: TableRow[] = [];
-
     for (let i = 0; i < photos.length; i++) {
       const photo = photos[i];
 
-      const cells: TableCell[] = [
-        // Columna 1: Número de foto
-        new TableCell({
-          width: { size: 10, type: WidthType.PERCENTAGE },
-          verticalAlign: VerticalAlign.TOP,
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({ text: `Foto ${i + 1}`, bold: true, size: 22 })
-              ]
-            })
-          ],
-          borders: this.getTableBorders()
-        }),
-
-        // Columna 2: Imagen
-        new TableCell({
-          width: { size: 55, type: WidthType.PERCENTAGE },
-          verticalAlign: VerticalAlign.CENTER,
-          children: photo.base64 ? [
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [
-                new ImageRun({
-                  data: this.extractBase64Data(photo.base64),
-                  transformation: {
-                    width: 380,
-                    height: 285
-                  },
-                  type: 'jpg'
-                })
-              ]
-            })
-          ] : [
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [
-                new TextRun({ text: '[Imagen no disponible]', italics: true, color: '999999' })
-              ]
-            })
-          ],
-          borders: this.getTableBorders()
-        }),
-
-        // Columna 3: Información
-        new TableCell({
-          width: { size: 35, type: WidthType.PERCENTAGE },
-          verticalAlign: VerticalAlign.TOP,
-          children: [
-            new Paragraph({
-              spacing: { after: 100 },
-              children: [
-                new TextRun({ text: 'Coordenadas: ', bold: true, size: 20 }),
-                new TextRun({
-                  text: photo.latitude && photo.longitude
-                    ? `${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}`
-                    : 'No disponibles',
-                  size: 20
-                })
-              ]
-            }),
-            new Paragraph({
-              spacing: { after: 100 },
-              children: [
-                new TextRun({ text: 'Ubicación: ', bold: true, size: 20 }),
-                new TextRun({ text: photo.location || 'No especificada', size: 20 })
-              ]
-            }),
-            new Paragraph({
-              spacing: { after: 100 },
-              children: [
-                new TextRun({ text: 'Catastro: ', bold: true, size: 20 }),
-                new TextRun({ text: photo.catastroRef || 'No disponible', size: 20 })
-              ]
-            }),
-            new Paragraph({
-              spacing: { after: 100 },
-              children: [
-                new TextRun({ text: 'Fecha: ', bold: true, size: 20 }),
-                new TextRun({ text: photo.timestamp ? this.formatDateTime(photo.timestamp) : 'No disponible', size: 20 })
-              ]
-            }),
-            new Paragraph({
-              spacing: { before: 100 },
-              children: [
-                new TextRun({ text: 'Descripción:', bold: true, size: 20 })
-              ]
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: photo.aiDescription || photo.description || 'Sin descripción',
-                  size: 20,
-                  italics: !photo.aiDescription && !photo.description
-                })
-              ]
-            })
-          ],
-          borders: this.getTableBorders()
+      // Información de la foto
+      const infoChildren: Paragraph[] = [
+        new Paragraph({
+          children: [new TextRun({ text: `Foto ${i + 1}`, bold: true, size: 24 })]
         })
       ];
 
-      photoRows.push(new TableRow({
-        children: cells,
-        height: { value: 4000, rule: 'atLeast' as any }
-      }));
-    }
+      if (photo.latitude && photo.longitude) {
+        infoChildren.push(new Paragraph({
+          spacing: { before: 80 },
+          children: [
+            new TextRun({ text: 'Coordenadas: ', bold: true, size: 20 }),
+            new TextRun({ text: `${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}`, size: 20 })
+          ]
+        }));
+      }
 
-    if (photoRows.length > 0) {
+      if (photo.location) {
+        infoChildren.push(new Paragraph({
+          spacing: { before: 80 },
+          children: [
+            new TextRun({ text: 'Ubicación: ', bold: true, size: 20 }),
+            new TextRun({ text: photo.location, size: 20 })
+          ]
+        }));
+      }
+
+      if (photo.timestamp) {
+        infoChildren.push(new Paragraph({
+          spacing: { before: 80 },
+          children: [
+            new TextRun({ text: 'Fecha: ', bold: true, size: 20 }),
+            new TextRun({ text: this.formatDateTime(photo.timestamp), size: 20 })
+          ]
+        }));
+      }
+
+      if (photo.aiDescription || photo.description) {
+        infoChildren.push(new Paragraph({
+          spacing: { before: 100 },
+          children: [
+            new TextRun({ text: 'Descripción: ', bold: true, size: 20 }),
+            new TextRun({ text: photo.aiDescription || photo.description || '', size: 20 })
+          ]
+        }));
+      }
+
+      // Crear fila con imagen y datos
+      const cells: TableCell[] = [];
+
+      // Celda de imagen
+      if (photo.base64) {
+        try {
+          cells.push(new TableCell({
+            width: { size: 50, type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.CENTER,
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new ImageRun({
+                    data: this.extractBase64Data(photo.base64),
+                    transformation: { width: 300, height: 225 },
+                    type: 'jpg'
+                  })
+                ]
+              })
+            ],
+            borders: this.getTableBorders()
+          }));
+        } catch (e) {
+          cells.push(new TableCell({
+            width: { size: 50, type: WidthType.PERCENTAGE },
+            children: [new Paragraph({ children: [new TextRun({ text: '[Imagen no disponible]', italics: true })] })],
+            borders: this.getTableBorders()
+          }));
+        }
+      } else {
+        cells.push(new TableCell({
+          width: { size: 50, type: WidthType.PERCENTAGE },
+          children: [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun({ text: '[Sin imagen]', italics: true, color: '999999' })]
+          })],
+          borders: this.getTableBorders()
+        }));
+      }
+
+      // Celda de información
+      cells.push(new TableCell({
+        width: { size: 50, type: WidthType.PERCENTAGE },
+        verticalAlign: VerticalAlign.TOP,
+        children: infoChildren,
+        borders: this.getTableBorders()
+      }));
+
+      const row = new TableRow({ children: cells });
+
       elements.push(
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           layout: TableLayoutType.FIXED,
-          rows: photoRows
-        })
+          rows: [row]
+        }),
+        new Paragraph({ spacing: { before: 200 } }) // Espacio entre fotos
       );
     }
 
@@ -439,12 +590,11 @@ export class ReportService {
     const elements: any[] = [];
 
     elements.push(
-      new Paragraph({ children: [new PageBreak()] }),
       new Paragraph({
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
+        spacing: { before: 200, after: 200 },
         children: [
-          new TextRun({ text: 'ZONAS Y VIALES', bold: true, size: 32 })
+          new TextRun({ text: 'ZONAS Y VIALES', bold: true, size: 32, color: '1a365d' })
         ]
       })
     );
@@ -452,17 +602,17 @@ export class ReportService {
     if (zones && zones.length > 0) {
       elements.push(
         new Paragraph({
-          spacing: { before: 200 },
+          spacing: { before: 200, after: 100 },
           children: [
             new TextRun({ text: 'Zonas de Estudio:', bold: true, size: 26 })
           ]
         })
       );
 
-      zones.forEach((zone, i) => {
+      zones.forEach((zone) => {
         elements.push(
           new Paragraph({
-            spacing: { before: 100 },
+            spacing: { before: 80 },
             bullet: { level: 0 },
             children: [
               new TextRun({ text: zone.name, bold: true, size: 22 }),
@@ -476,17 +626,17 @@ export class ReportService {
     if (paths && paths.length > 0) {
       elements.push(
         new Paragraph({
-          spacing: { before: 300 },
+          spacing: { before: 300, after: 100 },
           children: [
             new TextRun({ text: 'Viales:', bold: true, size: 26 })
           ]
         })
       );
 
-      paths.forEach((path, i) => {
+      paths.forEach((path) => {
         elements.push(
           new Paragraph({
-            spacing: { before: 100 },
+            spacing: { before: 80 },
             bullet: { level: 0 },
             children: [
               new TextRun({ text: path.name, bold: true, size: 22 }),
@@ -507,26 +657,14 @@ export class ReportService {
     return [
       new Paragraph({
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
+        spacing: { before: 200, after: 200 },
         children: [
-          new TextRun({ text: 'OBSERVACIONES', bold: true, size: 32 })
+          new TextRun({ text: 'OBSERVACIONES', bold: true, size: 32, color: '1a365d' })
         ]
       }),
       new Paragraph({
         children: [
           new TextRun({ text: notes, size: 24 })
-        ]
-      }),
-      new Paragraph({
-        spacing: { before: 600 },
-        alignment: AlignmentType.CENTER,
-        children: [
-          new TextRun({
-            text: '— Documento generado por GeoTech —',
-            size: 18,
-            color: '999999',
-            italics: true
-          })
         ]
       })
     ];
@@ -545,31 +683,39 @@ export class ReportService {
 
   private getTableBorders() {
     return {
-      top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-      left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-      right: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
+      top: { style: BorderStyle.SINGLE, size: 1, color: 'cccccc' },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: 'cccccc' },
+      left: { style: BorderStyle.SINGLE, size: 1, color: 'cccccc' },
+      right: { style: BorderStyle.SINGLE, size: 1, color: 'cccccc' }
     };
   }
 
   private formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
   }
 
   private formatDateTime(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return dateStr;
+    }
   }
 
   private formatDateForFilename(date: Date): string {
@@ -585,5 +731,16 @@ export class ReportService {
       data = data.split(',')[1];
     }
     return Buffer.from(data, 'base64');
+  }
+
+  private escapeHtml(text: string): string {
+    const map: { [key: string]: string } = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
   }
 }

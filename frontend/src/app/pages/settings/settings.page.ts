@@ -1,6 +1,6 @@
 import { Component, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
-import { AlertController, LoadingController, ToastController } from "@ionic/angular";
+import { AlertController, ToastController } from "@ionic/angular";
 import { AuthService } from "../../services/auth.service";
 import { SyncService } from "../../services/sync.service";
 import { StorageService } from "../../services/storage.service";
@@ -25,7 +25,6 @@ export class SettingsPage implements OnInit {
     private storageService: StorageService,
     private router: Router,
     private alertCtrl: AlertController,
-    private loadingCtrl: LoadingController,
     private toastCtrl: ToastController
   ) {}
 

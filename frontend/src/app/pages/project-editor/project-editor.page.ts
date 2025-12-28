@@ -26,6 +26,11 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   isGeneratingPDD = false;
   isAnalyzingPhoto = false;
 
+  // Report preview
+  showReportPreview = false;
+  reportPreviewHtml = '';
+  private pendingReportData: any = null;
+
   // Drawing state
   drawMode: DrawMode = 'none';
   currentPoints: L.LatLng[] = [];
@@ -221,14 +226,43 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     this.cancelDrawing();
     this.drawMode = mode;
 
-    if (mode !== 'none') {
-      this.showToast(
-        mode === 'zone' ? 'Toca el mapa para dibujar la zona' :
-        mode === 'path' ? 'Toca el mapa para trazar el vial' :
-        'Toca el mapa para añadir un punto',
-        'primary'
-      );
-    }
+    // Desactivar interacción con elementos existentes cuando dibujamos
+    this.setLayersInteractive(mode === 'none');
+  }
+
+  private setLayersInteractive(interactive: boolean) {
+    // Desactivar/activar interacción con zonas
+    this.zonesLayer?.eachLayer((layer: any) => {
+      if (interactive) {
+        layer.options.interactive = true;
+        if (layer._path) layer._path.style.pointerEvents = 'auto';
+      } else {
+        layer.options.interactive = false;
+        if (layer._path) layer._path.style.pointerEvents = 'none';
+      }
+    });
+
+    // Desactivar/activar interacción con viales
+    this.pathsLayer?.eachLayer((layer: any) => {
+      if (interactive) {
+        layer.options.interactive = true;
+        if (layer._path) layer._path.style.pointerEvents = 'auto';
+      } else {
+        layer.options.interactive = false;
+        if (layer._path) layer._path.style.pointerEvents = 'none';
+      }
+    });
+
+    // Desactivar/activar interacción con marcadores
+    this.markersLayer?.eachLayer((layer: any) => {
+      if (interactive) {
+        layer.options.interactive = true;
+        if (layer._icon) layer._icon.style.pointerEvents = 'auto';
+      } else {
+        layer.options.interactive = false;
+        if (layer._icon) layer._icon.style.pointerEvents = 'none';
+      }
+    });
   }
 
   private onMapClick(e: L.LeafletMouseEvent) {
@@ -281,12 +315,10 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
   async finishDrawing() {
     if (this.currentPoints.length < 2) {
-      this.showToast('Necesitas al menos 2 puntos', 'warning');
       return;
     }
 
     if (this.drawMode === 'zone' && this.currentPoints.length < 3) {
-      this.showToast('Una zona necesita al menos 3 puntos', 'warning');
       return;
     }
 
@@ -310,7 +342,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           text: 'Guardar',
           handler: (data) => {
             if (!data.name?.trim()) {
-              this.showToast('El nombre es obligatorio', 'warning');
               return false;
             }
             this.saveDrawing(data.name, data.description);
@@ -355,7 +386,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     await this.saveProject();
     this.cancelDrawing();
     this.renderProjectElements();
-    this.showToast(`${this.drawMode === 'zone' ? 'Zona' : 'Vial'} guardado`, 'success');
   }
 
   cancelDrawing() {
@@ -363,6 +393,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     this.currentPoints = [];
     this.currentDrawing = null;
     this.drawLayer?.clearLayers();
+    // Restaurar interactividad de los elementos
+    this.setLayersInteractive(true);
   }
 
   undoLastPoint() {
@@ -395,7 +427,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           text: 'Guardar',
           handler: async (data) => {
             if (!data.name?.trim()) {
-              this.showToast('El nombre es obligatorio', 'warning');
               return false;
             }
             await this.saveMarker(latlng, data.name, data.description);
@@ -424,7 +455,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
     await this.saveProject();
     this.renderProjectElements();
-    this.showToast('Punto guardado', 'success');
   }
 
   private addMarkerToMap(marker: ProjectMarker) {
@@ -486,7 +516,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           this.map.setView([position.latitude, position.longitude], 18);
         }
 
-        this.showToast('Foto guardada', 'success');
         this.promptAIDescription(photo);
       }
     } catch (error: any) {
@@ -519,9 +548,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       if (index >= 0) this.photos[index] = photo;
 
       this.renderProjectElements();
-      this.showToast('Analisis completado', 'success');
     } catch (error: any) {
-      this.showToast(error.message || 'Error en analisis IA', 'danger');
+      // Error silencioso para análisis IA
     } finally {
       this.isAnalyzingPhoto = false;
     }
@@ -563,9 +591,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       };
 
       await this.kmlService.downloadKmz(exportData, `${this.project.name}.kmz`);
-      this.showToast('KMZ exportado', 'success');
     } catch (error: any) {
-      this.showToast(error.message || 'Error al exportar', 'danger');
+      // Error silencioso
     }
   }
 
@@ -620,7 +647,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         });
       }
 
-      // 3. Generar documento Word
+      // 3. Preparar datos del reporte
       const reportData: ReportData = {
         projectName: this.project.name,
         projectDescription: this.project.description,
@@ -633,12 +660,31 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         notes: this.project.notes
       };
 
-      await this.reportService.downloadReport(reportData);
-      this.showToast('Informe PDD generado', 'success');
+      // 4. Generar preview HTML y mostrar
+      this.pendingReportData = reportData;
+      this.reportPreviewHtml = this.reportService.generateHtmlPreview(reportData);
+      this.showReportPreview = true;
+
     } catch (error: any) {
-      this.showToast(error.message || 'Error al generar', 'danger');
+      // Error silencioso
     } finally {
       this.isGeneratingPDD = false;
+    }
+  }
+
+  closeReportPreview() {
+    this.showReportPreview = false;
+    this.reportPreviewHtml = '';
+    this.pendingReportData = null;
+  }
+
+  async downloadReport() {
+    if (!this.pendingReportData) return;
+    try {
+      await this.reportService.downloadReport(this.pendingReportData);
+      this.closeReportPreview();
+    } catch (error: any) {
+      // Error silencioso
     }
   }
 
@@ -658,7 +704,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       const pos = await this.gpsService.getCurrentPosition();
       if (this.map) this.map.setView([pos.latitude, pos.longitude], 18);
     } catch (error: any) {
-      this.showToast(error.message || 'Error GPS', 'danger');
+      // Error silencioso
     }
   }
 

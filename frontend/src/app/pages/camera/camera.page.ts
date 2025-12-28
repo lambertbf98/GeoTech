@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { LoadingController, ToastController, AlertController, NavController } from '@ionic/angular';
+import { ToastController, AlertController, NavController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { CameraService } from '../../services/camera.service';
 import { GpsService } from '../../services/gps.service';
@@ -25,7 +25,6 @@ export class CameraPage implements OnInit {
     private gpsService: GpsService,
     private storageService: StorageService,
     private claudeService: ClaudeService,
-    private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
     private navCtrl: NavController,

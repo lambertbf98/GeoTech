@@ -99,9 +99,30 @@
   </ion-button>
 
   <!-- Export PDD Button - visible cuando no está dibujando -->
-  <ion-button class="export-pdd-btn" color="primary" (click)="exportToWord()" *ngIf="drawMode === 'none'" [disabled]="isGeneratingPDD">
+  <ion-button class="export-pdd-btn" color="primary" (click)="exportToWord()" *ngIf="drawMode === 'none' && !showReportPreview" [disabled]="isGeneratingPDD">
     <ion-spinner *ngIf="isGeneratingPDD" name="crescent" slot="start"></ion-spinner>
     <ion-icon *ngIf="!isGeneratingPDD" slot="start" name="document-text-outline"></ion-icon>
     {{ isGeneratingPDD ? 'Generando...' : 'Generar Informe PDD' }}
   </ion-button>
+
+  <!-- Report Preview Overlay -->
+  <div class="report-preview-overlay" *ngIf="showReportPreview">
+    <div class="report-preview-header">
+      <h2>Vista Previa del Informe</h2>
+      <ion-button fill="clear" (click)="closeReportPreview()">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </div>
+    <div class="report-preview-content" [innerHTML]="reportPreviewHtml"></div>
+    <div class="report-preview-actions">
+      <ion-button color="medium" (click)="closeReportPreview()">
+        <ion-icon slot="start" name="close-outline"></ion-icon>
+        Cerrar
+      </ion-button>
+      <ion-button color="primary" (click)="downloadReport()">
+        <ion-icon slot="start" name="download-outline"></ion-icon>
+        Descargar Word
+      </ion-button>
+    </div>
+  </div>
 </ion-content>
