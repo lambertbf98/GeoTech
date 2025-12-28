@@ -26,6 +26,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   // AI loading state
   isGeneratingPDD = false;
   isAnalyzingPhoto = false;
+  isProcessingAction = false;  // Flag para evitar operaciones simultáneas
+  aiLoadingMessage = '';
 
   // Report preview
   showReportPreview = false;
@@ -473,6 +475,9 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   async takePhotoForMarker(marker: ProjectMarker) {
+    if (this.isProcessingAction) return;
+    this.isProcessingAction = true;
+
     try {
       const photoData = await this.cameraService.takePhoto();
 
@@ -504,6 +509,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       }
     } catch (error: any) {
       // Error silencioso
+    } finally {
+      this.isProcessingAction = false;
     }
   }
 
@@ -803,7 +810,15 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   // ========== ZONE OPTIONS ==========
 
   async showZoneOptions(zone: ProjectZone) {
+    // Calcular métricas de la zona
+    const info = this.getZoneInfo(zone);
+
     const buttons: any[] = [
+      {
+        text: 'Ver información detallada',
+        icon: 'information-circle-outline',
+        handler: () => this.showZoneDetails(zone, info)
+      },
       {
         text: 'Editar nombre/descripción',
         icon: 'create-outline',
@@ -820,10 +835,34 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
     const actionSheet = await this.actionSheetCtrl.create({
       header: zone.name,
-      subHeader: zone.description || 'Área delimitada',
+      subHeader: `Área: ${this.formatArea(info.area)} | Perímetro: ${this.formatDistance(info.perimeter)}`,
       buttons
     });
     await actionSheet.present();
+  }
+
+  async showZoneDetails(zone: ProjectZone, info: { area: number; perimeter: number; vertices: number; bbox: { width: number; height: number } }) {
+    const message = `
+📐 ÁREA: ${this.formatArea(info.area)}
+
+📏 PERÍMETRO: ${this.formatDistance(info.perimeter)}
+
+📍 VÉRTICES: ${info.vertices} puntos
+
+📦 DIMENSIONES:
+   • Ancho: ${this.formatDistance(info.bbox.width)}
+   • Alto: ${this.formatDistance(info.bbox.height)}
+
+${zone.description ? '📝 DESCRIPCIÓN:\n' + zone.description : ''}
+    `.trim();
+
+    const alert = await this.alertCtrl.create({
+      header: zone.name,
+      subHeader: 'Información de la zona',
+      message,
+      buttons: ['Cerrar']
+    });
+    await alert.present();
   }
 
   async editZone(zone: ProjectZone) {
@@ -886,7 +925,15 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   // ========== PATH OPTIONS ==========
 
   async showPathOptions(path: ProjectPath) {
+    // Calcular métricas del trazado
+    const info = this.getPathInfo(path);
+
     const buttons: any[] = [
+      {
+        text: 'Ver información detallada',
+        icon: 'information-circle-outline',
+        handler: () => this.showPathDetails(path, info)
+      },
       {
         text: 'Editar nombre/descripción',
         icon: 'create-outline',
@@ -903,10 +950,34 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
     const actionSheet = await this.actionSheetCtrl.create({
       header: path.name,
-      subHeader: path.description || 'Trazado vial',
+      subHeader: `Longitud: ${this.formatDistance(info.length)} | ${info.segments} tramos`,
       buttons
     });
     await actionSheet.present();
+  }
+
+  async showPathDetails(path: ProjectPath, info: { length: number; segments: number; bbox: { width: number; height: number } }) {
+    const message = `
+📏 LONGITUD TOTAL: ${this.formatDistance(info.length)}
+
+🔗 TRAMOS: ${info.segments} segmentos
+
+📍 PUNTOS: ${path.coordinates.length} vértices
+
+📦 EXTENSIÓN:
+   • Ancho: ${this.formatDistance(info.bbox.width)}
+   • Alto: ${this.formatDistance(info.bbox.height)}
+
+${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
+    `.trim();
+
+    const alert = await this.alertCtrl.create({
+      header: path.name,
+      subHeader: 'Información del trazado',
+      message,
+      buttons: ['Cerrar']
+    });
+    await alert.present();
   }
 
   async editPath(path: ProjectPath) {
@@ -1011,6 +1082,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
   async analyzePhotoWithAI(photo: Photo) {
     this.isAnalyzingPhoto = true;
+    this.aiLoadingMessage = 'Analizando imagen con IA...';
     try {
       const imagePath = photo.imageUrl || photo.localPath || '';
       const description = await this.claudeService.analyzeImage(imagePath);
@@ -1026,6 +1098,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       // Error silencioso para análisis IA
     } finally {
       this.isAnalyzingPhoto = false;
+      this.aiLoadingMessage = '';
     }
   }
 
@@ -1079,14 +1152,53 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         });
       }
 
-      // 2. Intentar generar resumen con IA (opcional)
+      // 2. Calcular métricas geométricas para zonas y trazados
+      const zonesWithMetrics = this.project.zones?.map(z => {
+        const info = this.getZoneInfo(z);
+        return {
+          name: z.name,
+          description: z.description,
+          area: info.area,
+          areaFormatted: this.formatArea(info.area),
+          perimeter: info.perimeter,
+          perimeterFormatted: this.formatDistance(info.perimeter),
+          vertices: info.vertices,
+          dimensions: `${this.formatDistance(info.bbox.width)} x ${this.formatDistance(info.bbox.height)}`
+        };
+      });
+
+      const pathsWithMetrics = this.project.paths?.map(p => {
+        const info = this.getPathInfo(p);
+        return {
+          name: p.name,
+          description: p.description,
+          length: info.length,
+          lengthFormatted: this.formatDistance(info.length),
+          segments: info.segments,
+          dimensions: `${this.formatDistance(info.bbox.width)} x ${this.formatDistance(info.bbox.height)}`
+        };
+      });
+
+      // 3. Intentar generar resumen con IA (opcional) - ahora incluye métricas
+      this.aiLoadingMessage = 'Generando resumen con IA...';
       let aiSummary = '';
       try {
         const aiInput = {
           projectName: this.project.name,
           projectLocation: this.project.location,
-          zones: this.project.zones?.map(z => ({ name: z.name, description: z.description })),
-          paths: this.project.paths?.map(p => ({ name: p.name, description: p.description })),
+          zones: zonesWithMetrics?.map(z => ({
+            name: z.name,
+            description: z.description,
+            area: z.areaFormatted,
+            perimeter: z.perimeterFormatted,
+            vertices: z.vertices
+          })),
+          paths: pathsWithMetrics?.map(p => ({
+            name: p.name,
+            description: p.description,
+            length: p.lengthFormatted,
+            segments: p.segments
+          })),
           photos: this.photos.map(p => ({
             description: p.notes,
             aiDescription: p.aiDescription,
@@ -1101,8 +1213,9 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         // IA no disponible, continuar sin resumen
         aiSummary = 'Resumen no disponible (sin conexión a IA)';
       }
+      this.aiLoadingMessage = '';
 
-      // 3. Preparar datos del reporte
+      // 4. Preparar datos del reporte con métricas
       const reportData: ReportData = {
         projectName: this.project.name,
         projectDescription: this.project.description,
@@ -1110,8 +1223,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         createdAt: this.project.createdAt.toString(),
         aiSummary,
         photos: reportPhotos,
-        zones: this.project.zones?.map(z => ({ name: z.name, description: z.description })),
-        paths: this.project.paths?.map(p => ({ name: p.name, description: p.description })),
+        zones: zonesWithMetrics,
+        paths: pathsWithMetrics,
         notes: this.project.notes
       };
 
@@ -1249,4 +1362,151 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   get pathCount(): number { return this.project?.paths?.length || 0; }
   get markerCount(): number { return this.project?.markers?.length || 0; }
   get photoCount(): number { return this.photos.length; }
+
+  // ========== GEOMETRIC CALCULATIONS ==========
+
+  /**
+   * Calcula la distancia entre dos puntos usando la fórmula de Haversine
+   */
+  private haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371000; // Radio de la Tierra en metros
+    const dLat = this.toRad(lat2 - lat1);
+    const dLng = this.toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  private toRad(deg: number): number {
+    return deg * (Math.PI / 180);
+  }
+
+  /**
+   * Calcula el área de un polígono usando la fórmula del Shoelace (en m²)
+   */
+  calculatePolygonArea(coordinates: GeoPoint[]): number {
+    if (coordinates.length < 3) return 0;
+
+    // Convertir a coordenadas planas (proyección simple para áreas pequeñas)
+    const centerLat = coordinates.reduce((sum, c) => sum + c.lat, 0) / coordinates.length;
+    const metersPerDegreeLat = 111320;
+    const metersPerDegreeLng = 111320 * Math.cos(this.toRad(centerLat));
+
+    const points = coordinates.map(c => ({
+      x: (c.lng - coordinates[0].lng) * metersPerDegreeLng,
+      y: (c.lat - coordinates[0].lat) * metersPerDegreeLat
+    }));
+
+    // Fórmula del Shoelace
+    let area = 0;
+    for (let i = 0; i < points.length; i++) {
+      const j = (i + 1) % points.length;
+      area += points[i].x * points[j].y;
+      area -= points[j].x * points[i].y;
+    }
+    return Math.abs(area / 2);
+  }
+
+  /**
+   * Calcula el perímetro de un polígono o la longitud de una línea (en metros)
+   */
+  calculatePathLength(coordinates: GeoPoint[], closed: boolean = false): number {
+    if (coordinates.length < 2) return 0;
+
+    let length = 0;
+    for (let i = 0; i < coordinates.length - 1; i++) {
+      length += this.haversineDistance(
+        coordinates[i].lat, coordinates[i].lng,
+        coordinates[i + 1].lat, coordinates[i + 1].lng
+      );
+    }
+
+    // Si es cerrado (polígono), añadir distancia del último al primero
+    if (closed && coordinates.length > 2) {
+      length += this.haversineDistance(
+        coordinates[coordinates.length - 1].lat, coordinates[coordinates.length - 1].lng,
+        coordinates[0].lat, coordinates[0].lng
+      );
+    }
+
+    return length;
+  }
+
+  /**
+   * Calcula las dimensiones del bounding box de un conjunto de coordenadas
+   */
+  calculateBoundingBox(coordinates: GeoPoint[]): { width: number; height: number; minLat: number; maxLat: number; minLng: number; maxLng: number } {
+    if (coordinates.length === 0) {
+      return { width: 0, height: 0, minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 };
+    }
+
+    const lats = coordinates.map(c => c.lat);
+    const lngs = coordinates.map(c => c.lng);
+
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+
+    const centerLat = (minLat + maxLat) / 2;
+    const metersPerDegreeLat = 111320;
+    const metersPerDegreeLng = 111320 * Math.cos(this.toRad(centerLat));
+
+    const width = (maxLng - minLng) * metersPerDegreeLng;
+    const height = (maxLat - minLat) * metersPerDegreeLat;
+
+    return { width, height, minLat, maxLat, minLng, maxLng };
+  }
+
+  /**
+   * Formatea un área en m² o hectáreas
+   */
+  formatArea(areaM2: number): string {
+    if (areaM2 >= 10000) {
+      return `${(areaM2 / 10000).toFixed(2)} ha (${areaM2.toFixed(0)} m²)`;
+    }
+    return `${areaM2.toFixed(2)} m²`;
+  }
+
+  /**
+   * Formatea una distancia en metros o km
+   */
+  formatDistance(meters: number): string {
+    if (meters >= 1000) {
+      return `${(meters / 1000).toFixed(2)} km`;
+    }
+    return `${meters.toFixed(2)} m`;
+  }
+
+  /**
+   * Obtiene información completa de una zona
+   */
+  getZoneInfo(zone: ProjectZone): { area: number; perimeter: number; vertices: number; bbox: { width: number; height: number } } {
+    const area = this.calculatePolygonArea(zone.coordinates);
+    const perimeter = this.calculatePathLength(zone.coordinates, true);
+    const bbox = this.calculateBoundingBox(zone.coordinates);
+
+    return {
+      area,
+      perimeter,
+      vertices: zone.coordinates.length,
+      bbox: { width: bbox.width, height: bbox.height }
+    };
+  }
+
+  /**
+   * Obtiene información completa de un trazado
+   */
+  getPathInfo(path: ProjectPath): { length: number; segments: number; bbox: { width: number; height: number } } {
+    const length = this.calculatePathLength(path.coordinates, false);
+    const bbox = this.calculateBoundingBox(path.coordinates);
+
+    return {
+      length,
+      segments: path.coordinates.length - 1,
+      bbox: { width: bbox.width, height: bbox.height }
+    };
+  }
 }

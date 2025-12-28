@@ -33,11 +33,21 @@ export interface ReportPhoto {
 export interface ReportZone {
   name: string;
   description?: string;
+  area?: number;
+  areaFormatted?: string;
+  perimeter?: number;
+  perimeterFormatted?: string;
+  vertices?: number;
+  dimensions?: string;
 }
 
 export interface ReportPath {
   name: string;
   description?: string;
+  length?: number;
+  lengthFormatted?: string;
+  segments?: number;
+  dimensions?: string;
 }
 
 export interface ReportData {
@@ -190,13 +200,38 @@ export class ReportService {
           line-height: 1.6;
         }
         .zone-item, .path-item {
-          padding: 10px;
-          margin: 8px 0;
+          padding: 12px;
+          margin: 10px 0;
           background: #f0f4f8;
-          border-radius: 6px;
+          border-radius: 8px;
+          border-left: 4px solid #1a365d;
         }
         .zone-item strong, .path-item strong {
           color: #1a365d;
+          font-size: 16px;
+        }
+        .zone-metrics, .path-metrics {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-top: 8px;
+          padding-top: 8px;
+          border-top: 1px dashed #ccc;
+        }
+        .metric {
+          background: white;
+          padding: 6px 12px;
+          border-radius: 4px;
+          font-size: 13px;
+        }
+        .metric-label {
+          color: #666;
+          font-size: 11px;
+          display: block;
+        }
+        .metric-value {
+          color: #1a365d;
+          font-weight: 600;
         }
         .photo-grid {
           display: grid;
@@ -276,14 +311,35 @@ export class ReportService {
       if (data.zones && data.zones.length > 0) {
         html += `<h4 style="margin: 15px 0 10px;">Zonas de Estudio:</h4>`;
         data.zones.forEach(zone => {
-          html += `<div class="zone-item"><strong>${this.escapeHtml(zone.name)}</strong>${zone.description ? `: ${this.escapeHtml(zone.description)}` : ''}</div>`;
+          html += `<div class="zone-item">
+            <strong>${this.escapeHtml(zone.name)}</strong>
+            ${zone.description ? `<p style="margin: 5px 0; color: #555;">${this.escapeHtml(zone.description)}</p>` : ''}
+            ${zone.areaFormatted || zone.perimeterFormatted ? `
+              <div class="zone-metrics">
+                ${zone.areaFormatted ? `<div class="metric"><span class="metric-label">Área</span><span class="metric-value">${this.escapeHtml(zone.areaFormatted)}</span></div>` : ''}
+                ${zone.perimeterFormatted ? `<div class="metric"><span class="metric-label">Perímetro</span><span class="metric-value">${this.escapeHtml(zone.perimeterFormatted)}</span></div>` : ''}
+                ${zone.vertices ? `<div class="metric"><span class="metric-label">Vértices</span><span class="metric-value">${zone.vertices}</span></div>` : ''}
+                ${zone.dimensions ? `<div class="metric"><span class="metric-label">Dimensiones</span><span class="metric-value">${this.escapeHtml(zone.dimensions)}</span></div>` : ''}
+              </div>
+            ` : ''}
+          </div>`;
         });
       }
 
       if (data.paths && data.paths.length > 0) {
         html += `<h4 style="margin: 15px 0 10px;">Viales:</h4>`;
         data.paths.forEach(path => {
-          html += `<div class="path-item"><strong>${this.escapeHtml(path.name)}</strong>${path.description ? `: ${this.escapeHtml(path.description)}` : ''}</div>`;
+          html += `<div class="path-item">
+            <strong>${this.escapeHtml(path.name)}</strong>
+            ${path.description ? `<p style="margin: 5px 0; color: #555;">${this.escapeHtml(path.description)}</p>` : ''}
+            ${path.lengthFormatted || path.segments ? `
+              <div class="path-metrics">
+                ${path.lengthFormatted ? `<div class="metric"><span class="metric-label">Longitud</span><span class="metric-value">${this.escapeHtml(path.lengthFormatted)}</span></div>` : ''}
+                ${path.segments ? `<div class="metric"><span class="metric-label">Tramos</span><span class="metric-value">${path.segments}</span></div>` : ''}
+                ${path.dimensions ? `<div class="metric"><span class="metric-label">Extensión</span><span class="metric-value">${this.escapeHtml(path.dimensions)}</span></div>` : ''}
+              </div>
+            ` : ''}
+          </div>`;
         });
       }
 
@@ -612,14 +668,50 @@ export class ReportService {
       zones.forEach((zone) => {
         elements.push(
           new Paragraph({
-            spacing: { before: 80 },
+            spacing: { before: 120 },
             bullet: { level: 0 },
             children: [
-              new TextRun({ text: zone.name, bold: true, size: 22 }),
-              new TextRun({ text: zone.description ? `: ${zone.description}` : '', size: 22 })
+              new TextRun({ text: zone.name, bold: true, size: 22 })
             ]
           })
         );
+
+        if (zone.description) {
+          elements.push(
+            new Paragraph({
+              spacing: { before: 40 },
+              indent: { left: 360 },
+              children: [
+                new TextRun({ text: zone.description, size: 20, italics: true })
+              ]
+            })
+          );
+        }
+
+        // Métricas de la zona
+        if (zone.areaFormatted || zone.perimeterFormatted) {
+          const metricsText: TextRun[] = [];
+          if (zone.areaFormatted) {
+            metricsText.push(new TextRun({ text: 'Área: ', bold: true, size: 20 }));
+            metricsText.push(new TextRun({ text: zone.areaFormatted + '  ', size: 20 }));
+          }
+          if (zone.perimeterFormatted) {
+            metricsText.push(new TextRun({ text: 'Perímetro: ', bold: true, size: 20 }));
+            metricsText.push(new TextRun({ text: zone.perimeterFormatted + '  ', size: 20 }));
+          }
+          if (zone.vertices) {
+            metricsText.push(new TextRun({ text: 'Vértices: ', bold: true, size: 20 }));
+            metricsText.push(new TextRun({ text: zone.vertices.toString(), size: 20 }));
+          }
+
+          elements.push(
+            new Paragraph({
+              spacing: { before: 40 },
+              indent: { left: 360 },
+              children: metricsText
+            })
+          );
+        }
       });
     }
 
@@ -636,14 +728,46 @@ export class ReportService {
       paths.forEach((path) => {
         elements.push(
           new Paragraph({
-            spacing: { before: 80 },
+            spacing: { before: 120 },
             bullet: { level: 0 },
             children: [
-              new TextRun({ text: path.name, bold: true, size: 22 }),
-              new TextRun({ text: path.description ? `: ${path.description}` : '', size: 22 })
+              new TextRun({ text: path.name, bold: true, size: 22 })
             ]
           })
         );
+
+        if (path.description) {
+          elements.push(
+            new Paragraph({
+              spacing: { before: 40 },
+              indent: { left: 360 },
+              children: [
+                new TextRun({ text: path.description, size: 20, italics: true })
+              ]
+            })
+          );
+        }
+
+        // Métricas del vial
+        if (path.lengthFormatted || path.segments) {
+          const metricsText: TextRun[] = [];
+          if (path.lengthFormatted) {
+            metricsText.push(new TextRun({ text: 'Longitud: ', bold: true, size: 20 }));
+            metricsText.push(new TextRun({ text: path.lengthFormatted + '  ', size: 20 }));
+          }
+          if (path.segments) {
+            metricsText.push(new TextRun({ text: 'Tramos: ', bold: true, size: 20 }));
+            metricsText.push(new TextRun({ text: path.segments.toString(), size: 20 }));
+          }
+
+          elements.push(
+            new Paragraph({
+              spacing: { before: 40 },
+              indent: { left: 360 },
+              children: metricsText
+            })
+          );
+        }
       });
     }
 

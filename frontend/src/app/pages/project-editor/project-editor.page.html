@@ -119,4 +119,20 @@
       </ion-button>
     </div>
   </div>
+
+  <!-- AI Loading Overlay -->
+  <div class="ai-loading-overlay" *ngIf="isAnalyzingPhoto || isGeneratingPDD">
+    <div class="ai-loading-content">
+      <div class="ai-loading-spinner">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+      </div>
+      <div class="ai-loading-icon">
+        <ion-icon name="sparkles"></ion-icon>
+      </div>
+      <div class="ai-loading-text">
+        <span class="ai-title">Procesando con IA</span>
+        <span class="ai-message">{{ aiLoadingMessage || (isAnalyzingPhoto ? 'Analizando imagen...' : 'Generando informe...') }}</span>
+      </div>
+    </div>
+  </div>
 </ion-content>
