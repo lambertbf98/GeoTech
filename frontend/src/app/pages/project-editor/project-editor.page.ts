@@ -517,18 +517,12 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   async showMarkerOptions(marker: ProjectMarker) {
     const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
     const markerPhotos = hasPhotos ? this.photos.filter(p => marker.photoIds!.includes(p.id)) : [];
-    const hasPhotoWithoutAI = markerPhotos.some(p => !p.aiDescription);
 
     const buttons: any[] = [
       {
         text: 'Tomar foto',
         icon: 'camera-outline',
         handler: () => this.takePhotoForMarker(marker)
-      },
-      {
-        text: 'Tomar foto + Analizar IA',
-        icon: 'sparkles-outline',
-        handler: () => this.takePhotoAndAnalyze(marker)
       },
       {
         text: 'Editar notas',
@@ -544,14 +538,12 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         handler: () => this.showMarkerPhotos(marker, markerPhotos)
       });
 
-      // Opcion de analisis IA si hay fotos sin descripcion IA
-      if (hasPhotoWithoutAI) {
-        buttons.push({
-          text: 'Analizar fotos existentes con IA',
-          icon: 'sparkles',
-          handler: () => this.analyzeMarkerPhotosWithAI(markerPhotos)
-        });
-      }
+      // Opcion de analisis IA siempre visible si hay fotos
+      buttons.push({
+        text: 'Analizar fotos con IA',
+        icon: 'sparkles-outline',
+        handler: () => this.analyzeMarkerPhotosWithAI(markerPhotos)
+      });
     }
 
     buttons.push({
@@ -569,44 +561,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       buttons
     });
     await actionSheet.present();
-  }
-
-  async takePhotoAndAnalyze(marker: ProjectMarker) {
-    try {
-      const photoData = await this.cameraService.takePhoto();
-
-      if (photoData && this.project) {
-        // Guardar base64 para persistencia
-        const base64Image = photoData.base64 ? `data:image/jpeg;base64,${photoData.base64}` : (photoData.webviewPath || photoData.webPath);
-
-        const photo: Photo = {
-          id: `photo_${Date.now()}`,
-          projectId: this.project.id,
-          localPath: photoData.filepath,
-          imageUrl: base64Image,
-          latitude: marker.coordinate.lat,
-          longitude: marker.coordinate.lng,
-          timestamp: new Date().toISOString(),
-          synced: false,
-          notes: `Punto: ${marker.name}`
-        };
-
-        await this.storageService.savePhoto(photo);
-        this.photos.push(photo);
-
-        // Vincular foto al marcador
-        marker.photoIds = marker.photoIds || [];
-        marker.photoIds.push(photo.id);
-        await this.saveProject();
-
-        // Analizar con IA automáticamente
-        await this.analyzePhotoWithAI(photo);
-
-        this.renderProjectElements();
-      }
-    } catch (error: any) {
-      // Error silencioso
-    }
   }
 
   async analyzeMarkerPhotosWithAI(photos: Photo[]) {
