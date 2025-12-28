@@ -173,6 +173,22 @@
         {{ formatDateTime(selectedPhoto.timestamp) }}
       </div>
 
+      <!-- Action Buttons -->
+      <div class="viewer-actions">
+        <button class="action-btn edit-btn" (click)="editPhotoNotes()">
+          <ion-icon name="create-outline"></ion-icon>
+          {{ selectedPhoto.notes ? 'Editar nota' : 'Añadir nota' }}
+        </button>
+        <button class="action-btn ai-btn" (click)="analyzePhotoWithAI()" *ngIf="!selectedPhoto.aiDescription && !isAnalyzingPhoto">
+          <ion-icon name="sparkles-outline"></ion-icon>
+          Documentar con IA
+        </button>
+        <button class="action-btn ai-btn analyzing" *ngIf="isAnalyzingPhoto" disabled>
+          <ion-spinner name="crescent"></ion-spinner>
+          Analizando...
+        </button>
+      </div>
+
       <!-- Delete Button -->
       <button class="delete-photo-btn" (click)="confirmDeletePhoto()">
         <ion-icon name="trash-outline"></ion-icon>

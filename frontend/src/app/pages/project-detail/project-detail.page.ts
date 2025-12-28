@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { StorageService } from '../../services/storage.service';
 import { KmlService } from '../../services/kml.service';
 import { ReportService } from '../../services/report.service';
+import { ClaudeService } from '../../services/claude.service';
 import { Project, Photo, ProjectReport, ProjectKml } from '../../models';
 
 @Component({
@@ -33,11 +34,15 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
   selectedKml: ProjectKml | null = null;
   showKmlViewer = false;
 
+  // AI Analysis
+  isAnalyzingPhoto = false;
+
   constructor(
     private route: ActivatedRoute,
     private storageService: StorageService,
     private kmlService: KmlService,
     private reportService: ReportService,
+    private claudeService: ClaudeService,
     private sanitizer: DomSanitizer,
     private navCtrl: NavController,
     private alertCtrl: AlertController,
@@ -171,6 +176,66 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
       await this.loadProject(this.project.id);
     } catch (error) {
       this.showToast('Error al eliminar la foto', 'danger');
+    }
+  }
+
+  async editPhotoNotes() {
+    if (!this.selectedPhoto) return;
+
+    const alert = await this.alertCtrl.create({
+      header: 'Editar notas',
+      inputs: [
+        {
+          name: 'notes',
+          type: 'textarea',
+          placeholder: 'Escribe tus notas aquí...',
+          value: this.selectedPhoto.notes || ''
+        }
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Guardar',
+          handler: async (data) => {
+            if (this.selectedPhoto) {
+              this.selectedPhoto.notes = data.notes;
+              await this.storageService.updatePhoto(this.selectedPhoto);
+              // Actualizar en la lista local
+              const index = this.photos.findIndex(p => p.id === this.selectedPhoto!.id);
+              if (index >= 0) {
+                this.photos[index] = { ...this.selectedPhoto };
+              }
+              this.showToast('Nota guardada', 'success');
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async analyzePhotoWithAI() {
+    if (!this.selectedPhoto) return;
+
+    this.isAnalyzingPhoto = true;
+    try {
+      const imagePath = this.selectedPhoto.imageUrl || this.selectedPhoto.localPath || this.selectedPhoto.imagePath || '';
+      const description = await this.claudeService.analyzeImage(imagePath);
+
+      this.selectedPhoto.aiDescription = description;
+      await this.storageService.updatePhoto(this.selectedPhoto);
+
+      // Actualizar en la lista local
+      const index = this.photos.findIndex(p => p.id === this.selectedPhoto!.id);
+      if (index >= 0) {
+        this.photos[index] = { ...this.selectedPhoto };
+      }
+
+      this.showToast('Análisis completado', 'success');
+    } catch (error: any) {
+      this.showToast('Error al analizar la foto', 'danger');
+    } finally {
+      this.isAnalyzingPhoto = false;
     }
   }
 
