@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { NavController, AlertController, ToastController, Platform } from '@ionic/angular';
+import { NavController, AlertController, Platform } from '@ionic/angular';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { StorageService } from '../../services/storage.service';
@@ -46,7 +46,6 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
     private sanitizer: DomSanitizer,
     private navCtrl: NavController,
     private alertCtrl: AlertController,
-    private toastCtrl: ToastController,
     private platform: Platform
   ) {}
 
@@ -175,7 +174,7 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
       this.closePhotoViewer();
       await this.loadProject(this.project.id);
     } catch (error) {
-      this.showToast('Error al eliminar la foto', 'danger');
+      // Error silencioso
     }
   }
 
@@ -205,7 +204,40 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
               if (index >= 0) {
                 this.photos[index] = { ...this.selectedPhoto };
               }
-              this.showToast('Nota guardada', 'success');
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async editAIDescription() {
+    if (!this.selectedPhoto) return;
+
+    const alert = await this.alertCtrl.create({
+      header: 'Editar descripción IA',
+      inputs: [
+        {
+          name: 'aiDescription',
+          type: 'textarea',
+          placeholder: 'Descripción generada por IA...',
+          value: this.selectedPhoto.aiDescription || ''
+        }
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Guardar',
+          handler: async (data) => {
+            if (this.selectedPhoto) {
+              this.selectedPhoto.aiDescription = data.aiDescription;
+              await this.storageService.updatePhoto(this.selectedPhoto);
+              // Actualizar en la lista local
+              const index = this.photos.findIndex(p => p.id === this.selectedPhoto!.id);
+              if (index >= 0) {
+                this.photos[index] = { ...this.selectedPhoto };
+              }
             }
           }
         }
@@ -230,10 +262,8 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
       if (index >= 0) {
         this.photos[index] = { ...this.selectedPhoto };
       }
-
-      this.showToast('Análisis completado', 'success');
     } catch (error: any) {
-      this.showToast('Error al analizar la foto', 'danger');
+      // Error silencioso
     } finally {
       this.isAnalyzingPhoto = false;
     }
@@ -373,15 +403,5 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
 
   get totalDocuments(): number {
     return this.reportCount + this.kmlCount;
-  }
-
-  private async showToast(message: string, color: string) {
-    const toast = await this.toastCtrl.create({
-      message,
-      duration: 2000,
-      position: 'bottom',
-      color
-    });
-    await toast.present();
   }
 }

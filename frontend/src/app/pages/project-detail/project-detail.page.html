@@ -151,19 +151,21 @@
       </div>
 
       <!-- AI Description -->
-      <div class="viewer-section ai-section" *ngIf="selectedPhoto.aiDescription">
+      <div class="viewer-section ai-section" *ngIf="selectedPhoto.aiDescription" (click)="editAIDescription()">
         <div class="viewer-section-header">
           <ion-icon name="sparkles"></ion-icon>
           <span>Descripción IA</span>
+          <ion-icon name="create-outline" class="edit-icon"></ion-icon>
         </div>
         <p class="viewer-text">{{ selectedPhoto.aiDescription }}</p>
       </div>
 
       <!-- User Notes -->
-      <div class="viewer-section notes-section" *ngIf="selectedPhoto.notes">
+      <div class="viewer-section notes-section" *ngIf="selectedPhoto.notes" (click)="editPhotoNotes()">
         <div class="viewer-section-header">
           <ion-icon name="document-text"></ion-icon>
           <span>Mis notas</span>
+          <ion-icon name="create-outline" class="edit-icon"></ion-icon>
         </div>
         <p class="viewer-text">{{ selectedPhoto.notes }}</p>
       </div>
@@ -182,6 +184,10 @@
         <button class="action-btn ai-btn" (click)="analyzePhotoWithAI()" *ngIf="!selectedPhoto.aiDescription && !isAnalyzingPhoto">
           <ion-icon name="sparkles-outline"></ion-icon>
           Documentar con IA
+        </button>
+        <button class="action-btn ai-btn" (click)="editAIDescription()" *ngIf="selectedPhoto.aiDescription && !isAnalyzingPhoto">
+          <ion-icon name="sparkles-outline"></ion-icon>
+          Editar descripción IA
         </button>
         <button class="action-btn ai-btn analyzing" *ngIf="isAnalyzingPhoto" disabled>
           <ion-spinner name="crescent"></ion-spinner>

@@ -465,11 +465,14 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       const photoData = await this.cameraService.takePhoto();
 
       if (photoData && this.project) {
+        // Guardar base64 para persistencia
+        const base64Image = photoData.base64 ? `data:image/jpeg;base64,${photoData.base64}` : (photoData.webviewPath || photoData.webPath);
+
         const photo: Photo = {
           id: `photo_${Date.now()}`,
           projectId: this.project.id,
           localPath: photoData.filepath,
-          imageUrl: photoData.webviewPath || photoData.webPath,
+          imageUrl: base64Image,
           latitude: marker.coordinate.lat,
           longitude: marker.coordinate.lng,
           timestamp: new Date().toISOString(),
@@ -488,7 +491,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         this.renderProjectElements();
       }
     } catch (error: any) {
-      this.showToast(error.message || 'Error al tomar foto', 'danger');
+      // Error silencioso
     }
   }
 
@@ -508,6 +511,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   async showMarkerOptions(marker: ProjectMarker) {
     const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
     const markerPhotos = hasPhotos ? this.photos.filter(p => marker.photoIds!.includes(p.id)) : [];
+    const hasPhotoWithoutAI = markerPhotos.some(p => !p.aiDescription);
 
     const buttons: any[] = [
       {
@@ -528,6 +532,15 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         icon: 'images-outline',
         handler: () => this.showMarkerPhotos(marker, markerPhotos)
       });
+
+      // Opcion de analisis IA si hay fotos sin descripcion IA
+      if (hasPhotoWithoutAI) {
+        buttons.push({
+          text: 'Analizar fotos con IA',
+          icon: 'sparkles-outline',
+          handler: () => this.analyzeMarkerPhotosWithAI(markerPhotos)
+        });
+      }
     }
 
     buttons.push({
@@ -545,6 +558,15 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       buttons
     });
     await actionSheet.present();
+  }
+
+  async analyzeMarkerPhotosWithAI(photos: Photo[]) {
+    for (const photo of photos) {
+      if (!photo.aiDescription) {
+        await this.analyzePhotoWithAI(photo);
+      }
+    }
+    this.renderProjectElements();
   }
 
   async editMarkerNotes(marker: ProjectMarker) {
@@ -697,11 +719,14 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       const photoData = await this.cameraService.takePhoto();
 
       if (photoData && this.project) {
+        // Guardar base64 para persistencia
+        const base64Image = photoData.base64 ? `data:image/jpeg;base64,${photoData.base64}` : (photoData.webviewPath || photoData.webPath);
+
         const photo: Photo = {
           id: `photo_${Date.now()}`,
           projectId: this.project.id,
           localPath: photoData.filepath,
-          imageUrl: photoData.webviewPath || photoData.webPath,
+          imageUrl: base64Image,
           latitude: position.latitude,
           longitude: position.longitude,
           altitude: position.altitude,
@@ -716,24 +741,10 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         if (this.map) {
           this.map.setView([position.latitude, position.longitude], 18);
         }
-
-        this.promptAIDescription(photo);
       }
     } catch (error: any) {
-      this.showToast(error.message || 'Error al tomar foto', 'danger');
+      // Error silencioso
     }
-  }
-
-  private async promptAIDescription(photo: Photo) {
-    const alert = await this.alertCtrl.create({
-      header: 'Descripcion IA',
-      message: 'Quieres que la IA analice esta foto?',
-      buttons: [
-        { text: 'No', role: 'cancel' },
-        { text: 'Si', handler: () => this.analyzePhotoWithAI(photo) }
-      ]
-    });
-    await alert.present();
   }
 
   async analyzePhotoWithAI(photo: Photo) {
@@ -875,22 +886,23 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   async saveReportToProject() {
     if (!this.pendingReportData || !this.project) return;
     try {
-      // Guardar el informe en el proyecto
+      // Guardar el informe en el proyecto con fecha y hora completa
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('es-ES');
+      const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const report = {
         id: `report_${Date.now()}`,
-        name: `Informe PDD ${new Date().toLocaleDateString('es-ES')}`,
+        name: `Informe PDD ${dateStr} ${timeStr}`,
         htmlContent: this.reportPreviewRawHtml,
-        createdAt: new Date().toISOString()
+        createdAt: now.toISOString()
       };
       this.project.reports = this.project.reports || [];
       this.project.reports.push(report);
       await this.saveProject();
 
       this.closeReportPreview();
-      this.showToast('Informe guardado en el proyecto', 'success');
     } catch (error: any) {
       console.error('Error guardando informe:', error);
-      this.showToast('Error al guardar el informe', 'danger');
     }
   }
 
@@ -918,19 +930,19 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       // Generar KML content
       const kmlContent = this.kmlService.generateKml(exportData);
 
-      // Guardar en el proyecto
+      // Guardar en el proyecto con fecha y hora completa
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('es-ES').replace(/\//g, '-');
+      const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/:/g, '-');
       const kml = {
         id: `kml_${Date.now()}`,
-        name: `${this.project.name}_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}`,
+        name: `${this.project.name}_${dateStr}_${timeStr}`,
         kmlContent,
-        createdAt: new Date().toISOString()
+        createdAt: now.toISOString()
       };
       this.project.kmls = this.project.kmls || [];
       this.project.kmls.push(kml);
       await this.saveProject();
-
-      // También descargar
-      await this.kmlService.downloadKmz(exportData, `${this.project.name}.kmz`);
     } catch (error: any) {
       console.error('Error guardando KML:', error);
     }

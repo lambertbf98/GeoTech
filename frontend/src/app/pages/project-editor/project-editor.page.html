@@ -6,11 +6,6 @@
       </ion-button>
     </ion-buttons>
     <ion-title>{{ project?.name || 'Editor' }}</ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="showExportOptions()">
-        <ion-icon slot="icon-only" name="share-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -91,11 +86,17 @@
     <ion-icon slot="icon-only" name="locate"></ion-icon>
   </ion-button>
 
-  <!-- Export PDD Button - visible cuando no está dibujando -->
+  <!-- Export PDD Button - bottom left -->
   <ion-button class="export-pdd-btn" color="primary" (click)="exportToWord()" *ngIf="drawMode === 'none' && !showReportPreview" [disabled]="isGeneratingPDD">
     <ion-spinner *ngIf="isGeneratingPDD" name="crescent" slot="start"></ion-spinner>
     <ion-icon *ngIf="!isGeneratingPDD" slot="start" name="document-text-outline"></ion-icon>
-    {{ isGeneratingPDD ? 'Generando...' : 'Generar Informe PDD' }}
+    {{ isGeneratingPDD ? 'Generando...' : 'Informe PDD' }}
+  </ion-button>
+
+  <!-- Export KML Button - bottom right -->
+  <ion-button class="export-kml-btn" color="success" (click)="exportToKMZ()" *ngIf="drawMode === 'none' && !showReportPreview">
+    <ion-icon slot="start" name="earth-outline"></ion-icon>
+    Archivo KML
   </ion-button>
 
   <!-- Report Preview Overlay -->

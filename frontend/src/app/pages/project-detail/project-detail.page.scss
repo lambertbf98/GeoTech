@@ -345,6 +345,27 @@ ion-back-button {
     color: var(--geotech-accent-cyan);
     text-transform: uppercase;
     letter-spacing: 1px;
+    flex: 1;
+  }
+
+  .edit-icon {
+    font-size: 16px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+}
+
+.viewer-section.ai-section,
+.viewer-section.notes-section {
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover, &:active {
+    transform: scale(1.01);
+
+    .edit-icon {
+      opacity: 1;
+    }
   }
 }
 
