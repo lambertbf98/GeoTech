@@ -45,8 +45,11 @@ export class ClaudeService {
     try {
       // Convert image to base64
       let base64Data: string;
-      
-      if (imagePath.startsWith('blob:') || imagePath.startsWith('http')) {
+
+      if (imagePath.startsWith('data:image')) {
+        // Ya es base64, extraer solo la parte de datos
+        base64Data = imagePath;
+      } else if (imagePath.startsWith('blob:') || imagePath.startsWith('http')) {
         // Fetch the blob/URL and convert to base64
         const response = await fetch(imagePath);
         const blob = await response.blob();
@@ -54,29 +57,33 @@ export class ClaudeService {
       } else {
         // Try to get base64 from camera service (for native paths)
         try {
-          base64Data = await this.cameraService.getPhotoBase64(imagePath);
+          const rawBase64 = await this.cameraService.getPhotoBase64(imagePath);
+          base64Data = `data:image/jpeg;base64,${rawBase64}`;
         } catch {
-          throw new Error('No se puede acceder a la imagen');
+          throw new Error('NO_IMAGE_ACCESS');
         }
       }
 
       // Send base64 to backend
       const response = await firstValueFrom(
-        this.api.post<{ description: string }>('/claude/analyze', { 
-          imageBase64: base64Data 
+        this.api.post<{ description: string }>('/claude/analyze', {
+          imageBase64: base64Data
         })
       );
       return response.description;
     } catch (error: any) {
       console.error('Error analyzing image:', error);
-      // Return more specific error message
+      // Lanzar error en lugar de devolver string para que no se guarde como descripción
+      if (error.message === 'NO_IMAGE_ACCESS') {
+        throw new Error('No se puede acceder a la imagen');
+      }
       if (error.status === 503) {
-        return 'IA no configurada en el servidor';
+        throw new Error('IA no configurada en el servidor');
       }
       if (error.status === 0) {
-        return 'Error de conexion con el servidor';
+        throw new Error('Sin conexión al servidor');
       }
-      return error.error?.error?.message || 'Error al analizar imagen';
+      throw new Error(error.error?.error?.message || 'Error al analizar imagen');
     }
   }
 

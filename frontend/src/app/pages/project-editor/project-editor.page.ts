@@ -187,18 +187,24 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       this.addMarkerToMap(marker);
     });
 
-    // Render photos as markers
+    // Obtener IDs de fotos vinculadas a marcadores
+    const linkedPhotoIds = new Set<string>();
+    this.project.markers?.forEach(marker => {
+      marker.photoIds?.forEach(photoId => linkedPhotoIds.add(photoId));
+    });
+
+    // Solo renderizar fotos NO vinculadas a ningún marcador (fotos huérfanas)
     this.photos.forEach(photo => {
-      if (photo.latitude && photo.longitude) {
+      if (photo.latitude && photo.longitude && !linkedPhotoIds.has(photo.id)) {
         const icon = L.divIcon({
-          className: 'photo-marker',
+          className: 'photo-marker orphan-photo',
           html: '<div class="photo-marker-dot"></div>',
           iconSize: [24, 24],
           iconAnchor: [12, 12]
         });
-        const marker = L.marker([photo.latitude, photo.longitude], { icon });
-        marker.bindPopup(this.createPhotoPopup(photo));
-        marker.addTo(this.markersLayer!);
+        const mapMarker = L.marker([photo.latitude, photo.longitude], { icon });
+        mapMarker.on('click', () => this.showOrphanPhotoOptions(photo));
+        mapMarker.addTo(this.markersLayer!);
       }
     });
 
@@ -636,28 +642,59 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   async showPhotoDetail(photo: Photo, marker: ProjectMarker) {
-    // Construir mensaje sin HTML
-    let message = '';
-    if (photo.aiDescription) {
-      message += `Descripción IA: ${photo.aiDescription}\n\n`;
-    }
-    if (photo.notes) {
-      message += `Notas: ${photo.notes}`;
-    }
-    if (!message) {
-      message = 'Sin descripción. Puedes añadir notas.';
-    }
+    const buttons: any[] = [
+      {
+        text: 'Editar nota',
+        icon: 'create-outline',
+        handler: () => this.editPhotoNotes(photo)
+      },
+      {
+        text: 'Analizar con IA',
+        icon: 'sparkles-outline',
+        handler: () => this.analyzePhotoWithAI(photo)
+      },
+      {
+        text: 'Eliminar foto',
+        icon: 'trash-outline',
+        role: 'destructive',
+        handler: () => this.deleteMarkerPhoto(photo, marker)
+      },
+      { text: 'Cancelar', icon: 'close', role: 'cancel' }
+    ];
 
-    const alert = await this.alertCtrl.create({
+    const subHeader = photo.aiDescription || photo.notes || `${marker.coordinate.lat.toFixed(5)}, ${marker.coordinate.lng.toFixed(5)}`;
+
+    const actionSheet = await this.actionSheetCtrl.create({
       header: marker.name,
-      subHeader: `${marker.coordinate.lat.toFixed(5)}, ${marker.coordinate.lng.toFixed(5)}`,
-      message: message,
+      subHeader: subHeader.length > 100 ? subHeader.substring(0, 100) + '...' : subHeader,
+      buttons
+    });
+    await actionSheet.present();
+  }
+
+  async deleteMarkerPhoto(photo: Photo, marker: ProjectMarker) {
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar foto',
+      message: '¿Seguro que quieres eliminar esta foto?',
       buttons: [
+        { text: 'Cancelar', role: 'cancel' },
         {
-          text: 'Editar nota',
-          handler: () => { this.editPhotoNotes(photo); return false; }
-        },
-        { text: 'Cerrar', role: 'cancel' }
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: async () => {
+            // Eliminar foto del storage
+            await this.storageService.deletePhoto(photo.id);
+            this.photos = this.photos.filter(p => p.id !== photo.id);
+
+            // Eliminar referencia del marcador
+            if (marker.photoIds) {
+              marker.photoIds = marker.photoIds.filter(id => id !== photo.id);
+              await this.saveProject();
+            }
+
+            this.renderProjectElements();
+          }
+        }
       ]
     });
     await alert.present();
@@ -683,6 +720,57 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
             await this.storageService.updatePhoto(photo);
             const index = this.photos.findIndex(p => p.id === photo.id);
             if (index >= 0) this.photos[index] = photo;
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  // ========== ORPHAN PHOTO OPTIONS ==========
+
+  async showOrphanPhotoOptions(photo: Photo) {
+    const buttons: any[] = [
+      {
+        text: 'Editar notas',
+        icon: 'create-outline',
+        handler: () => this.editPhotoNotes(photo)
+      },
+      {
+        text: 'Analizar con IA',
+        icon: 'sparkles-outline',
+        handler: () => this.analyzePhotoWithAI(photo)
+      },
+      {
+        text: 'Eliminar foto',
+        icon: 'trash-outline',
+        role: 'destructive',
+        handler: () => this.deleteOrphanPhoto(photo)
+      },
+      { text: 'Cancelar', icon: 'close', role: 'cancel' }
+    ];
+
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: 'Foto',
+      subHeader: photo.notes || photo.aiDescription || `${photo.latitude?.toFixed(5)}, ${photo.longitude?.toFixed(5)}`,
+      buttons
+    });
+    await actionSheet.present();
+  }
+
+  async deleteOrphanPhoto(photo: Photo) {
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar foto',
+      message: '¿Seguro que quieres eliminar esta foto?',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: async () => {
+            await this.storageService.deletePhoto(photo.id);
+            this.photos = this.photos.filter(p => p.id !== photo.id);
+            this.renderProjectElements();
           }
         }
       ]
