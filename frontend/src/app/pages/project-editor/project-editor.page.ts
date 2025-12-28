@@ -26,7 +26,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   // AI loading state
   isGeneratingPDD = false;
   isAnalyzingPhoto = false;
-  isProcessingAction = false;  // Flag para evitar operaciones simultáneas
   aiLoadingMessage = '';
 
   // Report preview
@@ -158,9 +157,9 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       const latlngs = zone.coordinates.map(c => L.latLng(c.lat, c.lng));
       const polygon = L.polygon(latlngs, {
         color: zone.color || '#ef4444',
-        weight: 3,
-        fillOpacity: 0.2,
-        bubblingMouseEvents: true
+        weight: 5,
+        fillOpacity: 0.25,
+        opacity: 0.9
       });
       polygon.on('click', (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
@@ -172,10 +171,26 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     // Render paths - con click handler para mostrar opciones
     this.project.paths?.forEach(path => {
       const latlngs = path.coordinates.map(c => L.latLng(c.lat, c.lng));
+
+      // Línea invisible más ancha para facilitar el click (área de hit)
+      const hitArea = L.polyline(latlngs, {
+        color: 'transparent',
+        weight: 25,
+        opacity: 0
+      });
+      hitArea.on('click', (e: L.LeafletMouseEvent) => {
+        L.DomEvent.stopPropagation(e);
+        this.showPathOptions(path);
+      });
+      hitArea.addTo(this.pathsLayer!);
+
+      // Línea visible más gruesa
       const polyline = L.polyline(latlngs, {
         color: path.color || '#3b82f6',
-        weight: 4,
-        bubblingMouseEvents: true
+        weight: 8,
+        opacity: 0.9,
+        lineCap: 'round',
+        lineJoin: 'round'
       });
       polyline.on('click', (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e);
@@ -475,9 +490,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   async takePhotoForMarker(marker: ProjectMarker) {
-    if (this.isProcessingAction) return;
-    this.isProcessingAction = true;
-
     try {
       const photoData = await this.cameraService.takePhoto();
 
@@ -500,17 +512,18 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         await this.storageService.savePhoto(photo);
         this.photos.push(photo);
 
-        // Vincular foto al marcador
-        marker.photoIds = marker.photoIds || [];
-        marker.photoIds.push(photo.id);
-        await this.saveProject();
+        // Buscar el marcador en el proyecto y actualizar sus photoIds
+        const projectMarker = this.project.markers?.find(m => m.id === marker.id);
+        if (projectMarker) {
+          projectMarker.photoIds = projectMarker.photoIds || [];
+          projectMarker.photoIds.push(photo.id);
+        }
 
+        await this.saveProject();
         this.renderProjectElements();
       }
     } catch (error: any) {
-      // Error silencioso
-    } finally {
-      this.isProcessingAction = false;
+      console.error('Error tomando foto:', error);
     }
   }
 
@@ -786,9 +799,14 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   async deleteMarker(marker: ProjectMarker) {
+    const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
+    const photoCount = marker.photoIds?.length || 0;
+
     const alert = await this.alertCtrl.create({
       header: 'Eliminar punto',
-      message: `¿Seguro que quieres eliminar "${marker.name}"?`,
+      message: hasPhotos
+        ? `¿Seguro que quieres eliminar "${marker.name}" y sus ${photoCount} foto${photoCount > 1 ? 's' : ''} asociada${photoCount > 1 ? 's' : ''}?`
+        : `¿Seguro que quieres eliminar "${marker.name}"?`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
@@ -796,6 +814,15 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           role: 'destructive',
           handler: async () => {
             if (this.project) {
+              // Eliminar fotos asociadas al marcador
+              if (marker.photoIds && marker.photoIds.length > 0) {
+                for (const photoId of marker.photoIds) {
+                  await this.storageService.deletePhoto(photoId);
+                  this.photos = this.photos.filter(p => p.id !== photoId);
+                }
+              }
+
+              // Eliminar el marcador
               this.project.markers = this.project.markers?.filter(m => m.id !== marker.id);
               await this.saveProject();
               this.renderProjectElements();
