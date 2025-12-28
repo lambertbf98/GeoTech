@@ -30,9 +30,9 @@
         <span>{{ photos.length }} fotos</span>
       </div>
 
-      <div class="info-row" *ngIf="zoneCount > 0 || pathCount > 0">
+      <div class="info-row" *ngIf="zoneCount > 0 || pathCount > 0 || markerCount > 0">
         <ion-icon name="map-outline"></ion-icon>
-        <span>{{ zoneCount }} zonas, {{ pathCount }} viales</span>
+        <span>{{ zoneCount }} zonas, {{ pathCount }} viales, {{ markerCount }} puntos</span>
       </div>
 
       <div class="info-row" *ngIf="reportCount > 0">
@@ -200,7 +200,7 @@
         <ion-icon slot="icon-only" name="close"></ion-icon>
       </ion-button>
     </div>
-    <div class="report-viewer-content" [innerHTML]="selectedReport.htmlContent"></div>
+    <div class="report-viewer-content" [innerHTML]="selectedReportHtml"></div>
     <div class="report-viewer-actions">
       <ion-button color="danger" fill="outline" (click)="deleteReport(selectedReport)">
         <ion-icon slot="start" name="trash-outline"></ion-icon>

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController, AlertController, ToastController } from '@ionic/angular';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { StorageService } from '../../services/storage.service';
 import { KmlService } from '../../services/kml.service';
 import { ReportService } from '../../services/report.service';
@@ -22,6 +23,7 @@ export class ProjectDetailPage implements OnInit {
 
   // Report viewer
   selectedReport: ProjectReport | null = null;
+  selectedReportHtml: SafeHtml = '';
   showReportViewer = false;
 
   // KML viewer
@@ -33,6 +35,7 @@ export class ProjectDetailPage implements OnInit {
     private storageService: StorageService,
     private kmlService: KmlService,
     private reportService: ReportService,
+    private sanitizer: DomSanitizer,
     private navCtrl: NavController,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
@@ -145,12 +148,14 @@ export class ProjectDetailPage implements OnInit {
 
   openReportViewer(report: ProjectReport) {
     this.selectedReport = report;
+    this.selectedReportHtml = this.sanitizer.bypassSecurityTrustHtml(report.htmlContent);
     this.showReportViewer = true;
   }
 
   closeReportViewer() {
     this.showReportViewer = false;
     this.selectedReport = null;
+    this.selectedReportHtml = '';
   }
 
   async downloadReportAsWord(report: ProjectReport) {
@@ -253,6 +258,10 @@ export class ProjectDetailPage implements OnInit {
 
   get pathCount(): number {
     return this.project?.paths?.length || 0;
+  }
+
+  get markerCount(): number {
+    return this.project?.markers?.length || 0;
   }
 
   private async showToast(message: string, color: string) {

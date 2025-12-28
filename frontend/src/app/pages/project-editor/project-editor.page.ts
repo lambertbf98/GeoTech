@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController, AlertController, ToastController, ActionSheetController } from '@ionic/angular';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { StorageService } from '../../services/storage.service';
 import { GpsService } from '../../services/gps.service';
 import { CameraService } from '../../services/camera.service';
@@ -28,7 +29,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
   // Report preview
   showReportPreview = false;
-  reportPreviewHtml = '';
+  reportPreviewHtml: SafeHtml = '';
+  private reportPreviewRawHtml = '';
   private pendingReportData: any = null;
 
   // Drawing state
@@ -50,6 +52,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
     private actionSheetCtrl: ActionSheetController,
+    private sanitizer: DomSanitizer,
     private storageService: StorageService,
     private gpsService: GpsService,
     private cameraService: CameraService,
@@ -643,7 +646,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
       // 4. Generar preview HTML y mostrar
       this.pendingReportData = reportData;
-      this.reportPreviewHtml = this.reportService.generateHtmlPreview(reportData);
+      this.reportPreviewRawHtml = this.reportService.generateHtmlPreview(reportData);
+      this.reportPreviewHtml = this.sanitizer.bypassSecurityTrustHtml(this.reportPreviewRawHtml);
       this.showReportPreview = true;
 
     } catch (error: any) {
@@ -656,6 +660,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   closeReportPreview() {
     this.showReportPreview = false;
     this.reportPreviewHtml = '';
+    this.reportPreviewRawHtml = '';
     this.pendingReportData = null;
   }
 
@@ -668,7 +673,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       const report = {
         id: `report_${Date.now()}`,
         name: `Informe ${new Date().toLocaleDateString('es-ES')}`,
-        htmlContent: this.reportPreviewHtml,
+        htmlContent: this.reportPreviewRawHtml,
         createdAt: new Date().toISOString()
       };
       this.project.reports = this.project.reports || [];
@@ -677,7 +682,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
       this.closeReportPreview();
     } catch (error: any) {
-      // Error silencioso
+      console.error('Error descargando informe:', error);
     }
   }
 
