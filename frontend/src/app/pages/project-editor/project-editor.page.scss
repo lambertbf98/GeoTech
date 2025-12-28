@@ -95,11 +95,11 @@
   }
 }
 
-// Locate Me Button
+// Locate Me Button - arriba a la izquierda, debajo del stats
 .locate-btn {
   position: absolute;
-  bottom: 100px;
-  right: 10px;
+  top: 60px;
+  left: 10px;
   z-index: 1000;
   --border-radius: 50%;
   --padding-start: 10px;
@@ -111,6 +111,17 @@
   ion-icon {
     font-size: 20px;
   }
+}
+
+// Export PDD Button - visible abajo izquierda
+.export-pdd-btn {
+  position: absolute;
+  bottom: 20px;
+  left: 10px;
+  z-index: 1000;
+  --border-radius: 12px;
+  --box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  font-weight: 600;
 }
 
 // Custom markers

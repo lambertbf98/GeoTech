@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LoadingController, ToastController } from '@ionic/angular';
+import { ToastController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -21,7 +21,6 @@ export class RegisterPage implements OnInit {
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private loadingCtrl: LoadingController,
     private toastCtrl: ToastController
   ) {
     this.registerForm = this.fb.group({
@@ -59,17 +58,10 @@ export class RegisterPage implements OnInit {
     }
 
     this.isLoading = true;
-    const loading = await this.loadingCtrl.create({
-      message: 'Creando cuenta...',
-      spinner: 'crescent'
-    });
-    await loading.present();
 
     try {
       const { name, email, password } = this.registerForm.value;
       await firstValueFrom(this.authService.register({ name, email, password }));
-
-      await loading.dismiss();
 
       const toast = await this.toastCtrl.create({
         message: 'Cuenta creada exitosamente. Bienvenido a GeoTech!',
@@ -83,7 +75,6 @@ export class RegisterPage implements OnInit {
       this.router.navigate(['/tabs/projects'], { replaceUrl: true });
 
     } catch (error: any) {
-      await loading.dismiss();
       this.isLoading = false;
 
       const toast = await this.toastCtrl.create({

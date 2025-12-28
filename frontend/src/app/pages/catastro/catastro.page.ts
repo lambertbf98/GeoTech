@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
-import { LoadingController, ToastController, AlertController, NavController } from '@ionic/angular';
+import { ToastController, AlertController, NavController } from '@ionic/angular';
 import { CatastroService } from '../../services/catastro.service';
 import { GpsService } from '../../services/gps.service';
 import { StorageService } from '../../services/storage.service';
@@ -60,7 +60,6 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     private gpsService: GpsService,
     private storageService: StorageService,
     private kmlService: KmlService,
-    private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
     private navCtrl: NavController,
@@ -646,10 +645,6 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     if (!input.files || input.files.length === 0) return;
 
     const file = input.files[0];
-    const loading = await this.loadingCtrl.create({
-      message: 'Cargando archivo KML...'
-    });
-    await loading.present();
 
     try {
       const kmlDoc = await this.kmlService.readFile(file);
@@ -660,7 +655,6 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
       console.error('Error loading KML:', error);
       this.showToast(error.message || 'Error al cargar el archivo', 'danger');
     } finally {
-      await loading.dismiss();
       input.value = ''; // Reset input
     }
   }

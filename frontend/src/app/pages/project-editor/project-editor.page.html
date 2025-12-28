@@ -97,4 +97,11 @@
   <ion-button class="locate-btn" color="light" (click)="locateMe()">
     <ion-icon slot="icon-only" name="locate"></ion-icon>
   </ion-button>
+
+  <!-- Export PDD Button - visible cuando no está dibujando -->
+  <ion-button class="export-pdd-btn" color="primary" (click)="exportToWord()" *ngIf="drawMode === 'none'" [disabled]="isGeneratingPDD">
+    <ion-spinner *ngIf="isGeneratingPDD" name="crescent" slot="start"></ion-spinner>
+    <ion-icon *ngIf="!isGeneratingPDD" slot="start" name="document-text-outline"></ion-icon>
+    {{ isGeneratingPDD ? 'Generando...' : 'Generar Informe PDD' }}
+  </ion-button>
 </ion-content>

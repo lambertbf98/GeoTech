@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { NavController, AlertController, ToastController, LoadingController, ActionSheetController } from '@ionic/angular';
+import { NavController, AlertController, ToastController, ActionSheetController } from '@ionic/angular';
 import { StorageService } from '../../services/storage.service';
 import { GpsService } from '../../services/gps.service';
 import { CameraService } from '../../services/camera.service';
@@ -22,6 +22,10 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   project: Project | null = null;
   photos: Photo[] = [];
 
+  // AI loading state
+  isGeneratingPDD = false;
+  isAnalyzingPhoto = false;
+
   // Drawing state
   drawMode: DrawMode = 'none';
   currentPoints: L.LatLng[] = [];
@@ -40,7 +44,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     private navCtrl: NavController,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
-    private loadingCtrl: LoadingController,
     private actionSheetCtrl: ActionSheetController,
     private storageService: StorageService,
     private gpsService: GpsService,
@@ -140,24 +143,26 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     this.pathsLayer?.clearLayers();
     this.markersLayer?.clearLayers();
 
-    // Render zones
+    // Render zones - con bubblingMouseEvents para permitir dibujar encima
     this.project.zones?.forEach(zone => {
       const latlngs = zone.coordinates.map(c => L.latLng(c.lat, c.lng));
       const polygon = L.polygon(latlngs, {
         color: zone.color || '#ef4444',
         weight: 3,
-        fillOpacity: 0.2
+        fillOpacity: 0.2,
+        bubblingMouseEvents: true // Permite que los clics pasen al mapa
       });
       polygon.bindPopup(this.createZonePopup(zone));
       polygon.addTo(this.zonesLayer!);
     });
 
-    // Render paths
+    // Render paths - con bubblingMouseEvents para permitir dibujar encima
     this.project.paths?.forEach(path => {
       const latlngs = path.coordinates.map(c => L.latLng(c.lat, c.lng));
       const polyline = L.polyline(latlngs, {
         color: path.color || '#3b82f6',
-        weight: 4
+        weight: 4,
+        bubblingMouseEvents: true
       });
       polyline.bindPopup(this.createPathPopup(path));
       polyline.addTo(this.pathsLayer!);
@@ -502,9 +507,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   async analyzePhotoWithAI(photo: Photo) {
-    const loading = await this.loadingCtrl.create({ message: 'Analizando con IA...' });
-    await loading.present();
-
+    this.isAnalyzingPhoto = true;
     try {
       const imagePath = photo.imageUrl || photo.localPath || '';
       const description = await this.claudeService.analyzeImage(imagePath);
@@ -520,7 +523,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     } catch (error: any) {
       this.showToast(error.message || 'Error en analisis IA', 'danger');
     } finally {
-      await loading.dismiss();
+      this.isAnalyzingPhoto = false;
     }
   }
 
@@ -540,9 +543,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
   async exportToKMZ() {
     if (!this.project) return;
-
-    const loading = await this.loadingCtrl.create({ message: 'Generando KMZ...' });
-    await loading.present();
 
     try {
       const exportData: ProjectExportData = {
@@ -566,26 +566,15 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       this.showToast('KMZ exportado', 'success');
     } catch (error: any) {
       this.showToast(error.message || 'Error al exportar', 'danger');
-    } finally {
-      await loading.dismiss();
     }
   }
 
   async exportToWord() {
-    if (!this.project) return;
+    if (!this.project || this.isGeneratingPDD) return;
 
-    const loading = await this.loadingCtrl.create({
-      message: 'Iniciando generacion de informe...',
-      backdropDismiss: false,
-      spinner: 'crescent',
-      cssClass: 'ai-loading-overlay'
-    });
-    await loading.present();
-
+    this.isGeneratingPDD = true;
     try {
       // 1. Generar resumen con IA
-      loading.message = 'Analizando proyecto con IA...';
-
       const aiInput = {
         projectName: this.project.name,
         projectLocation: this.project.location,
@@ -603,8 +592,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       const aiReport = await this.claudeService.generateProjectReport(aiInput);
 
       // 2. Preparar fotos con base64
-      loading.message = 'Procesando fotos...';
-
       const reportPhotos = [];
       for (const photo of this.photos) {
         let base64 = '';
@@ -634,8 +621,6 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       }
 
       // 3. Generar documento Word
-      loading.message = 'Generando documento Word...';
-
       const reportData: ReportData = {
         projectName: this.project.name,
         projectDescription: this.project.description,
@@ -653,7 +638,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     } catch (error: any) {
       this.showToast(error.message || 'Error al generar', 'danger');
     } finally {
-      await loading.dismiss();
+      this.isGeneratingPDD = false;
     }
   }
 
