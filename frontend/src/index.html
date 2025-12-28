@@ -7,6 +7,26 @@
 
   <base href="/" />
 
+  <!-- Security Headers -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self' data: blob: https: capacitor: ionic:;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cesium.com https://services.arcgisonline.com;
+    style-src 'self' 'unsafe-inline' https://cesium.com https://fonts.googleapis.com;
+    img-src 'self' data: blob: https: http:;
+    font-src 'self' data: https://fonts.gstatic.com;
+    connect-src 'self' https: wss: data: blob:;
+    frame-src 'self' https:;
+    media-src 'self' blob: data:;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'self';
+  " />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+
   <meta name="color-scheme" content="light dark" />
   <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="format-detection" content="telephone=no" />

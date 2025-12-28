@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network Security Configuration for GeoTech
+  Copiar a android/app/src/main/res/xml/network_security_config.xml
+  despues de ionic cap add android
+-->
+<network-security-config>
+    <!-- Configuracion base: solo HTTPS en produccion -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Permitir localhost solo en desarrollo -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+
+    <!-- Certificate Pinning para APIs criticas -->
+    <domain-config>
+        <!-- Railway API -->
+        <domain includeSubdomains="true">railway.app</domain>
+        <pin-set expiration="2025-12-31">
+            <!-- Actualizar estos hashes con los certificados reales -->
+            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
+            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
+        </pin-set>
+    </domain-config>
+
+    <!-- APIs externas confiables -->
+    <domain-config>
+        <domain includeSubdomains="true">nominatim.openstreetmap.org</domain>
+        <domain includeSubdomains="true">ovc.catastro.meh.es</domain>
+        <domain includeSubdomains="true">services.arcgisonline.com</domain>
+        <domain includeSubdomains="true">cesium.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>
