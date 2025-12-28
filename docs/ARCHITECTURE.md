@@ -1,283 +1,446 @@
 # Arquitectura GeoTech
 
-## Visión General
+## Vision General
 
-GeoTech sigue una arquitectura cliente-servidor con capacidades offline-first. El frontend es una aplicación híbrida construida con Ionic + Capacitor, mientras que el backend es una API REST en Node.js.
+GeoTech es una aplicacion movil hibrida con arquitectura offline-first. El frontend esta construido con Ionic + Angular + Capacitor, permitiendo ejecutarse como PWA (web), aplicacion Android o aplicacion iOS desde una unica base de codigo.
+
+---
+
+## Diagrama de Arquitectura
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         CLIENTE                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │                   Ionic + Angular                        │    │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐       │    │
-│  │  │ Cámara  │ │   GPS   │ │ Storage │ │  Sync   │       │    │
-│  │  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘       │    │
-│  │       │           │           │           │             │    │
-│  │  ┌────┴───────────┴───────────┴───────────┴────┐       │    │
-│  │  │              Capacitor Plugins               │       │    │
-│  │  └──────────────────────┬──────────────────────┘       │    │
-│  └─────────────────────────┼───────────────────────────────┘    │
-│                            │                                     │
-│  ┌─────────────────────────┼───────────────────────────────┐    │
-│  │                    SQLite Local                          │    │
-│  │  (Cola de sincronización, caché, datos offline)         │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ HTTPS
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         SERVIDOR                                 │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │                   Node.js + Express                      │    │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐       │    │
-│  │  │  Auth   │ │  Fotos  │ │Catastro │ │ Export  │       │    │
-│  │  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘       │    │
-│  │       │           │           │           │             │    │
-│  │  ┌────┴───────────┴───────────┴───────────┴────┐       │    │
-│  │  │              Servicios Core                  │       │    │
-│  │  └──────────────────────┬──────────────────────┘       │    │
-│  └─────────────────────────┼───────────────────────────────┘    │
-│                            │                                     │
-│  ┌─────────────────────────┼───────────────────────────────┐    │
-│  │                    PostgreSQL                            │    │
-│  │  (Usuarios, Proyectos, Fotos, Metadatos)                │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-              ┌──────────────┼──────────────┐
-              ▼              ▼              ▼
-        ┌──────────┐  ┌──────────┐  ┌──────────┐
-        │ Catastro │  │ IGN/     │  │ Claude   │
-        │   API    │  │ MITECO   │  │   API    │
-        └──────────┘  └──────────┘  └──────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              CLIENTE                                     │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                      Ionic + Angular 19                            │  │
+│  │                                                                    │  │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │  │
+│  │  │                         PAGES                                 │ │  │
+│  │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐│ │  │
+│  │  │  │ Login   │ │Projects │ │ Camera  │ │GeoVisor │ │Settings ││ │  │
+│  │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘│ │  │
+│  │  └──────────────────────────────────────────────────────────────┘ │  │
+│  │                               │                                    │  │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │  │
+│  │  │                       SERVICES                                │ │  │
+│  │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐│ │  │
+│  │  │  │  Auth   │ │ Camera  │ │   GPS   │ │ Storage │ │ Claude  ││ │  │
+│  │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘│ │  │
+│  │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐                        │ │  │
+│  │  │  │Catastro │ │   API   │ │  Sync   │                        │ │  │
+│  │  │  └─────────┘ └─────────┘ └─────────┘                        │ │  │
+│  │  └──────────────────────────────────────────────────────────────┘ │  │
+│  │                               │                                    │  │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │  │
+│  │  │                   Capacitor Plugins                           │ │  │
+│  │  │  Camera | Geolocation | Preferences | StatusBar | Keyboard   │ │  │
+│  │  └──────────────────────────────────────────────────────────────┘ │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                  │                                       │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                    Almacenamiento Local                            │  │
+│  │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────────┐  │  │
+│  │  │   Preferences   │ │   localStorage  │ │   Base64 Images     │  │  │
+│  │  │   (Proyectos,   │ │   (Perfil,      │ │   (Fotos            │  │  │
+│  │  │    Fotos,       │ │    Config)      │ │    guardadas)       │  │  │
+│  │  │    Mediciones)  │ │                 │ │                     │  │  │
+│  │  └─────────────────┘ └─────────────────┘ └─────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   │ HTTPS
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            APIS EXTERNAS                                 │
+│                                                                          │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐  │
+│  │                 │  │                 │  │                         │  │
+│  │  Catastro OVC   │  │   Nominatim     │  │      Claude API         │  │
+│  │  (WMS/INSPIRE)  │  │   (Geocoding)   │  │   (Analisis imagenes)   │  │
+│  │                 │  │                 │  │                         │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────────┘  │
+│                                                                          │
+│  ┌─────────────────┐  ┌─────────────────┐                               │
+│  │                 │  │                 │                               │
+│  │     ArcGIS      │  │  OpenStreetMap  │                               │
+│  │   (Satelite)    │  │    (Mapas)      │                               │
+│  │                 │  │                 │                               │
+│  └─────────────────┘  └─────────────────┘                               │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
 
 ## Componentes del Frontend
 
-### 1. Páginas (Pages)
+### 1. Paginas (Pages)
 
-| Página | Descripción |
-|--------|-------------|
-| `LoginPage` | Autenticación de usuarios |
-| `HomePage` | Dashboard con proyectos recientes |
-| `ProjectListPage` | Lista de proyectos |
-| `ProjectDetailPage` | Detalle de un proyecto |
-| `CameraPage` | Captura de fotos |
-| `PhotoDetailPage` | Detalle de una foto |
-| `MapPage` | Visualización en mapa |
-| `ExportPage` | Opciones de exportación |
-| `SettingsPage` | Configuración de la app |
+| Pagina | Ruta | Descripcion |
+|--------|------|-------------|
+| `LoginPage` | `/login` | Inicio de sesion con email/password |
+| `RegisterPage` | `/register` | Registro de nuevos usuarios |
+| `ProjectsPage` | `/tabs/projects` | Lista de proyectos con busqueda |
+| `ProjectDetailPage` | `/project-detail/:id` | Detalle del proyecto con fotos |
+| `CameraPage` | `/tabs/camera` | Captura e importacion de fotos |
+| `CatastroPage` | `/tabs/catastro` | GeoVisor 2D/3D con mediciones |
+| `MedicionesPage` | `/tabs/mediciones` | Historial de mediciones |
+| `SettingsPage` | `/tabs/settings` | Ajustes y perfil de usuario |
 
 ### 2. Servicios (Services)
 
-| Servicio | Responsabilidad |
-|----------|-----------------|
-| `AuthService` | Gestión de autenticación y tokens |
-| `ApiService` | Comunicación con el backend |
-| `CameraService` | Captura de fotos con Capacitor |
-| `GpsService` | Obtención de coordenadas GPS |
-| `StorageService` | Almacenamiento local SQLite |
-| `SyncService` | Sincronización offline/online |
-| `CatastroService` | Consultas al Catastro |
-| `ClaudeService` | Descripciones con IA |
-| `ExportService` | Generación de PDF/Excel |
+| Servicio | Archivo | Responsabilidad |
+|----------|---------|-----------------|
+| `AuthService` | `auth.service.ts` | Login, registro, logout, gestion de tokens |
+| `ApiService` | `api.service.ts` | Comunicacion HTTP con backend |
+| `CameraService` | `camera.service.ts` | Captura de fotos con Capacitor Camera |
+| `GpsService` | `gps.service.ts` | Obtencion de coordenadas GPS |
+| `StorageService` | `storage.service.ts` | CRUD local con Capacitor Preferences |
+| `SyncService` | `sync.service.ts` | Sincronizacion offline/online |
+| `CatastroService` | `catastro.service.ts` | Consultas WMS al Catastro espanol |
+| `ClaudeService` | `claude.service.ts` | Analisis de imagenes con IA |
 
-### 3. Modelos (Models)
+### 3. Modelos de Datos
 
+#### Project (Proyecto)
 ```typescript
-// Proyecto
 interface Project {
-  id: string;
-  name: string;
-  description: string;
-  createdAt: Date;
-  updatedAt: Date;
-  photos: Photo[];
+  id: string;              // Identificador unico
+  name: string;            // Nombre del proyecto
+  description?: string;    // Descripcion opcional
+  location?: string;       // Ubicacion (direccion)
+  photoCount?: number;     // Numero de fotos
+  createdAt: Date;         // Fecha de creacion
+  updatedAt: Date;         // Ultima modificacion
+  synced: boolean;         // Estado de sincronizacion
 }
+```
 
-// Foto
+#### Photo (Foto)
+```typescript
 interface Photo {
-  id: string;
-  projectId: string;
-  imagePath: string;
-  latitude: number;
-  longitude: number;
-  altitude?: number;
-  accuracy?: number;
-  catastroRef?: string;
-  catastroData?: CatastroData;
-  aiDescription?: string;
-  notes?: string;
-  createdAt: Date;
-  synced: boolean;
+  id: string;              // Identificador unico
+  projectId: string;       // ID del proyecto asociado
+  imagePath?: string;      // Imagen en base64
+  latitude: number;        // Coordenada latitud
+  longitude: number;       // Coordenada longitud
+  altitude?: number;       // Altitud (opcional)
+  accuracy?: number;       // Precision GPS en metros
+  location?: string;       // Direccion (reverse geocoding)
+  catastroRef?: string;    // Referencia catastral
+  catastroData?: CatastroData;  // Datos del catastro
+  aiDescription?: string;  // Descripcion generada por IA
+  notes?: string;          // Notas del usuario
+  timestamp?: string;      // Fecha/hora ISO
+  synced: boolean;         // Estado de sincronizacion
+}
+```
+
+#### Measurement (Medicion)
+```typescript
+interface Measurement {
+  id: string;              // Identificador unico
+  type: 'distance' | 'area'; // Tipo de medicion
+  points: MeasurementPoint[]; // Puntos de la medicion
+  value: number;           // Valor (metros o m²)
+  location?: string;       // Ubicacion aproximada
+  createdAt: string;       // Fecha de creacion
+  notes?: string;          // Notas opcionales
 }
 
-// Datos del Catastro
+interface MeasurementPoint {
+  lat: number;
+  lng: number;
+}
+```
+
+#### CatastroData (Datos Catastrales)
+```typescript
 interface CatastroData {
   referenciaCatastral: string;
-  direccion: string;
-  superficie: number;
-  uso: string;
-  clase: string;
-}
-
-// Cola de sincronización
-interface SyncQueueItem {
-  id: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
-  entity: 'project' | 'photo';
-  data: any;
-  createdAt: Date;
-  attempts: number;
+  direccion?: string;
+  superficie?: number;
+  uso?: string;
+  clase?: string;
+  municipio?: string;
+  provincia?: string;
 }
 ```
 
-## Componentes del Backend
+---
 
-### 1. Controladores (Controllers)
+## GeoVisor
 
-| Controlador | Endpoints |
-|-------------|-----------|
-| `AuthController` | POST /auth/login, POST /auth/register, POST /auth/refresh |
-| `ProjectController` | CRUD /projects |
-| `PhotoController` | CRUD /photos, POST /photos/upload |
-| `CatastroController` | GET /catastro/lookup |
-| `HydrologyController` | GET /hydrology/rivers |
-| `ClaudeController` | POST /claude/describe |
-| `ExportController` | POST /export/pdf, POST /export/excel |
-| `SyncController` | POST /sync/batch |
+### Modos de Visualizacion
 
-### 2. Estructura de Base de Datos
+#### 1. Modo Mapa (Leaflet)
+- Capa base: OpenStreetMap
+- Interaccion: click para seleccionar, drag para mover
+- Zoom: niveles 1-22
 
-```sql
--- Usuarios
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
+#### 2. Modo Satelite (Leaflet + ArcGIS)
+- Capa base: ArcGIS World Imagery (gratuito)
+- Misma interaccion que modo mapa
 
--- Proyectos
-CREATE TABLE projects (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
+#### 3. Modo Earth (Cesium)
+- Globo 3D con imagenes ArcGIS
+- Navegacion: rotar, zoom, inclinar
+- Sin necesidad de API key
 
--- Fotos
-CREATE TABLE photos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  image_url VARCHAR(500) NOT NULL,
-  thumbnail_url VARCHAR(500),
-  latitude DECIMAL(10, 8) NOT NULL,
-  longitude DECIMAL(11, 8) NOT NULL,
-  altitude DECIMAL(10, 2),
-  accuracy DECIMAL(10, 2),
-  catastro_ref VARCHAR(50),
-  catastro_data JSONB,
-  ai_description TEXT,
-  notes TEXT,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
+#### 4. Capa Catastro (WMS)
+- Superposicion opcional sobre cualquier modo 2D
+- Servicio: OVC Catastro INSPIRE
+- Muestra limites de parcelas
 
--- Índices
-CREATE INDEX idx_photos_project ON photos(project_id);
-CREATE INDEX idx_photos_location ON photos(latitude, longitude);
-CREATE INDEX idx_projects_user ON projects(user_id);
-```
-
-## Flujo de Datos
-
-### 1. Captura de Foto (Offline)
+### Herramientas de Medicion
 
 ```
-1. Usuario abre cámara
-2. CameraService captura imagen
-3. GpsService obtiene coordenadas
-4. StorageService guarda localmente
-5. SyncService añade a cola
-6. (Cuando hay conexión) SyncService envía al servidor
+Distancia:
+1. Usuario activa modo distancia
+2. Click en punto A → se crea marcador
+3. Click en punto B → se dibuja linea
+4. Se calcula distancia usando formula Haversine
+5. Se puede continuar anadiendo puntos
+6. Al finalizar, se guarda en StorageService
+
+Area:
+1. Usuario activa modo area
+2. Click en puntos → se crea poligono
+3. Minimo 3 puntos para calcular area
+4. Se usa algoritmo de Shoelace para el calculo
+5. Al finalizar, se guarda en StorageService
 ```
 
-### 2. Consulta Catastro
+---
+
+## Sistema de Almacenamiento
+
+### Capacitor Preferences
+Almacena datos estructurados en formato JSON:
+- `geotech_projects`: Array de proyectos
+- `geotech_photos`: Array de fotos
+- `geotech_measurements`: Array de mediciones
+
+### localStorage
+Almacena configuracion de usuario:
+- `user_profile_photo`: Foto de perfil en base64
+- `user_profile_name`: Nombre del usuario
+- `user_profile_email`: Email del usuario
+- `geovisor_lat/lon/mode`: Ultima posicion del mapa
+
+### Imagenes
+- Las fotos se almacenan como strings base64 dentro de `imagePath`
+- Permite persistencia completa sin necesidad de servidor de archivos
+
+---
+
+## Flujos de Datos
+
+### 1. Crear Proyecto
 
 ```
-1. Usuario solicita datos catastrales
-2. Frontend envía coordenadas al backend
-3. Backend consulta API Catastro
-4. Backend procesa y almacena respuesta
-5. Backend devuelve datos al frontend
-6. Frontend muestra información
+Usuario pulsa "+"
+       │
+       ▼
+┌──────────────────┐
+│ GpsService       │
+│ getCurrentPos()  │
+└────────┬─────────┘
+         │ coordenadas
+         ▼
+┌──────────────────┐
+│ Nominatim API    │
+│ reverse geocode  │
+└────────┬─────────┘
+         │ direccion
+         ▼
+┌──────────────────┐
+│ AlertController  │
+│ mostrar form     │
+│ (nombre,desc,    │
+│  ubicacion)      │
+└────────┬─────────┘
+         │ datos
+         ▼
+┌──────────────────┐
+│ StorageService   │
+│ setProjects()    │
+└────────┬─────────┘
+         │
+         ▼
+   Proyecto creado
 ```
 
-### 3. Descripción IA
+### 2. Captura de Foto
 
 ```
-1. Usuario solicita descripción
-2. Frontend envía imagen al backend
-3. Backend convierte imagen a base64
-4. Backend envía a Claude API (modelo Haiku)
-5. Claude devuelve descripción
-6. Backend almacena y devuelve descripción
-7. Frontend muestra resultado
+Usuario pulsa "Camara" o "Galeria"
+              │
+              ▼
+┌─────────────────────────┐
+│ CameraService           │
+│ takePhoto() / getPhoto()│
+└───────────┬─────────────┘
+            │ imagen
+            ▼
+┌─────────────────────────┐
+│ GpsService              │
+│ getCurrentPosition()    │
+│ (o extraer de EXIF)     │
+└───────────┬─────────────┘
+            │ coordenadas
+            ▼
+┌─────────────────────────┐
+│ Nominatim API           │
+│ reverse geocode         │
+└───────────┬─────────────┘
+            │ direccion
+            ▼
+┌─────────────────────────┐
+│ Convertir a base64      │
+│ FileReader.readAsDataURL│
+└───────────┬─────────────┘
+            │ base64
+            ▼
+┌─────────────────────────┐
+│ StorageService          │
+│ addPhoto()              │
+└───────────┬─────────────┘
+            │
+            ▼
+     Foto guardada
 ```
 
-## Sistema Offline
+### 3. Consulta Catastral
 
-### Cola de Sincronización
+```
+Usuario selecciona punto en mapa
+              │
+              ▼
+┌─────────────────────────┐
+│ CatastroService         │
+│ getParcelByCoordinates()│
+└───────────┬─────────────┘
+            │ lat, lon
+            ▼
+┌─────────────────────────┐
+│ OVC Catastro API        │
+│ POST consulta_RCCOOR    │
+└───────────┬─────────────┘
+            │ XML response
+            ▼
+┌─────────────────────────┐
+│ Parsear XML             │
+│ extraer datos           │
+└───────────┬─────────────┘
+            │ CatastroData
+            ▼
+┌─────────────────────────┐
+│ Mostrar en panel        │
+│ info del mapa           │
+└─────────────────────────┘
+```
 
-1. **Detección de conexión**: El servicio de red monitorea el estado de conexión
-2. **Almacenamiento local**: Todas las operaciones se guardan en SQLite
-3. **Cola de pendientes**: Las operaciones sin sincronizar se encolan
-4. **Sincronización automática**: Cuando hay conexión, se procesan la cola
-5. **Resolución de conflictos**: El servidor tiene la versión autoritativa
+### 4. Descripcion con IA
 
-### Estrategia de Caché
+```
+Usuario pulsa icono IA
+         │
+         ▼
+┌─────────────────────────┐
+│ ClaudeService           │
+│ analyzeImage()          │
+└───────────┬─────────────┘
+         │ base64 imagen
+         ▼
+┌─────────────────────────┐
+│ Claude API              │
+│ POST /messages          │
+│ model: claude-3-haiku   │
+└───────────┬─────────────┘
+         │ descripcion
+         ▼
+┌─────────────────────────┐
+│ StorageService          │
+│ updatePhoto()           │
+└───────────┬─────────────┘
+         │
+         ▼
+   Descripcion guardada
+```
 
-- **Imágenes**: Comprimidas y almacenadas localmente
-- **Datos de Catastro**: Cacheados por coordenadas
-- **Proyectos**: Sincronización completa al inicio
-
-## Seguridad
-
-### Autenticación
-- JWT con refresh tokens
-- Tokens almacenados de forma segura (Keychain/Keystore)
-- Expiración configurable
-
-### Autorización
-- Cada usuario solo ve sus proyectos
-- Validación de permisos en cada endpoint
-
-### Datos
-- HTTPS obligatorio
-- Encriptación de datos sensibles
-- API keys en variables de entorno
+---
 
 ## APIs Externas
 
-### Catastro (OVC)
-- **URL Base**: https://ovc.catastro.meh.es/ovcservweb/
-- **Servicios**: INSPIRE, WFS, consulta puntual
-- **Autenticación**: No requiere (API pública)
-- **Límites**: Sin límite documentado
+### Catastro OVC
+- **URL**: `https://ovc.catastro.meh.es/ovcservweb/`
+- **Servicios**:
+  - `OVCCallejero.asmx/ConsultaProvincia` - Lista de provincias
+  - `OVCCoordenadas.asmx/Consulta_RCCOOR` - Busqueda por coordenadas
+- **WMS**: `https://ovc.catastro.meh.es/cartografia/INSPIRE/spadgcwms.aspx`
+- **Autenticacion**: No requiere
+- **Limite**: Sin documentar (uso razonable)
 
-### IGN/MITECO (Hidrología)
-- **URL Base**: Varios servicios WMS/WFS
-- **Servicios**: Ríos, cuencas, datos hidrológicos
-- **Autenticación**: No requiere
-- **Límites**: Sin límite documentado
+### Nominatim (OpenStreetMap)
+- **URL**: `https://nominatim.openstreetmap.org/`
+- **Servicios**:
+  - `/search` - Busqueda de direcciones
+  - `/reverse` - Coordenadas a direccion
+- **Autenticacion**: No requiere
+- **Limite**: 1 request/segundo (politica de uso)
 
-### Claude API
-- **Modelo**: claude-3-haiku (más económico)
-- **Uso**: Descripción de imágenes
+### ArcGIS (Imagenes Satelite)
+- **URL**: `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer`
+- **Uso**: Capa de tiles para Leaflet y Cesium
+- **Autenticacion**: No requiere para uso basico
+- **Limite**: Sin limite para visualizacion
+
+### Claude API (Anthropic)
+- **URL**: `https://api.anthropic.com/v1/messages`
+- **Modelo**: claude-3-haiku (mas economico)
+- **Autenticacion**: API Key requerida
 - **Coste**: ~$0.00025 por imagen
-- **Límites**: Según plan contratado
+- **Uso**: Descripcion tecnica de fotografias
+
+---
+
+## Seguridad
+
+### Autenticacion
+- JWT tokens almacenados en Preferences (seguro)
+- Tokens de sesion con expiracion configurable
+- Refresh tokens para renovacion automatica
+
+### Almacenamiento
+- Capacitor Preferences usa almacenamiento nativo seguro
+- iOS: NSUserDefaults (sandboxed)
+- Android: SharedPreferences (sandboxed)
+
+### Comunicacion
+- HTTPS obligatorio para todas las APIs
+- API keys nunca expuestas en cliente (excepto Claude para demo)
+
+### Datos Sensibles
+- Contrasenas hasheadas (nunca en texto plano)
+- Fotos almacenadas localmente (no se envian sin consentimiento)
+- Coordenadas GPS solo se usan con permiso del usuario
+
+---
+
+## Rendimiento
+
+### Optimizaciones
+- Imagenes comprimidas automaticamente por Capacitor
+- Lazy loading de modulos Angular
+- Standalone components para reducir bundle size
+- Carga bajo demanda de Cesium (solo en modo Earth)
+
+### Metricas
+- Tiempo de inicio: < 3 segundos
+- Captura de foto: < 1 segundo
+- Geocoding: < 2 segundos
+- Carga de mapa: < 1 segundo
+
+---
+
+*Documentacion actualizada el 28/12/2024*

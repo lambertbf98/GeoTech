@@ -1,378 +1,459 @@
-# Guía de Despliegue - GeoTech
+# Guia de Despliegue - GeoTech
+
+Esta guia detalla los pasos para desplegar GeoTech en diferentes entornos.
+
+---
+
+## Indice
+
+1. [Desarrollo Local](#desarrollo-local)
+2. [Despliegue en Railway (PWA)](#despliegue-en-railway-pwa)
+3. [Compilacion Android](#compilacion-android)
+4. [Compilacion iOS](#compilacion-ios)
+5. [Variables de Entorno](#variables-de-entorno)
+6. [Solucion de Problemas](#solucion-de-problemas)
+
+---
 
 ## Desarrollo Local
 
-### Requisitos
+### Requisitos Previos
 
-- Node.js 20+ (https://nodejs.org)
-- npm 10+
-- Git
-- PostgreSQL 16 (o Docker)
-- Android Studio (para desarrollo Android)
-- Xcode 15+ (solo macOS, para desarrollo iOS)
+| Software | Version | Descarga |
+|----------|---------|----------|
+| Node.js | 20.x o superior | https://nodejs.org |
+| npm | 10.x o superior | Incluido con Node.js |
+| Git | 2.x o superior | https://git-scm.com |
+| Ionic CLI | 7.x | `npm install -g @ionic/cli` |
 
-### Instalación Inicial
+### Paso 1: Clonar el Repositorio
 
 ```bash
-# Clonar repositorio
-git clone <repo_url>
-cd geotech
-
-# Instalar dependencias del backend
-cd backend
-npm install
-
-# Configurar base de datos
-cp .env.example .env
-# Editar .env con tus credenciales
-
-# Ejecutar migraciones
-npx prisma migrate dev
-
-# Iniciar servidor
-npm run dev
-
-# En otra terminal, instalar frontend
-cd ../frontend
-npm install
-
-# Iniciar desarrollo web
-ionic serve
+git clone https://github.com/lambertbf98/GeoTech.git
+cd GeoTech
 ```
 
-### Base de Datos con Docker
-
-Si prefieres usar Docker para PostgreSQL:
+### Paso 2: Instalar Dependencias del Frontend
 
 ```bash
-docker run --name geotech-db \
-  -e POSTGRES_USER=geotech \
-  -e POSTGRES_PASSWORD=geotech123 \
-  -e POSTGRES_DB=geotech \
-  -p 5432:5432 \
-  -d postgres:16
+cd frontend
+npm install
+```
+
+### Paso 3: Configurar Variables de Entorno
+
+Crear archivo `src/environments/environment.ts`:
+
+```typescript
+export const environment = {
+  production: false,
+  apiUrl: 'http://localhost:3000/api',
+  claudeApiKey: 'tu_api_key_de_anthropic'  // Opcional
+};
+```
+
+Crear archivo `src/environments/environment.prod.ts`:
+
+```typescript
+export const environment = {
+  production: true,
+  apiUrl: 'https://tu-backend.railway.app/api',
+  claudeApiKey: 'tu_api_key_de_anthropic'
+};
+```
+
+### Paso 4: Ejecutar en Modo Desarrollo
+
+```bash
+# Abrir en navegador
+ionic serve
+
+# Con live reload en dispositivo Android conectado
+ionic cap run android -l --external
+
+# Con live reload en simulador iOS (solo macOS)
+ionic cap run ios -l --external
+```
+
+El servidor de desarrollo estara disponible en `http://localhost:8100`
+
+### Paso 5: Instalar y Ejecutar Backend (Opcional)
+
+```bash
+cd ../backend
+npm install
+
+# Crear archivo .env
+echo "PORT=3000
+NODE_ENV=development
+JWT_SECRET=mi_secreto_jwt_desarrollo
+CLAUDE_API_KEY=sk-ant-..." > .env
+
+# Ejecutar en modo desarrollo
+npm run dev
 ```
 
 ---
 
-## Despliegue Backend (Railway)
+## Despliegue en Railway (PWA)
 
-Railway ofrece hosting gratuito perfecto para desarrollo y pruebas.
+Railway permite desplegar la aplicacion como Progressive Web App accesible desde cualquier navegador.
 
-### Paso 1: Crear cuenta
+### Paso 1: Crear Cuenta en Railway
 
 1. Ir a https://railway.app
-2. Registrarse con GitHub
+2. Registrarse con cuenta de GitHub
+3. Verificar email si es necesario
 
-### Paso 2: Crear proyecto
+### Paso 2: Conectar Repositorio
 
-1. Click en "New Project"
-2. Seleccionar "Deploy from GitHub repo"
-3. Autorizar acceso al repositorio
-4. Seleccionar el repositorio de GeoTech
+1. En el dashboard de Railway, click en **"New Project"**
+2. Seleccionar **"Deploy from GitHub repo"**
+3. Autorizar acceso a GitHub si es la primera vez
+4. Buscar y seleccionar el repositorio **GeoTech**
+5. Seleccionar la carpeta **frontend** como root directory
 
-### Paso 3: Configurar PostgreSQL
+### Paso 3: Configurar Build
 
-1. En el proyecto, click en "New"
-2. Seleccionar "Database" → "Add PostgreSQL"
-3. Railway creará automáticamente la base de datos
+Railway detectara automaticamente el Dockerfile. Verificar que existe `frontend/Dockerfile`:
 
-### Paso 4: Configurar variables de entorno
+```dockerfile
+# Build stage
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build -- --configuration=production
 
-En el servicio del backend, añadir:
-
-```
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-CLAUDE_API_KEY=tu_api_key_de_anthropic
-JWT_SECRET=un_secreto_largo_y_aleatorio
-NODE_ENV=production
-PORT=3000
-```
-
-### Paso 5: Configurar el build
-
-Railway detectará automáticamente Node.js. Asegúrate de tener en `package.json`:
-
-```json
-{
-  "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "postinstall": "prisma generate"
-  }
-}
+# Production stage
+FROM nginx:alpine
+COPY --from=build /app/www /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
 ```
 
-### Paso 6: Deploy
-
-Railway desplegará automáticamente con cada push a la rama principal.
-
----
-
-## Despliegue Backend (IONOS VPS)
-
-Para producción con más control y recursos.
-
-### Paso 1: Preparar VPS
-
-```bash
-# Conectar por SSH
-ssh root@tu_ip_vps
-
-# Actualizar sistema
-apt update && apt upgrade -y
-
-# Instalar Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-apt install -y nodejs
-
-# Instalar PostgreSQL
-apt install -y postgresql postgresql-contrib
-
-# Instalar Nginx
-apt install -y nginx
-
-# Instalar PM2 (gestor de procesos)
-npm install -g pm2
-```
-
-### Paso 2: Configurar PostgreSQL
-
-```bash
-# Acceder a PostgreSQL
-sudo -u postgres psql
-
-# Crear base de datos y usuario
-CREATE DATABASE geotech;
-CREATE USER geotech WITH ENCRYPTED PASSWORD 'tu_contraseña_segura';
-GRANT ALL PRIVILEGES ON DATABASE geotech TO geotech;
-\q
-```
-
-### Paso 3: Configurar aplicación
-
-```bash
-# Crear directorio
-mkdir -p /var/www/geotech
-cd /var/www/geotech
-
-# Clonar repositorio
-git clone <repo_url> .
-
-# Instalar dependencias
-cd backend
-npm install --production
-
-# Configurar entorno
-cp .env.example .env
-nano .env  # Editar con valores de producción
-
-# Ejecutar migraciones
-npx prisma migrate deploy
-
-# Compilar TypeScript
-npm run build
-
-# Iniciar con PM2
-pm2 start dist/index.js --name geotech-api
-pm2 save
-pm2 startup
-```
-
-### Paso 4: Configurar Nginx
-
-```bash
-nano /etc/nginx/sites-available/geotech
-```
+Verificar que existe `frontend/nginx.conf`:
 
 ```nginx
 server {
     listen 80;
-    server_name api.tudominio.com;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
 
     location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_cache_bypass $http_upgrade;
+        try_files $uri $uri/ /index.html;
     }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
 }
 ```
 
-```bash
-# Activar sitio
-ln -s /etc/nginx/sites-available/geotech /etc/nginx/sites-enabled/
-nginx -t
-systemctl restart nginx
+### Paso 4: Configurar Variables de Entorno (Opcional)
+
+En Railway, ir a la pestana **Variables** del servicio:
+
+```
+NODE_ENV=production
 ```
 
-### Paso 5: SSL con Certbot
+### Paso 5: Desplegar
 
-```bash
-apt install -y certbot python3-certbot-nginx
-certbot --nginx -d api.tudominio.com
-```
+1. Railway iniciara automaticamente el build
+2. Esperar a que el estado cambie a **"Deployed"**
+3. Click en el dominio generado (ej: `geotech-production.up.railway.app`)
+4. La aplicacion estara disponible como PWA
+
+### Paso 6: Configurar Dominio Personalizado (Opcional)
+
+1. En Railway, ir a **Settings** > **Domains**
+2. Click en **"Add Custom Domain"**
+3. Introducir tu dominio (ej: `app.geotech.es`)
+4. Configurar DNS segun instrucciones de Railway
 
 ---
 
-## Compilación App Móvil
+## Compilacion Android
 
-### Android
+### Requisitos Previos
+
+| Software | Version | Descarga |
+|----------|---------|----------|
+| Android Studio | Hedgehog o superior | https://developer.android.com/studio |
+| JDK | 17 | Incluido con Android Studio |
+| Android SDK | API 34 | Via Android Studio SDK Manager |
+
+### Paso 1: Preparar Entorno Android
+
+1. Abrir Android Studio
+2. Ir a **Settings** > **SDK Manager**
+3. Instalar:
+   - Android SDK Platform 34
+   - Android SDK Build-Tools 34
+   - Android Emulator
+   - Android SDK Platform-Tools
+
+### Paso 2: Compilar Proyecto Angular
 
 ```bash
 cd frontend
+ionic build --configuration=production
+```
 
-# Compilar Angular
-ionic build --prod
+### Paso 3: Sincronizar con Capacitor
 
-# Sincronizar con Capacitor
+```bash
 ionic cap sync android
+```
 
-# Abrir en Android Studio
+### Paso 4: Abrir en Android Studio
+
+```bash
 ionic cap open android
 ```
 
-En Android Studio:
-1. Build → Generate Signed Bundle / APK
-2. Seguir asistente para crear keystore
-3. Generar AAB para Google Play
+### Paso 5: Configurar Firma (Primera vez)
 
-### iOS
+1. En Android Studio: **Build** > **Generate Signed Bundle / APK**
+2. Seleccionar **Android App Bundle**
+3. Click en **Create new...**
+4. Completar datos del keystore:
+   - Key store path: `geotech-release.jks`
+   - Password: (crear password seguro)
+   - Alias: `geotech`
+   - Validity: 25 years
+   - Certificate info: Datos de la empresa
+5. Guardar el keystore en lugar seguro
 
-```bash
-cd frontend
+### Paso 6: Generar APK/AAB
 
-# Compilar Angular
-ionic build --prod
+**Para pruebas (APK):**
+1. **Build** > **Build Bundle(s) / APK(s)** > **Build APK(s)**
+2. El APK estara en `android/app/build/outputs/apk/debug/`
 
-# Sincronizar con Capacitor
-ionic cap sync ios
+**Para Google Play (AAB):**
+1. **Build** > **Generate Signed Bundle / APK**
+2. Seleccionar **Android App Bundle**
+3. Usar el keystore creado
+4. Seleccionar **release**
+5. El AAB estara en `android/app/build/outputs/bundle/release/`
 
-# Abrir en Xcode
-ionic cap open ios
-```
+### Paso 7: Publicar en Google Play
 
-En Xcode:
-1. Seleccionar "Any iOS Device"
-2. Product → Archive
-3. Distribute App → App Store Connect
+1. Ir a https://play.google.com/console
+2. Crear cuenta de desarrollador ($25 unico)
+3. **Create app** > Completar informacion
+4. Ir a **Production** > **Create new release**
+5. Subir el archivo AAB
+6. Completar ficha de la tienda (screenshots, descripcion, etc.)
+7. Enviar para revision
 
 ---
 
-## Publicación en Tiendas
+## Compilacion iOS
 
-### Google Play Store
+### Requisitos Previos
 
-1. Crear cuenta de desarrollador ($25 único)
-2. Crear aplicación en Google Play Console
-3. Subir AAB generado
-4. Completar ficha de la tienda
-5. Configurar precios y distribución
-6. Enviar para revisión
+| Software | Version | Requisito |
+|----------|---------|-----------|
+| macOS | Sonoma o superior | Obligatorio |
+| Xcode | 15 o superior | https://developer.apple.com/xcode |
+| CocoaPods | 1.14+ | `sudo gem install cocoapods` |
+| Apple Developer Account | - | https://developer.apple.com |
 
-### Apple App Store
+### Paso 1: Compilar Proyecto Angular
 
-1. Crear cuenta de desarrollador ($99/año)
-2. Crear App ID en Apple Developer
-3. Crear aplicación en App Store Connect
-4. Subir build desde Xcode
-5. Completar información de la app
-6. Enviar para revisión
+```bash
+cd frontend
+ionic build --configuration=production
+```
+
+### Paso 2: Sincronizar con Capacitor
+
+```bash
+ionic cap sync ios
+```
+
+### Paso 3: Instalar Pods
+
+```bash
+cd ios/App
+pod install
+cd ../..
+```
+
+### Paso 4: Abrir en Xcode
+
+```bash
+ionic cap open ios
+```
+
+### Paso 5: Configurar Equipo de Desarrollo
+
+1. En Xcode, seleccionar el proyecto **App**
+2. Ir a **Signing & Capabilities**
+3. Seleccionar tu **Team** (cuenta de desarrollador)
+4. Xcode gestionara automaticamente los certificados
+
+### Paso 6: Configurar Bundle Identifier
+
+1. En **General** > **Identity**
+2. Cambiar Bundle Identifier a: `com.tuempresa.geotech`
+3. Cambiar Display Name a: `GeoTech`
+4. Cambiar Version a la version actual
+
+### Paso 7: Generar Build para App Store
+
+1. Seleccionar dispositivo: **Any iOS Device (arm64)**
+2. Menu **Product** > **Archive**
+3. Esperar a que termine la compilacion
+4. Se abrira el **Organizer**
+
+### Paso 8: Subir a App Store Connect
+
+1. En Organizer, seleccionar el archive
+2. Click en **Distribute App**
+3. Seleccionar **App Store Connect**
+4. Seguir el asistente
+5. Esperar a que se procese (10-30 minutos)
+
+### Paso 9: Publicar en App Store
+
+1. Ir a https://appstoreconnect.apple.com
+2. Seleccionar la app
+3. Ir a **App Store** > **iOS App**
+4. Seleccionar el build subido
+5. Completar informacion (screenshots, descripcion, etc.)
+6. Enviar para revision
 
 ---
 
 ## Variables de Entorno
 
+### Frontend (environment.ts)
+
+```typescript
+export const environment = {
+  production: boolean,        // true para produccion
+  apiUrl: string,            // URL del backend
+  claudeApiKey?: string      // API key de Anthropic (opcional)
+};
+```
+
 ### Backend (.env)
 
 ```bash
-# Base de datos
-DATABASE_URL=postgresql://user:password@host:5432/geotech
+# Servidor
+PORT=3000
+NODE_ENV=production
 
-# Autenticación
-JWT_SECRET=tu_secreto_jwt_muy_largo_y_aleatorio
+# Autenticacion
+JWT_SECRET=clave_secreta_muy_larga_y_aleatoria
 JWT_EXPIRES_IN=7d
 REFRESH_TOKEN_EXPIRES_IN=30d
 
 # Claude API
-CLAUDE_API_KEY=sk-ant-...
+CLAUDE_API_KEY=sk-ant-api03-...
 
-# Storage (si usas S3 o similar)
-STORAGE_TYPE=local  # o 's3'
-S3_BUCKET=geotech-photos
-S3_REGION=eu-west-1
-S3_ACCESS_KEY=...
-S3_SECRET_KEY=...
-
-# Servidor
-PORT=3000
-NODE_ENV=production
-```
-
-### Frontend (environment.prod.ts)
-
-```typescript
-export const environment = {
-  production: true,
-  apiUrl: 'https://api.tudominio.com/api',
-};
+# Base de datos (si se usa)
+DATABASE_URL=postgresql://user:password@host:5432/geotech
 ```
 
 ---
 
-## Monitorización
+## Solucion de Problemas
 
-### PM2 (Backend)
+### Error: "ionic: command not found"
 
 ```bash
-# Ver estado
-pm2 status
-
-# Ver logs
-pm2 logs geotech-api
-
-# Monitorizar
-pm2 monit
-
-# Reiniciar
-pm2 restart geotech-api
+npm install -g @ionic/cli
 ```
 
-### Logs de Nginx
+### Error: "Could not find the AndroidManifest.xml"
 
 ```bash
-# Acceso
-tail -f /var/log/nginx/access.log
+ionic cap sync android
+```
 
-# Errores
-tail -f /var/log/nginx/error.log
+### Error: "Signing for App requires a development team"
+
+1. Abrir Xcode
+2. Seleccionar proyecto App
+3. En Signing & Capabilities, seleccionar tu Team
+
+### Error: "npm ERR! ERESOLVE"
+
+```bash
+rm -rf node_modules package-lock.json
+npm install --legacy-peer-deps
+```
+
+### Error: "Capacitor could not find native platform"
+
+```bash
+ionic cap add android
+# o
+ionic cap add ios
+```
+
+### Build tarda mucho en Railway
+
+1. Verificar que no hay archivos innecesarios
+2. Anadir a `.dockerignore`:
+```
+node_modules
+android
+ios
+*.log
+```
+
+### La app no carga imagenes en produccion
+
+1. Verificar que las imagenes estan en base64
+2. Verificar Content-Security-Policy en index.html:
+```html
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self' data: blob: https:;
+               img-src 'self' data: blob: https: *;
+               style-src 'self' 'unsafe-inline';">
+```
+
+### GPS no funciona en navegador
+
+1. La geolocalizacion requiere HTTPS
+2. En desarrollo, usar `ionic serve` con `--ssl`
+3. En produccion, verificar certificado SSL
+
+---
+
+## Comandos Utiles
+
+```bash
+# Ver version de Ionic/Capacitor
+ionic info
+
+# Actualizar plugins de Capacitor
+npm update @capacitor/core @capacitor/cli @capacitor/android @capacitor/ios
+
+# Limpiar cache de build
+rm -rf www node_modules/.cache
+ionic build --configuration=production
+
+# Ver logs de Android
+adb logcat | grep -i capacitor
+
+# Ver logs de iOS (en Xcode)
+# Window > Devices and Simulators > Seleccionar dispositivo > Open Console
 ```
 
 ---
 
-## Backups
-
-### Base de datos
-
-```bash
-# Backup manual
-pg_dump -U geotech geotech > backup_$(date +%Y%m%d).sql
-
-# Automatizar con cron
-crontab -e
-# Añadir:
-0 3 * * * pg_dump -U geotech geotech > /var/backups/geotech_$(date +\%Y\%m\%d).sql
-```
-
-### Fotos
-
-Si usas almacenamiento local:
-
-```bash
-# Backup de fotos
-rsync -avz /var/www/geotech/uploads/ /var/backups/photos/
-```
+*Documentacion actualizada el 28/12/2024*
