@@ -20,12 +20,24 @@ export class CatastroService {
   ) {}
 
   async getParcelByCoordinates(latitude: number, longitude: number): Promise<any> {
-    // Usar lookupDirectly para consultar directamente la API del Catastro español
-    const response = await firstValueFrom(this.lookupDirectly(latitude, longitude));
-    if (response.success && response.data) {
-      return response.data;
+    // Usar el backend para evitar problemas de CORS
+    try {
+      const response = await firstValueFrom(
+        this.api.get<any>(`/catastro/lookup?lat=${latitude}&lon=${longitude}`)
+      );
+      if (response.success && response.catastro) {
+        return response.catastro;
+      }
+      throw new Error('No se encontraron datos catastrales');
+    } catch (error: any) {
+      // Fallback: intentar directamente si el backend falla
+      console.warn('Backend catastro failed, trying direct lookup...');
+      const response = await firstValueFrom(this.lookupDirectly(latitude, longitude));
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.error || 'No se encontraron datos catastrales');
     }
-    throw new Error(response.error || 'No se encontraron datos catastrales');
   }
 
   async getParcelByReference(ref: string): Promise<any> {

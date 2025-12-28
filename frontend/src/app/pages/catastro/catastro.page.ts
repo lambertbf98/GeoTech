@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { LoadingController, ToastController, AlertController, NavController } from '@ionic/angular';
 import { CatastroService } from '../../services/catastro.service';
 import { GpsService } from '../../services/gps.service';
 import { StorageService } from '../../services/storage.service';
+import { KmlService, KmlDocument, KmlPlacemark } from '../../services/kml.service';
 import { Measurement, MeasurementPoint } from '../../models';
 import { HttpClient } from '@angular/common/http';
 import * as L from 'leaflet';
@@ -32,6 +33,11 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
   measureDistance = 0;
   measureArea = 0;
 
+  // KML properties
+  @ViewChild('kmlFileInput') kmlFileInput!: ElementRef<HTMLInputElement>;
+  showKmlPanel = false;
+  kmlLayers: { name: string; layerGroup: L.LayerGroup; bounds: L.LatLngBounds; document: KmlDocument }[] = [];
+
   private map: L.Map | null = null;
   private marker: L.Marker | null = null;
   private satelliteLayer: L.TileLayer | null = null;
@@ -53,6 +59,7 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     private catastroService: CatastroService,
     private gpsService: GpsService,
     private storageService: StorageService,
+    private kmlService: KmlService,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
@@ -618,5 +625,169 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
   private async showToast(msg: string, color: string) {
     const toast = await this.toastCtrl.create({ message: msg, duration: 2000, position: 'top', color });
     await toast.present();
+  }
+
+  // ========== KML IMPORT METHODS ==========
+
+  triggerKmlImport() {
+    if (this.kmlLayers.length > 0) {
+      this.showKmlPanel = true;
+    } else {
+      this.kmlFileInput.nativeElement.click();
+    }
+  }
+
+  toggleKmlPanel() {
+    this.showKmlPanel = !this.showKmlPanel;
+  }
+
+  async onKmlFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    const loading = await this.loadingCtrl.create({
+      message: 'Cargando archivo KML...'
+    });
+    await loading.present();
+
+    try {
+      const kmlDoc = await this.kmlService.readFile(file);
+      this.displayKmlDocument(kmlDoc);
+      this.showToast(`Capa "${kmlDoc.name}" cargada`, 'success');
+      this.showKmlPanel = true;
+    } catch (error: any) {
+      console.error('Error loading KML:', error);
+      this.showToast(error.message || 'Error al cargar el archivo', 'danger');
+    } finally {
+      await loading.dismiss();
+      input.value = ''; // Reset input
+    }
+  }
+
+  private displayKmlDocument(kmlDoc: KmlDocument) {
+    if (!this.map) return;
+
+    const layerGroup = L.layerGroup();
+    const allCoords: L.LatLng[] = [];
+
+    kmlDoc.placemarks.forEach(placemark => {
+      const layer = this.createLayerFromPlacemark(placemark, kmlDoc.images);
+      if (layer) {
+        layer.addTo(layerGroup);
+        placemark.coordinates.forEach(c => allCoords.push(L.latLng(c.lat, c.lng)));
+      }
+    });
+
+    layerGroup.addTo(this.map);
+
+    // Calculate bounds
+    let bounds: L.LatLngBounds;
+    if (allCoords.length > 0) {
+      bounds = L.latLngBounds(allCoords);
+      this.map.fitBounds(bounds, { padding: [50, 50] });
+    } else {
+      bounds = this.map.getBounds();
+    }
+
+    this.kmlLayers.push({
+      name: kmlDoc.name,
+      layerGroup,
+      bounds,
+      document: kmlDoc
+    });
+  }
+
+  private createLayerFromPlacemark(placemark: KmlPlacemark, images: Map<string, string>): L.Layer | null {
+    if (placemark.coordinates.length === 0) return null;
+
+    switch (placemark.type) {
+      case 'point':
+        return this.createPointLayer(placemark, images);
+      case 'polygon':
+        return this.createPolygonLayer(placemark);
+      case 'line':
+        return this.createLineLayer(placemark);
+      default:
+        return null;
+    }
+  }
+
+  private createPointLayer(placemark: KmlPlacemark, images: Map<string, string>): L.Marker {
+    const coord = placemark.coordinates[0];
+
+    // Create custom icon
+    const icon = L.divIcon({
+      className: 'kml-marker',
+      html: `<div class="kml-marker-dot"></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
+    });
+
+    const marker = L.marker([coord.lat, coord.lng], { icon });
+
+    // Build popup content
+    let popupContent = `<div class="kml-popup"><strong>${placemark.name}</strong>`;
+
+    if (placemark.imageUrl) {
+      const imageData = placemark.imageUrl.startsWith('data:')
+        ? placemark.imageUrl
+        : images.get(placemark.imageUrl) || placemark.imageUrl;
+      popupContent += `<br><img src="${imageData}" style="max-width:200px;max-height:150px;margin-top:8px;">`;
+    }
+
+    if (placemark.description) {
+      popupContent += `<br><span style="color:#666;font-size:12px;">${placemark.description}</span>`;
+    }
+
+    popupContent += '</div>';
+    marker.bindPopup(popupContent, { maxWidth: 250 });
+
+    return marker;
+  }
+
+  private createPolygonLayer(placemark: KmlPlacemark): L.Polygon {
+    const latlngs = placemark.coordinates.map(c => L.latLng(c.lat, c.lng));
+
+    const polygon = L.polygon(latlngs, {
+      color: '#ff0000',
+      weight: 3,
+      fillColor: '#ff0000',
+      fillOpacity: 0.2
+    });
+
+    polygon.bindPopup(`<strong>${placemark.name}</strong>${placemark.description ? '<br>' + placemark.description : ''}`);
+
+    return polygon;
+  }
+
+  private createLineLayer(placemark: KmlPlacemark): L.Polyline {
+    const latlngs = placemark.coordinates.map(c => L.latLng(c.lat, c.lng));
+
+    const polyline = L.polyline(latlngs, {
+      color: '#0066ff',
+      weight: 4
+    });
+
+    polyline.bindPopup(`<strong>${placemark.name}</strong>${placemark.description ? '<br>' + placemark.description : ''}`);
+
+    return polyline;
+  }
+
+  zoomToKmlLayer(index: number) {
+    if (this.map && this.kmlLayers[index]) {
+      this.map.fitBounds(this.kmlLayers[index].bounds, { padding: [50, 50] });
+    }
+  }
+
+  removeKmlLayer(index: number) {
+    if (this.map && this.kmlLayers[index]) {
+      this.map.removeLayer(this.kmlLayers[index].layerGroup);
+      this.kmlLayers.splice(index, 1);
+
+      if (this.kmlLayers.length === 0) {
+        this.showKmlPanel = false;
+      }
+    }
   }
 }

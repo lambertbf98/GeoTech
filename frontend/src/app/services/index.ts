@@ -6,3 +6,5 @@ export * from './storage.service';
 export * from './sync.service';
 export * from './catastro.service';
 export * from './claude.service';
+export * from './kml.service';
+export * from './report.service';

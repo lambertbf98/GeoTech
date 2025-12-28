@@ -32,6 +32,9 @@
       <button class="fab-button tertiary" (click)="toggleSearch()">
         <ion-icon name="search"></ion-icon>
       </button>
+      <button class="fab-button kml" [class.active]="kmlLayers.length > 0" (click)="triggerKmlImport()">
+        <ion-icon name="folder-outline"></ion-icon>
+      </button>
       <button class="fab-button" [class.active]="measureMode === 'distance'" (click)="toggleMeasureDistance()">
         <ion-icon name="resize-outline"></ion-icon>
       </button>
@@ -39,6 +42,9 @@
         <ion-icon name="square-outline"></ion-icon>
       </button>
     </div>
+
+    <!-- Hidden file input for KML import -->
+    <input type="file" #kmlFileInput accept=".kml,.kmz" (change)="onKmlFileSelected($event)" style="display: none;">
 
     <!-- Search Panel -->
     <div class="search-panel" [class.visible]="showSearch">
@@ -97,6 +103,37 @@
     <button class="fab-measurements" (click)="goToMeasurements()">
       <ion-icon name="list-outline"></ion-icon>
     </button>
+
+    <!-- KML Layers Panel -->
+    <div class="kml-panel" [class.visible]="showKmlPanel">
+      <div class="kml-header">
+        <h3>Capas KML</h3>
+        <button (click)="toggleKmlPanel()"><ion-icon name="close"></ion-icon></button>
+      </div>
+      <div class="kml-content" *ngIf="kmlLayers.length > 0">
+        <div class="kml-layer" *ngFor="let layer of kmlLayers; let i = index">
+          <div class="layer-info">
+            <ion-icon name="layers-outline"></ion-icon>
+            <span>{{ layer.name }}</span>
+          </div>
+          <div class="layer-actions">
+            <button (click)="zoomToKmlLayer(i)" title="Centrar">
+              <ion-icon name="locate-outline"></ion-icon>
+            </button>
+            <button (click)="removeKmlLayer(i)" title="Eliminar">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="kml-empty" *ngIf="kmlLayers.length === 0">
+        <p>No hay capas KML cargadas</p>
+      </div>
+      <button class="btn-import" (click)="triggerKmlImport()">
+        <ion-icon name="add-circle-outline"></ion-icon>
+        Importar KML/KMZ
+      </button>
+    </div>
 
     <!-- Info Panel -->
     <div class="info-panel" [class.visible]="showInfoPanel">
