@@ -151,20 +151,23 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     this.pathsLayer?.clearLayers();
     this.markersLayer?.clearLayers();
 
-    // Render zones - con bubblingMouseEvents para permitir dibujar encima
+    // Render zones - con click handler para mostrar opciones
     this.project.zones?.forEach(zone => {
       const latlngs = zone.coordinates.map(c => L.latLng(c.lat, c.lng));
       const polygon = L.polygon(latlngs, {
         color: zone.color || '#ef4444',
         weight: 3,
         fillOpacity: 0.2,
-        bubblingMouseEvents: true // Permite que los clics pasen al mapa
+        bubblingMouseEvents: true
       });
-      polygon.bindPopup(this.createZonePopup(zone));
+      polygon.on('click', (e: L.LeafletMouseEvent) => {
+        L.DomEvent.stopPropagation(e);
+        this.showZoneOptions(zone);
+      });
       polygon.addTo(this.zonesLayer!);
     });
 
-    // Render paths - con bubblingMouseEvents para permitir dibujar encima
+    // Render paths - con click handler para mostrar opciones
     this.project.paths?.forEach(path => {
       const latlngs = path.coordinates.map(c => L.latLng(c.lat, c.lng));
       const polyline = L.polyline(latlngs, {
@@ -172,7 +175,10 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         weight: 4,
         bubblingMouseEvents: true
       });
-      polyline.bindPopup(this.createPathPopup(path));
+      polyline.on('click', (e: L.LeafletMouseEvent) => {
+        L.DomEvent.stopPropagation(e);
+        this.showPathOptions(path);
+      });
       polyline.addTo(this.pathsLayer!);
     });
 
@@ -520,6 +526,11 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         handler: () => this.takePhotoForMarker(marker)
       },
       {
+        text: 'Tomar foto + Analizar IA',
+        icon: 'sparkles-outline',
+        handler: () => this.takePhotoAndAnalyze(marker)
+      },
+      {
         text: 'Editar notas',
         icon: 'create-outline',
         handler: () => this.editMarkerNotes(marker)
@@ -536,8 +547,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       // Opcion de analisis IA si hay fotos sin descripcion IA
       if (hasPhotoWithoutAI) {
         buttons.push({
-          text: 'Analizar fotos con IA',
-          icon: 'sparkles-outline',
+          text: 'Analizar fotos existentes con IA',
+          icon: 'sparkles',
           handler: () => this.analyzeMarkerPhotosWithAI(markerPhotos)
         });
       }
@@ -558,6 +569,44 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       buttons
     });
     await actionSheet.present();
+  }
+
+  async takePhotoAndAnalyze(marker: ProjectMarker) {
+    try {
+      const photoData = await this.cameraService.takePhoto();
+
+      if (photoData && this.project) {
+        // Guardar base64 para persistencia
+        const base64Image = photoData.base64 ? `data:image/jpeg;base64,${photoData.base64}` : (photoData.webviewPath || photoData.webPath);
+
+        const photo: Photo = {
+          id: `photo_${Date.now()}`,
+          projectId: this.project.id,
+          localPath: photoData.filepath,
+          imageUrl: base64Image,
+          latitude: marker.coordinate.lat,
+          longitude: marker.coordinate.lng,
+          timestamp: new Date().toISOString(),
+          synced: false,
+          notes: `Punto: ${marker.name}`
+        };
+
+        await this.storageService.savePhoto(photo);
+        this.photos.push(photo);
+
+        // Vincular foto al marcador
+        marker.photoIds = marker.photoIds || [];
+        marker.photoIds.push(photo.id);
+        await this.saveProject();
+
+        // Analizar con IA automáticamente
+        await this.analyzePhotoWithAI(photo);
+
+        this.renderProjectElements();
+      }
+    } catch (error: any) {
+      // Error silencioso
+    }
   }
 
   async analyzeMarkerPhotosWithAI(photos: Photo[]) {
@@ -692,19 +741,173 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     await alert.present();
   }
 
+  // ========== ZONE OPTIONS ==========
+
+  async showZoneOptions(zone: ProjectZone) {
+    const buttons: any[] = [
+      {
+        text: 'Editar nombre/descripción',
+        icon: 'create-outline',
+        handler: () => this.editZone(zone)
+      },
+      {
+        text: 'Eliminar zona',
+        icon: 'trash-outline',
+        role: 'destructive',
+        handler: () => this.deleteZone(zone)
+      },
+      { text: 'Cancelar', icon: 'close', role: 'cancel' }
+    ];
+
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: zone.name,
+      subHeader: zone.description || 'Área delimitada',
+      buttons
+    });
+    await actionSheet.present();
+  }
+
+  async editZone(zone: ProjectZone) {
+    const alert = await this.alertCtrl.create({
+      header: 'Editar zona',
+      inputs: [
+        {
+          name: 'name',
+          type: 'text',
+          placeholder: 'Nombre de la zona',
+          value: zone.name
+        },
+        {
+          name: 'description',
+          type: 'textarea',
+          placeholder: 'Descripción (opcional)',
+          value: zone.description || ''
+        }
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Guardar',
+          handler: async (data) => {
+            if (data.name?.trim()) {
+              zone.name = data.name;
+              zone.description = data.description;
+              await this.saveProject();
+              this.renderProjectElements();
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async deleteZone(zone: ProjectZone) {
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar zona',
+      message: `¿Seguro que quieres eliminar "${zone.name}"?`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: async () => {
+            if (this.project) {
+              this.project.zones = this.project.zones?.filter(z => z.id !== zone.id);
+              await this.saveProject();
+              this.renderProjectElements();
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  // ========== PATH OPTIONS ==========
+
+  async showPathOptions(path: ProjectPath) {
+    const buttons: any[] = [
+      {
+        text: 'Editar nombre/descripción',
+        icon: 'create-outline',
+        handler: () => this.editPath(path)
+      },
+      {
+        text: 'Eliminar trazado',
+        icon: 'trash-outline',
+        role: 'destructive',
+        handler: () => this.deletePath(path)
+      },
+      { text: 'Cancelar', icon: 'close', role: 'cancel' }
+    ];
+
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: path.name,
+      subHeader: path.description || 'Trazado vial',
+      buttons
+    });
+    await actionSheet.present();
+  }
+
+  async editPath(path: ProjectPath) {
+    const alert = await this.alertCtrl.create({
+      header: 'Editar trazado',
+      inputs: [
+        {
+          name: 'name',
+          type: 'text',
+          placeholder: 'Nombre del trazado',
+          value: path.name
+        },
+        {
+          name: 'description',
+          type: 'textarea',
+          placeholder: 'Descripción (opcional)',
+          value: path.description || ''
+        }
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Guardar',
+          handler: async (data) => {
+            if (data.name?.trim()) {
+              path.name = data.name;
+              path.description = data.description;
+              await this.saveProject();
+              this.renderProjectElements();
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async deletePath(path: ProjectPath) {
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar trazado',
+      message: `¿Seguro que quieres eliminar "${path.name}"?`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: async () => {
+            if (this.project) {
+              this.project.paths = this.project.paths?.filter(p => p.id !== path.id);
+              await this.saveProject();
+              this.renderProjectElements();
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
   // ========== POPUP CREATION ==========
-
-  private createZonePopup(zone: ProjectZone): string {
-    return `<div class="element-popup"><strong>${zone.name}</strong>${zone.description ? `<p>${zone.description}</p>` : ''}<small>Zona de estudio</small></div>`;
-  }
-
-  private createPathPopup(path: ProjectPath): string {
-    return `<div class="element-popup"><strong>${path.name}</strong>${path.description ? `<p>${path.description}</p>` : ''}<small>Vial</small></div>`;
-  }
-
-  private createMarkerPopup(marker: ProjectMarker): string {
-    return `<div class="element-popup"><strong>${marker.name}</strong>${marker.description ? `<p>${marker.description}</p>` : ''}${marker.aiDescription ? `<p class="ai-desc">${marker.aiDescription}</p>` : ''}</div>`;
-  }
 
   private createPhotoPopup(photo: Photo): string {
     const imgSrc = photo.imageUrl || photo.localPath || '';
