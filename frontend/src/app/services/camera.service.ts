@@ -47,15 +47,21 @@ export class CameraService {
       fileInput.type = 'file';
       fileInput.accept = 'image/*';
       fileInput.capture = 'environment';
-      fileInput.style.display = 'none';
+      fileInput.style.cssText = 'position:fixed;top:-100px;left:-100px;opacity:0;';
       fileInput.setAttribute('data-camera-input', 'true');
       document.body.appendChild(fileInput);
 
       let handled = false;
 
       const cleanup = () => {
-        if (fileInput.parentNode) {
-          fileInput.remove();
+        try {
+          fileInput.removeEventListener('change', handleChange);
+          fileInput.removeEventListener('cancel', handleCancel);
+          if (fileInput.parentNode) {
+            fileInput.remove();
+          }
+        } catch (e) {
+          console.warn('Cleanup error:', e);
         }
       };
 
@@ -65,9 +71,9 @@ export class CameraService {
         handled = true;
 
         const file = fileInput.files?.[0];
-        cleanup();
 
         if (!file) {
+          cleanup();
           reject(new Error('No se selecciono ninguna imagen'));
           return;
         }
@@ -75,6 +81,7 @@ export class CameraService {
         try {
           const base64 = await this.fileToBase64(file);
           const webPath = URL.createObjectURL(file);
+          cleanup();
 
           resolve({
             filepath: 'web_' + Date.now() + '.jpeg',
@@ -83,11 +90,12 @@ export class CameraService {
             base64: base64
           });
         } catch (error) {
+          cleanup();
           reject(error);
         }
       };
 
-      // Handle cancel
+      // Handle cancel - usar focus como fallback
       const handleCancel = () => {
         if (handled) return;
         handled = true;
@@ -98,15 +106,37 @@ export class CameraService {
       fileInput.addEventListener('change', handleChange);
       fileInput.addEventListener('cancel', handleCancel);
 
+      // Detectar si el usuario cancela el selector de archivos
+      // Algunos navegadores no disparan 'cancel', usamos focus como fallback
+      const handleFocus = () => {
+        setTimeout(() => {
+          if (!handled && (!fileInput.files || fileInput.files.length === 0)) {
+            handled = true;
+            cleanup();
+            window.removeEventListener('focus', handleFocus);
+            reject(new Error('Captura cancelada'));
+          }
+        }, 500);
+      };
+      window.addEventListener('focus', handleFocus);
+
       // Timeout de seguridad para limpiar si algo falla
       setTimeout(() => {
         if (!handled) {
+          handled = true;
           cleanup();
+          window.removeEventListener('focus', handleFocus);
+          reject(new Error('Tiempo de espera agotado'));
         }
-      }, 60000); // 1 minuto
+      }, 120000); // 2 minutos
 
-      // Trigger the file picker
-      fileInput.click();
+      // Trigger the file picker inmediatamente
+      console.log('Abriendo selector de archivos...');
+
+      // Usar setTimeout para dar tiempo al DOM de actualizarse
+      setTimeout(() => {
+        fileInput.click();
+      }, 100);
     });
   }
 
