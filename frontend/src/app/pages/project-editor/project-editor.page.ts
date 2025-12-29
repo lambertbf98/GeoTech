@@ -1399,48 +1399,202 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
   // ========== MAP SCREENSHOT ==========
 
   /**
-   * Captura el mapa actual como imagen base64 con timeout
+   * Genera una imagen del mapa dibujando manualmente los elementos
    */
   async captureMapScreenshot(): Promise<string> {
-    if (!this.map) return '';
+    if (!this.map || !this.project) return '';
 
-    // Timeout de 8 segundos para evitar bloqueos
-    const timeoutPromise = new Promise<string>((resolve) => {
-      setTimeout(() => {
-        console.warn('Timeout capturando mapa');
-        resolve('');
-      }, 8000);
-    });
-
-    const capturePromise = this.doMapCapture();
-
-    return Promise.race([capturePromise, timeoutPromise]);
-  }
-
-  private async doMapCapture(): Promise<string> {
     try {
-      const mapContainer = document.getElementById('editorMap');
-      if (!mapContainer || !this.map) return '';
+      const width = 800;
+      const height = 500;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return '';
 
-      // Asegurar que el mapa esté renderizado
-      this.map.invalidateSize();
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Fondo gris claro
+      ctx.fillStyle = '#e5e7eb';
+      ctx.fillRect(0, 0, width, height);
 
-      // Capturar con html2canvas
-      const canvas = await html2canvas(mapContainer, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#f0f0f0',
-        scale: 1.5,
-        logging: false,
-        imageTimeout: 3000
-      });
+      // Obtener bounds del contenido
+      const bounds = this.getContentBounds();
+      if (!bounds) return '';
 
-      return canvas.toDataURL('image/jpeg', 0.75);
+      // Dibujar grid de referencia
+      ctx.strokeStyle = '#d1d5db';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < width; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      // Función para convertir coordenadas
+      const latLngToPixel = (lat: number, lng: number): { x: number; y: number } => {
+        const x = ((lng - bounds.west) / (bounds.east - bounds.west)) * (width - 80) + 40;
+        const y = ((bounds.north - lat) / (bounds.north - bounds.south)) * (height - 80) + 40;
+        return { x, y };
+      };
+
+      // Dibujar zonas
+      if (this.project.zones) {
+        this.project.zones.forEach(zone => {
+          if (zone.coordinates.length < 3) return;
+          ctx.beginPath();
+          const first = latLngToPixel(zone.coordinates[0].lat, zone.coordinates[0].lng);
+          ctx.moveTo(first.x, first.y);
+          zone.coordinates.forEach((coord, i) => {
+            if (i > 0) {
+              const p = latLngToPixel(coord.lat, coord.lng);
+              ctx.lineTo(p.x, p.y);
+            }
+          });
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+          ctx.fill();
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        });
+      }
+
+      // Dibujar viales
+      if (this.project.paths) {
+        this.project.paths.forEach(path => {
+          if (path.coordinates.length < 2) return;
+          ctx.beginPath();
+          const first = latLngToPixel(path.coordinates[0].lat, path.coordinates[0].lng);
+          ctx.moveTo(first.x, first.y);
+          path.coordinates.forEach((coord, i) => {
+            if (i > 0) {
+              const p = latLngToPixel(coord.lat, coord.lng);
+              ctx.lineTo(p.x, p.y);
+            }
+          });
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 5;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+        });
+      }
+
+      // Dibujar marcadores
+      if (this.project.markers) {
+        this.project.markers.forEach(marker => {
+          const p = latLngToPixel(marker.coordinate.lat, marker.coordinate.lng);
+          const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
+          const color = hasPhotos ? '#10b981' : '#f59e0b';
+          const order = marker.order || '?';
+
+          // Sombra
+          ctx.shadowColor = 'rgba(0,0,0,0.3)';
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetY = 2;
+
+          // Pin
+          ctx.beginPath();
+          ctx.fillStyle = color;
+          ctx.arc(p.x, p.y - 18, 16, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Punta
+          ctx.beginPath();
+          ctx.moveTo(p.x - 10, p.y - 8);
+          ctx.lineTo(p.x, p.y + 2);
+          ctx.lineTo(p.x + 10, p.y - 8);
+          ctx.fill();
+
+          // Quitar sombra para el círculo blanco
+          ctx.shadowColor = 'transparent';
+
+          // Círculo blanco
+          ctx.beginPath();
+          ctx.fillStyle = 'white';
+          ctx.arc(p.x, p.y - 18, 11, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Número
+          ctx.fillStyle = color;
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(String(order), p.x, p.y - 17);
+        });
+      }
+
+      // Título
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, height - 30, width, 30);
+      ctx.fillStyle = 'white';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`, width / 2, height - 12);
+
+      return canvas.toDataURL('image/jpeg', 0.9);
     } catch (error) {
-      console.error('Error capturando mapa:', error);
+      console.error('Error generando mapa:', error);
       return '';
     }
+  }
+
+  /**
+   * Obtiene los bounds de todo el contenido del proyecto
+   */
+  private getContentBounds(): { north: number; south: number; east: number; west: number } | null {
+    if (!this.project) return null;
+
+    const allLats: number[] = [];
+    const allLngs: number[] = [];
+
+    // Marcadores
+    this.project.markers?.forEach(m => {
+      allLats.push(m.coordinate.lat);
+      allLngs.push(m.coordinate.lng);
+    });
+
+    // Zonas
+    this.project.zones?.forEach(z => {
+      z.coordinates.forEach(c => {
+        allLats.push(c.lat);
+        allLngs.push(c.lng);
+      });
+    });
+
+    // Viales
+    this.project.paths?.forEach(p => {
+      p.coordinates.forEach(c => {
+        allLats.push(c.lat);
+        allLngs.push(c.lng);
+      });
+    });
+
+    if (allLats.length === 0) return null;
+
+    const north = Math.max(...allLats);
+    const south = Math.min(...allLats);
+    const east = Math.max(...allLngs);
+    const west = Math.min(...allLngs);
+
+    // Añadir padding
+    const latPadding = (north - south) * 0.1 || 0.001;
+    const lngPadding = (east - west) * 0.1 || 0.001;
+
+    return {
+      north: north + latPadding,
+      south: south - latPadding,
+      east: east + lngPadding,
+      west: west - lngPadding
+    };
   }
 
   // ========== EXPORT METHODS ==========
