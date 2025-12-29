@@ -47,6 +47,7 @@ export interface ProjectKml {
 
 export interface Project {
   id: string;
+  serverId?: string; // ID del proyecto en el servidor (para sincronización)
   name: string;
   description?: string;
   location?: string;
