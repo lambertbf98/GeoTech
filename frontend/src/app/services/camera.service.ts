@@ -38,8 +38,11 @@ export class CameraService {
 
   private takeWebPhoto(): Promise<CapturedPhoto> {
     return new Promise((resolve, reject) => {
+      console.log('[Camera] Iniciando takeWebPhoto...');
+
       // Limpiar cualquier input anterior que pueda haber quedado
       const oldInputs = document.querySelectorAll('input[data-camera-input="true"]');
+      console.log('[Camera] Inputs anteriores encontrados:', oldInputs.length);
       oldInputs.forEach(el => el.remove());
 
       // Create fresh input each time
@@ -47,96 +50,104 @@ export class CameraService {
       fileInput.type = 'file';
       fileInput.accept = 'image/*';
       fileInput.capture = 'environment';
-      fileInput.style.cssText = 'position:fixed;top:-100px;left:-100px;opacity:0;';
+      fileInput.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0.01;';
       fileInput.setAttribute('data-camera-input', 'true');
       document.body.appendChild(fileInput);
 
       let handled = false;
 
       const cleanup = () => {
+        console.log('[Camera] Limpiando...');
         try {
-          fileInput.removeEventListener('change', handleChange);
-          fileInput.removeEventListener('cancel', handleCancel);
           if (fileInput.parentNode) {
             fileInput.remove();
           }
         } catch (e) {
-          console.warn('Cleanup error:', e);
+          console.warn('[Camera] Cleanup error:', e);
         }
       };
 
       // Handle file selection
-      const handleChange = async () => {
-        if (handled) return;
+      const handleChange = async (event: Event) => {
+        console.log('[Camera] Evento change detectado!', event);
+
+        if (handled) {
+          console.log('[Camera] Ya manejado, ignorando');
+          return;
+        }
         handled = true;
 
-        const file = fileInput.files?.[0];
+        const files = fileInput.files;
+        console.log('[Camera] Files:', files?.length);
+
+        const file = files?.[0];
 
         if (!file) {
+          console.log('[Camera] No hay archivo seleccionado');
           cleanup();
           reject(new Error('No se selecciono ninguna imagen'));
           return;
         }
 
+        console.log('[Camera] Archivo seleccionado:', file.name, file.size, file.type);
+
         try {
+          console.log('[Camera] Convirtiendo a base64...');
           const base64 = await this.fileToBase64(file);
+          console.log('[Camera] Base64 generado, longitud:', base64?.length);
+
           const webPath = URL.createObjectURL(file);
+          console.log('[Camera] WebPath:', webPath);
+
           cleanup();
 
-          resolve({
+          const result = {
             filepath: 'web_' + Date.now() + '.jpeg',
             webviewPath: webPath,
             webPath: webPath,
             base64: base64
-          });
+          };
+          console.log('[Camera] Resolviendo con:', result.filepath);
+          resolve(result);
         } catch (error) {
+          console.error('[Camera] Error procesando archivo:', error);
           cleanup();
           reject(error);
         }
       };
 
-      // Handle cancel - usar focus como fallback
+      // Handle cancel
       const handleCancel = () => {
+        console.log('[Camera] Evento cancel detectado');
         if (handled) return;
         handled = true;
         cleanup();
         reject(new Error('Captura cancelada'));
       };
 
+      // Usar evento 'input' además de 'change' para mayor compatibilidad
       fileInput.addEventListener('change', handleChange);
+      fileInput.addEventListener('input', handleChange);
       fileInput.addEventListener('cancel', handleCancel);
 
-      // Detectar si el usuario cancela el selector de archivos
-      // Algunos navegadores no disparan 'cancel', usamos focus como fallback
-      const handleFocus = () => {
-        setTimeout(() => {
-          if (!handled && (!fileInput.files || fileInput.files.length === 0)) {
-            handled = true;
-            cleanup();
-            window.removeEventListener('focus', handleFocus);
-            reject(new Error('Captura cancelada'));
-          }
-        }, 500);
-      };
-      window.addEventListener('focus', handleFocus);
+      console.log('[Camera] Eventos registrados');
 
-      // Timeout de seguridad para limpiar si algo falla
+      // Timeout de seguridad
       setTimeout(() => {
         if (!handled) {
+          console.log('[Camera] Timeout alcanzado');
           handled = true;
           cleanup();
-          window.removeEventListener('focus', handleFocus);
           reject(new Error('Tiempo de espera agotado'));
         }
-      }, 120000); // 2 minutos
+      }, 180000); // 3 minutos
 
-      // Trigger the file picker inmediatamente
-      console.log('Abriendo selector de archivos...');
-
-      // Usar setTimeout para dar tiempo al DOM de actualizarse
+      // Trigger the file picker
+      console.log('[Camera] Disparando click en input...');
       setTimeout(() => {
         fileInput.click();
-      }, 100);
+        console.log('[Camera] Click disparado');
+      }, 50);
     });
   }
 
