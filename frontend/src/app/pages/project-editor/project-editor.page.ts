@@ -513,17 +513,16 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   async takePhotoForMarkerId(markerId: string) {
     const marker = this.project?.markers?.find(m => m.id === markerId);
     if (!marker) {
-      this.showToast('Marcador no encontrado', 'danger');
+      console.error('Marcador no encontrado:', markerId);
       return;
     }
 
     try {
-      this.showToast('Abriendo cámara...', 'primary');
+      console.log('Abriendo cámara para marcador:', marker.name);
       const photoData = await this.cameraService.takePhoto();
+      console.log('Foto capturada:', photoData ? 'OK' : 'null');
 
       if (photoData && this.project) {
-        this.showToast('Foto capturada, guardando...', 'primary');
-
         // Guardar base64 para persistencia
         const base64Image = photoData.base64 ? `data:image/jpeg;base64,${photoData.base64}` : (photoData.webviewPath || photoData.webPath);
 
@@ -547,16 +546,14 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         if (projectMarker) {
           projectMarker.photoIds = projectMarker.photoIds || [];
           projectMarker.photoIds.push(photo.id);
+          console.log('Foto añadida al marcador. Total fotos:', projectMarker.photoIds.length);
         }
 
         await this.saveProject();
         this.renderProjectElements();
-        this.showToast('Foto guardada correctamente', 'success');
-      } else {
-        this.showToast('No se recibió imagen', 'warning');
       }
     } catch (error: any) {
-      this.showToast('Error: ' + (error.message || 'Error tomando foto'), 'danger');
+      console.error('Error tomando foto:', error);
     }
   }
 
@@ -617,24 +614,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     buttons.push({
       text: 'Tomar foto',
       icon: 'camera-outline',
-      handler: async () => {
-        // Cerrar el action sheet y luego abrir cámara
-        // Usamos un alert intermedio para mantener el user gesture context
-        const confirmAlert = await this.alertCtrl.create({
-          header: 'Capturar foto',
-          message: `Tomar foto para "${marker.name}"`,
-          buttons: [
-            { text: 'Cancelar', role: 'cancel' },
-            {
-              text: 'Abrir cámara',
-              handler: () => {
-                this.takePhotoForMarkerId(markerId);
-              }
-            }
-          ]
-        });
-        await confirmAlert.present();
-        return true;
+      handler: () => {
+        this.takePhotoForMarkerId(markerId);
       }
     });
 

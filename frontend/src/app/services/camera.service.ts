@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
-import { ToastController } from '@ionic/angular';
 
 export interface CapturedPhoto {
   filepath: string;
@@ -15,21 +14,8 @@ export interface CapturedPhoto {
   providedIn: 'root'
 })
 export class CameraService {
-  // Flag para debug visual
-  private debugMode = true;
 
-  constructor(private toastCtrl: ToastController) {}
-
-  private async debugToast(message: string) {
-    if (!this.debugMode) return;
-    const toast = await this.toastCtrl.create({
-      message: `[CAM] ${message}`,
-      duration: 1500,
-      position: 'bottom',
-      color: 'dark'
-    });
-    await toast.present();
-  }
+  constructor() {}
 
   async takePhoto(): Promise<CapturedPhoto> {
     if (!Capacitor.isNativePlatform()) {
@@ -51,9 +37,7 @@ export class CameraService {
   }
 
   private takeWebPhoto(): Promise<CapturedPhoto> {
-    return new Promise(async (resolve, reject) => {
-      await this.debugToast('Iniciando cámara web...');
-
+    return new Promise((resolve, reject) => {
       // Limpiar cualquier input anterior que pueda haber quedado
       const oldInputs = document.querySelectorAll('input[data-camera-input="true"]');
       oldInputs.forEach(el => el.remove());
@@ -63,99 +47,66 @@ export class CameraService {
       fileInput.type = 'file';
       fileInput.accept = 'image/*';
       fileInput.capture = 'environment';
-      fileInput.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0.01;';
+      fileInput.style.display = 'none';
       fileInput.setAttribute('data-camera-input', 'true');
       document.body.appendChild(fileInput);
 
       let handled = false;
 
       const cleanup = () => {
-        try {
-          if (fileInput.parentNode) {
-            fileInput.remove();
-          }
-        } catch (e) {
-          // Ignorar errores de cleanup
+        if (fileInput.parentNode) {
+          fileInput.remove();
         }
       };
 
       // Handle file selection
-      const handleChange = async (event: Event) => {
-        await this.debugToast('Evento change detectado');
-
-        if (handled) {
-          return;
-        }
+      const handleChange = async () => {
+        if (handled) return;
         handled = true;
 
-        const files = fileInput.files;
-        await this.debugToast(`Archivos: ${files?.length || 0}`);
-
-        const file = files?.[0];
+        const file = fileInput.files?.[0];
+        cleanup();
 
         if (!file) {
-          await this.debugToast('Sin archivo seleccionado');
-          cleanup();
           reject(new Error('No se selecciono ninguna imagen'));
           return;
         }
 
-        await this.debugToast(`Archivo: ${file.name} (${Math.round(file.size/1024)}KB)`);
-
         try {
-          await this.debugToast('Convirtiendo a base64...');
           const base64 = await this.fileToBase64(file);
-          await this.debugToast(`Base64: ${base64?.length || 0} chars`);
-
           const webPath = URL.createObjectURL(file);
 
-          cleanup();
-
-          const result = {
+          resolve({
             filepath: 'web_' + Date.now() + '.jpeg',
             webviewPath: webPath,
             webPath: webPath,
             base64: base64
-          };
-          await this.debugToast('Foto lista!');
-          resolve(result);
-        } catch (error: any) {
-          await this.debugToast(`Error: ${error.message}`);
-          cleanup();
+          });
+        } catch (error) {
           reject(error);
         }
       };
 
       // Handle cancel
-      const handleCancel = async () => {
-        await this.debugToast('Cancelado por usuario');
+      const handleCancel = () => {
         if (handled) return;
         handled = true;
         cleanup();
         reject(new Error('Captura cancelada'));
       };
 
-      // Usar evento 'input' además de 'change' para mayor compatibilidad
       fileInput.addEventListener('change', handleChange);
-      fileInput.addEventListener('input', handleChange);
       fileInput.addEventListener('cancel', handleCancel);
 
-      await this.debugToast('Esperando selección...');
-
-      // Timeout de seguridad
-      setTimeout(async () => {
+      // Timeout de seguridad para limpiar si algo falla
+      setTimeout(() => {
         if (!handled) {
-          await this.debugToast('Timeout - sin respuesta');
-          handled = true;
           cleanup();
-          reject(new Error('Tiempo de espera agotado'));
         }
-      }, 180000); // 3 minutos
+      }, 60000); // 1 minuto
 
       // Trigger the file picker
-      setTimeout(() => {
-        fileInput.click();
-      }, 50);
+      fileInput.click();
     });
   }
 
