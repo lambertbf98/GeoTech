@@ -418,41 +418,13 @@
   justify-content: center;
   align-items: center;
   animation: fadeIn 0.2s ease-out;
-  touch-action: none; // Prevent scroll/zoom on background
-}
-
-.photo-viewer-close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10001;
-  transition: all 0.2s ease;
-
-  ion-icon {
-    font-size: 24px;
-  }
-
-  &:hover, &:active {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: white;
-    transform: scale(1.1);
-  }
+  touch-action: none;
 }
 
 .photo-viewer-container {
-  width: 90%;
+  width: 92%;
   max-width: 500px;
-  max-height: 85vh;
+  max-height: 90vh;
   background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -463,20 +435,52 @@
 }
 
 .photo-viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 16px 20px;
   background: rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
-  h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: white;
+  .header-text {
+    flex: 1;
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .viewer-date {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.6);
+    }
   }
 
-  .viewer-date {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.6);
+  .photo-viewer-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-left: 12px;
+
+    ion-icon {
+      font-size: 20px;
+    }
+
+    &:hover, &:active {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
   }
 }
 
@@ -555,18 +559,44 @@
 .photo-viewer-actions {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   padding: 16px 20px;
   background: rgba(255, 255, 255, 0.05);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   flex-wrap: wrap;
 
-  ion-button {
-    --border-radius: 8px;
-    --padding-start: 16px;
-    --padding-end: 16px;
+  .action-btn {
+    --border-radius: 10px;
+    --padding-start: 14px;
+    --padding-end: 14px;
+    --background: rgba(59, 130, 246, 0.15);
+    --color: #60a5fa;
+    --border-width: 1px;
+    --border-style: solid;
+    --border-color: rgba(59, 130, 246, 0.3);
     font-size: 13px;
-    height: 40px;
+    font-weight: 500;
+    height: 42px;
+
+    ion-icon {
+      margin-right: 6px;
+    }
+
+    &:hover, &:active {
+      --background: rgba(59, 130, 246, 0.25);
+      --border-color: rgba(59, 130, 246, 0.5);
+    }
+  }
+
+  .delete-btn {
+    --background: rgba(239, 68, 68, 0.15);
+    --color: #f87171;
+    --border-color: rgba(239, 68, 68, 0.3);
+
+    &:hover, &:active {
+      --background: rgba(239, 68, 68, 0.25);
+      --border-color: rgba(239, 68, 68, 0.5);
+    }
   }
 }
 

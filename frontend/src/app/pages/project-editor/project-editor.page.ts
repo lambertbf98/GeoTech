@@ -896,8 +896,9 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
   async analyzeViewerPhotoWithAI() {
     if (this.viewerPhoto) {
+      const photo = this.viewerPhoto;
       this.closePhotoViewer();
-      await this.analyzePhotoWithAI(this.viewerPhoto);
+      await this.analyzePhotoWithAI(photo);
     }
   }
 

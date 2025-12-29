@@ -147,15 +147,15 @@
 
   <!-- Photo Viewer Overlay -->
   <div class="photo-viewer-overlay" *ngIf="showPhotoViewer && viewerPhoto" (click)="closePhotoViewer()">
-    <!-- Close button - top right corner -->
-    <button class="photo-viewer-close" (click)="closePhotoViewer(); $event.stopPropagation()">
-      <ion-icon name="close"></ion-icon>
-    </button>
-
     <div class="photo-viewer-container" (click)="$event.stopPropagation()">
       <div class="photo-viewer-header">
-        <h3>{{ viewerMarker?.name || 'Foto' }}</h3>
-        <span class="viewer-date">{{ viewerPhoto.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+        <div class="header-text">
+          <h3>{{ viewerMarker?.name || 'Foto' }}</h3>
+          <span class="viewer-date">{{ viewerPhoto.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+        <button class="photo-viewer-close" (click)="closePhotoViewer()">
+          <ion-icon name="close"></ion-icon>
+        </button>
       </div>
 
       <div class="photo-viewer-content">
@@ -183,15 +183,15 @@
       </div>
 
       <div class="photo-viewer-actions">
-        <ion-button color="medium" fill="outline" (click)="editViewerPhotoNotes()">
+        <ion-button class="action-btn edit-btn" (click)="editViewerPhotoNotes()">
           <ion-icon slot="start" name="create-outline"></ion-icon>
           Editar nota
         </ion-button>
-        <ion-button color="primary" fill="outline" (click)="analyzeViewerPhotoWithAI()">
+        <ion-button class="action-btn ai-btn" (click)="analyzeViewerPhotoWithAI()">
           <ion-icon slot="start" name="sparkles-outline"></ion-icon>
           Analizar IA
         </ion-button>
-        <ion-button color="danger" fill="outline" (click)="deleteViewerPhoto()">
+        <ion-button class="action-btn delete-btn" (click)="deleteViewerPhoto()">
           <ion-icon slot="start" name="trash-outline"></ion-icon>
           Eliminar
         </ion-button>

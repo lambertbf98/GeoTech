@@ -292,10 +292,10 @@ export class KmlService {
           descriptionHtml += `<p><strong>Descripcion:</strong> ${this.escapeXml(marker.description)}</p>`;
         }
 
-        // AI description at marker level
+        // AI description at marker level - dark theme
         if (marker.aiDescription) {
-          descriptionHtml += `<div style="background:#e3f2fd;padding:8px;border-radius:4px;margin:8px 0;">
-            <strong>Analisis IA:</strong><br/>${this.escapeXml(marker.aiDescription)}
+          descriptionHtml += `<div style="background:rgba(245,158,11,0.2);padding:10px;border-radius:6px;margin:8px 0;border-left:3px solid #f59e0b;color:#fde68a;">
+            <strong style="color:#fbbf24;">Analisis IA:</strong><br/>${this.escapeXml(marker.aiDescription)}
           </div>`;
         }
 
@@ -303,7 +303,7 @@ export class KmlService {
         if (marker.photos && marker.photos.length > 0) {
           descriptionHtml += `<hr/><h4>Fotos (${marker.photos.length}):</h4>`;
           marker.photos.forEach((photo, photoIndex) => {
-            descriptionHtml += `<div style="margin:10px 0;padding:10px;border:1px solid #ddd;border-radius:8px;">`;
+            descriptionHtml += `<div style="margin:10px 0;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:10px;">`;
 
             // Photo image
             if (photo.base64) {
@@ -311,17 +311,17 @@ export class KmlService {
               descriptionHtml += `<img src="${imgSrc}" style="max-width:400px;max-height:300px;border-radius:4px;"/><br/>`;
             }
 
-            // Photo notes
+            // Photo notes - dark theme
             if (photo.notes) {
-              descriptionHtml += `<p style="background:#e8ffe8;padding:6px;border-radius:4px;margin:6px 0;">
-                <strong>Notas:</strong> ${this.escapeXml(photo.notes)}
+              descriptionHtml += `<p style="background:rgba(16,185,129,0.25);padding:10px;border-radius:6px;margin:8px 0;border-left:3px solid #10b981;color:#a7f3d0;">
+                <strong style="color:#34d399;">Notas:</strong><br/>${this.escapeXml(photo.notes)}
               </p>`;
             }
 
-            // Photo AI description
+            // Photo AI description - dark theme
             if (photo.aiDescription) {
-              descriptionHtml += `<p style="background:#fff3e0;padding:6px;border-radius:4px;margin:6px 0;">
-                <strong>Analisis IA:</strong> ${this.escapeXml(photo.aiDescription)}
+              descriptionHtml += `<p style="background:rgba(245,158,11,0.2);padding:10px;border-radius:6px;margin:8px 0;border-left:3px solid #f59e0b;color:#fde68a;">
+                <strong style="color:#fbbf24;">Analisis IA:</strong><br/>${this.escapeXml(photo.aiDescription)}
               </p>`;
             }
 
