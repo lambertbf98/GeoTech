@@ -41,7 +41,11 @@
       </div>
 
       <div class="sync-status">
-        <span class="sync-badge local">
+        <span class="sync-badge synced" *ngIf="project.synced || project.serverId">
+          <ion-icon name="cloud-done-outline"></ion-icon>
+          Sincronizado con servidor
+        </span>
+        <span class="sync-badge local" *ngIf="!project.synced && !project.serverId">
           <ion-icon name="phone-portrait-outline"></ion-icon>
           Guardado localmente
         </span>

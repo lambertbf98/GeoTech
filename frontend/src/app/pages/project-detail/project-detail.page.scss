@@ -83,6 +83,12 @@ ion-back-button {
   border: 1px solid rgba(0, 212, 255, 0.3);
 }
 
+.sync-badge.synced {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
 // Edit on Map Button
 .edit-map-btn {
   margin-top: 20px;

@@ -43,7 +43,10 @@ export class CameraService {
       fileInput.type = 'file';
       fileInput.accept = 'image/*';
       fileInput.capture = 'environment';
-      fileInput.style.display = 'none';
+
+      // IMPORTANTE: iOS Safari bloquea click() en inputs con display:none
+      // Usar opacity:0 y posicionar fuera de vista en su lugar
+      fileInput.style.cssText = 'position: fixed; top: -100px; left: -100px; opacity: 0; pointer-events: none;';
       document.body.appendChild(fileInput);
 
       // Handle file selection
