@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
+import { ToastController } from '@ionic/angular';
 
 export interface CapturedPhoto {
   filepath: string;
@@ -14,8 +15,21 @@ export interface CapturedPhoto {
   providedIn: 'root'
 })
 export class CameraService {
+  // Flag para debug visual
+  private debugMode = true;
 
-  constructor() {}
+  constructor(private toastCtrl: ToastController) {}
+
+  private async debugToast(message: string) {
+    if (!this.debugMode) return;
+    const toast = await this.toastCtrl.create({
+      message: `[CAM] ${message}`,
+      duration: 1500,
+      position: 'bottom',
+      color: 'dark'
+    });
+    await toast.present();
+  }
 
   async takePhoto(): Promise<CapturedPhoto> {
     if (!Capacitor.isNativePlatform()) {
@@ -37,12 +51,11 @@ export class CameraService {
   }
 
   private takeWebPhoto(): Promise<CapturedPhoto> {
-    return new Promise((resolve, reject) => {
-      console.log('[Camera] Iniciando takeWebPhoto...');
+    return new Promise(async (resolve, reject) => {
+      await this.debugToast('Iniciando cámara web...');
 
       // Limpiar cualquier input anterior que pueda haber quedado
       const oldInputs = document.querySelectorAll('input[data-camera-input="true"]');
-      console.log('[Camera] Inputs anteriores encontrados:', oldInputs.length);
       oldInputs.forEach(el => el.remove());
 
       // Create fresh input each time
@@ -57,47 +70,44 @@ export class CameraService {
       let handled = false;
 
       const cleanup = () => {
-        console.log('[Camera] Limpiando...');
         try {
           if (fileInput.parentNode) {
             fileInput.remove();
           }
         } catch (e) {
-          console.warn('[Camera] Cleanup error:', e);
+          // Ignorar errores de cleanup
         }
       };
 
       // Handle file selection
       const handleChange = async (event: Event) => {
-        console.log('[Camera] Evento change detectado!', event);
+        await this.debugToast('Evento change detectado');
 
         if (handled) {
-          console.log('[Camera] Ya manejado, ignorando');
           return;
         }
         handled = true;
 
         const files = fileInput.files;
-        console.log('[Camera] Files:', files?.length);
+        await this.debugToast(`Archivos: ${files?.length || 0}`);
 
         const file = files?.[0];
 
         if (!file) {
-          console.log('[Camera] No hay archivo seleccionado');
+          await this.debugToast('Sin archivo seleccionado');
           cleanup();
           reject(new Error('No se selecciono ninguna imagen'));
           return;
         }
 
-        console.log('[Camera] Archivo seleccionado:', file.name, file.size, file.type);
+        await this.debugToast(`Archivo: ${file.name} (${Math.round(file.size/1024)}KB)`);
 
         try {
-          console.log('[Camera] Convirtiendo a base64...');
+          await this.debugToast('Convirtiendo a base64...');
           const base64 = await this.fileToBase64(file);
-          console.log('[Camera] Base64 generado, longitud:', base64?.length);
+          await this.debugToast(`Base64: ${base64?.length || 0} chars`);
 
           const webPath = URL.createObjectURL(file);
-          console.log('[Camera] WebPath:', webPath);
 
           cleanup();
 
@@ -107,18 +117,18 @@ export class CameraService {
             webPath: webPath,
             base64: base64
           };
-          console.log('[Camera] Resolviendo con:', result.filepath);
+          await this.debugToast('Foto lista!');
           resolve(result);
-        } catch (error) {
-          console.error('[Camera] Error procesando archivo:', error);
+        } catch (error: any) {
+          await this.debugToast(`Error: ${error.message}`);
           cleanup();
           reject(error);
         }
       };
 
       // Handle cancel
-      const handleCancel = () => {
-        console.log('[Camera] Evento cancel detectado');
+      const handleCancel = async () => {
+        await this.debugToast('Cancelado por usuario');
         if (handled) return;
         handled = true;
         cleanup();
@@ -130,12 +140,12 @@ export class CameraService {
       fileInput.addEventListener('input', handleChange);
       fileInput.addEventListener('cancel', handleCancel);
 
-      console.log('[Camera] Eventos registrados');
+      await this.debugToast('Esperando selección...');
 
       // Timeout de seguridad
-      setTimeout(() => {
+      setTimeout(async () => {
         if (!handled) {
-          console.log('[Camera] Timeout alcanzado');
+          await this.debugToast('Timeout - sin respuesta');
           handled = true;
           cleanup();
           reject(new Error('Tiempo de espera agotado'));
@@ -143,10 +153,8 @@ export class CameraService {
       }, 180000); // 3 minutos
 
       // Trigger the file picker
-      console.log('[Camera] Disparando click en input...');
       setTimeout(() => {
         fileInput.click();
-        console.log('[Camera] Click disparado');
       }, 50);
     });
   }

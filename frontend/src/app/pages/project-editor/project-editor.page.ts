@@ -513,16 +513,17 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   async takePhotoForMarkerId(markerId: string) {
     const marker = this.project?.markers?.find(m => m.id === markerId);
     if (!marker) {
-      console.error('Marcador no encontrado:', markerId);
+      this.showToast('Marcador no encontrado', 'danger');
       return;
     }
 
     try {
-      console.log('Abriendo cámara para marcador:', marker.name);
+      this.showToast('Abriendo cámara...', 'primary');
       const photoData = await this.cameraService.takePhoto();
-      console.log('Foto capturada:', photoData ? 'OK' : 'null');
 
       if (photoData && this.project) {
+        this.showToast('Foto capturada, guardando...', 'primary');
+
         // Guardar base64 para persistencia
         const base64Image = photoData.base64 ? `data:image/jpeg;base64,${photoData.base64}` : (photoData.webviewPath || photoData.webPath);
 
@@ -546,14 +547,16 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         if (projectMarker) {
           projectMarker.photoIds = projectMarker.photoIds || [];
           projectMarker.photoIds.push(photo.id);
-          console.log('Foto añadida al marcador. Total fotos:', projectMarker.photoIds.length);
         }
 
         await this.saveProject();
         this.renderProjectElements();
+        this.showToast('Foto guardada correctamente', 'success');
+      } else {
+        this.showToast('No se recibió imagen', 'warning');
       }
     } catch (error: any) {
-      console.error('Error tomando foto:', error);
+      this.showToast('Error: ' + (error.message || 'Error tomando foto'), 'danger');
     }
   }
 

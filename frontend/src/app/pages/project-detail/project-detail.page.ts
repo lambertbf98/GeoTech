@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController, AlertController, Platform } from '@ionic/angular';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -8,6 +8,7 @@ import { KmlService } from '../../services/kml.service';
 import { ReportService } from '../../services/report.service';
 import { ClaudeService } from '../../services/claude.service';
 import { Project, Photo, ProjectReport, ProjectKml } from '../../models';
+import * as L from 'leaflet';
 
 @Component({
   standalone: false,
@@ -33,6 +34,7 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
   // KML viewer
   selectedKml: ProjectKml | null = null;
   showKmlViewer = false;
+  private kmlMap: L.Map | null = null;
 
   // AI Analysis
   isAnalyzingPhoto = false;
@@ -337,11 +339,113 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
   openKmlViewer(kml: ProjectKml) {
     this.selectedKml = kml;
     this.showKmlViewer = true;
+    // Inicializar mapa después de que el DOM se actualice
+    setTimeout(() => this.initKmlMap(kml), 100);
   }
 
   closeKmlViewer() {
+    if (this.kmlMap) {
+      this.kmlMap.remove();
+      this.kmlMap = null;
+    }
     this.showKmlViewer = false;
     this.selectedKml = null;
+  }
+
+  private initKmlMap(kml: ProjectKml) {
+    const mapContainer = document.getElementById('kmlViewerMap');
+    if (!mapContainer) return;
+
+    // Crear mapa
+    this.kmlMap = L.map('kmlViewerMap', {
+      zoomControl: true,
+      attributionControl: false
+    }).setView([40.4168, -3.7038], 6); // Centro de España por defecto
+
+    // Capa satelital
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19
+    }).addTo(this.kmlMap);
+
+    // Parsear y renderizar KML
+    this.renderKmlOnMap(kml.kmlContent);
+  }
+
+  private renderKmlOnMap(kmlContent: string) {
+    if (!this.kmlMap) return;
+
+    try {
+      const parser = new DOMParser();
+      const kmlDoc = parser.parseFromString(kmlContent, 'text/xml');
+      const bounds = L.latLngBounds([]);
+
+      // Procesar Placemarks
+      const placemarks = kmlDoc.getElementsByTagName('Placemark');
+
+      for (let i = 0; i < placemarks.length; i++) {
+        const placemark = placemarks[i];
+        const name = placemark.getElementsByTagName('name')[0]?.textContent || 'Sin nombre';
+        const description = placemark.getElementsByTagName('description')[0]?.textContent || '';
+
+        // Procesar puntos
+        const points = placemark.getElementsByTagName('Point');
+        for (let j = 0; j < points.length; j++) {
+          const coords = points[j].getElementsByTagName('coordinates')[0]?.textContent?.trim();
+          if (coords) {
+            const [lng, lat] = coords.split(',').map(Number);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              const marker = L.marker([lat, lng]).addTo(this.kmlMap!);
+              marker.bindPopup(`<strong>${name}</strong><br>${description}`);
+              bounds.extend([lat, lng]);
+            }
+          }
+        }
+
+        // Procesar líneas
+        const lineStrings = placemark.getElementsByTagName('LineString');
+        for (let j = 0; j < lineStrings.length; j++) {
+          const coords = lineStrings[j].getElementsByTagName('coordinates')[0]?.textContent?.trim();
+          if (coords) {
+            const latLngs = coords.split(/\s+/).map(coord => {
+              const [lng, lat] = coord.split(',').map(Number);
+              return [lat, lng] as [number, number];
+            }).filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+
+            if (latLngs.length > 0) {
+              const polyline = L.polyline(latLngs, { color: '#3b82f6', weight: 4 }).addTo(this.kmlMap!);
+              polyline.bindPopup(`<strong>${name}</strong><br>${description}`);
+              latLngs.forEach(ll => bounds.extend(ll));
+            }
+          }
+        }
+
+        // Procesar polígonos
+        const polygons = placemark.getElementsByTagName('Polygon');
+        for (let j = 0; j < polygons.length; j++) {
+          const outerBoundary = polygons[j].getElementsByTagName('outerBoundaryIs')[0];
+          const coords = outerBoundary?.getElementsByTagName('coordinates')[0]?.textContent?.trim();
+          if (coords) {
+            const latLngs = coords.split(/\s+/).map(coord => {
+              const [lng, lat] = coord.split(',').map(Number);
+              return [lat, lng] as [number, number];
+            }).filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+
+            if (latLngs.length > 0) {
+              const polygon = L.polygon(latLngs, { color: '#10b981', fillOpacity: 0.3 }).addTo(this.kmlMap!);
+              polygon.bindPopup(`<strong>${name}</strong><br>${description}`);
+              latLngs.forEach(ll => bounds.extend(ll));
+            }
+          }
+        }
+      }
+
+      // Ajustar vista a los elementos
+      if (bounds.isValid()) {
+        this.kmlMap.fitBounds(bounds, { padding: [20, 20] });
+      }
+    } catch (error) {
+      console.error('Error parsing KML:', error);
+    }
   }
 
   downloadKml(kml: ProjectKml) {
