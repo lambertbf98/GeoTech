@@ -13,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { Project, ProjectZone, ProjectPath, ProjectMarker, GeoPoint, Photo } from '../../models';
 import * as L from 'leaflet';
 import html2canvas from 'html2canvas';
+import leafletImage from 'leaflet-image';
 
 type DrawMode = 'none' | 'zone' | 'path' | 'marker';
 
@@ -1399,30 +1400,129 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
   // ========== MAP SCREENSHOT ==========
 
   /**
-   * Captura el mapa actual como imagen base64
+   * Captura el mapa actual como imagen base64 usando leaflet-image
    */
   async captureMapScreenshot(): Promise<string> {
     if (!this.map) return '';
 
     try {
+      // Asegurar que el mapa esté completamente renderizado
+      this.map.invalidateSize();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Usar leaflet-image para capturar el mapa con todos los tiles y capas
+      return new Promise((resolve) => {
+        leafletImage(this.map!, (err: any, canvas: HTMLCanvasElement) => {
+          if (err || !canvas) {
+            console.error('Error con leaflet-image:', err);
+            // Fallback a html2canvas si leaflet-image falla
+            this.captureMapWithHtml2Canvas().then(resolve);
+            return;
+          }
+
+          try {
+            // Dibujar los marcadores SVG sobre el canvas (leaflet-image no los captura bien)
+            const ctx = canvas.getContext('2d');
+            if (ctx && this.project?.markers) {
+              this.drawMarkersOnCanvas(ctx, canvas.width, canvas.height);
+            }
+
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+          } catch (e) {
+            console.error('Error procesando canvas:', e);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Error capturando mapa:', error);
+      return this.captureMapWithHtml2Canvas();
+    }
+  }
+
+  /**
+   * Dibuja los marcadores en el canvas (para capturas donde SVG no se renderiza)
+   */
+  private drawMarkersOnCanvas(ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number) {
+    if (!this.map || !this.project?.markers) return;
+
+    const bounds = this.map.getBounds();
+    const mapSize = this.map.getSize();
+
+    this.project.markers.forEach(marker => {
+      const latlng = L.latLng(marker.coordinate.lat, marker.coordinate.lng);
+      if (!bounds.contains(latlng)) return;
+
+      // Convertir coordenadas del mapa a píxeles del canvas
+      const point = this.map!.latLngToContainerPoint(latlng);
+      const x = (point.x / mapSize.x) * canvasWidth;
+      const y = (point.y / mapSize.y) * canvasHeight;
+
+      const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
+      const pinColor = hasPhotos ? '#10b981' : '#f59e0b';
+      const order = marker.order || '?';
+
+      // Dibujar el pin
+      ctx.save();
+
+      // Sombra
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 2;
+
+      // Forma del pin (simplificada)
+      ctx.beginPath();
+      ctx.fillStyle = pinColor;
+      ctx.arc(x, y - 16, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Punta del pin
+      ctx.beginPath();
+      ctx.moveTo(x - 8, y - 10);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x + 8, y - 10);
+      ctx.fill();
+
+      // Círculo blanco interior
+      ctx.shadowColor = 'transparent';
+      ctx.beginPath();
+      ctx.fillStyle = 'white';
+      ctx.arc(x, y - 16, 9, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Número
+      ctx.fillStyle = pinColor;
+      ctx.font = 'bold 12px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(order), x, y - 15);
+
+      ctx.restore();
+    });
+  }
+
+  /**
+   * Fallback: captura con html2canvas
+   */
+  private async captureMapWithHtml2Canvas(): Promise<string> {
+    try {
       const mapContainer = document.getElementById('editorMap');
       if (!mapContainer) return '';
 
-      // Esperar a que los tiles se carguen
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Capturar con html2canvas
       const canvas = await html2canvas(mapContainer, {
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        scale: 1.5, // Mayor resolución
-        logging: false
+        scale: 1.5,
+        logging: false,
+        foreignObjectRendering: true
       });
 
       return canvas.toDataURL('image/jpeg', 0.85);
     } catch (error) {
-      console.error('Error capturando mapa:', error);
+      console.error('Error con html2canvas:', error);
       return '';
     }
   }
