@@ -135,7 +135,18 @@ export class SyncService {
   private async syncProject(item: SyncQueueItem): Promise<void> {
     switch (item.action) {
       case 'CREATE':
-        await this.api.post('/projects', item.data).toPromise();
+        const response: any = await this.api.post('/projects', item.data).toPromise();
+        // Actualizar proyecto local con el serverId del servidor
+        if (response && response.project && response.project.id) {
+          const projects = await this.storage.getProjects();
+          const localProject = projects.find(p => p.id === item.entityId);
+          if (localProject) {
+            localProject.serverId = response.project.id;
+            localProject.synced = true;
+            await this.storage.saveProject(localProject);
+            console.log('Proyecto sincronizado con serverId:', response.project.id);
+          }
+        }
         break;
       case 'UPDATE':
         await this.api.put(`/projects/${item.entityId}`, item.data).toPromise();
