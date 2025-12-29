@@ -146,56 +146,47 @@
   />
 
   <!-- Photo Viewer Overlay -->
-  <div class="photo-viewer-overlay" *ngIf="showPhotoViewer && viewerPhoto" (click)="closePhotoViewer()">
-    <div class="photo-viewer-container" (click)="$event.stopPropagation()">
-      <div class="photo-viewer-header">
-        <div class="header-text">
-          <h3>{{ viewerMarker?.name || 'Foto' }}</h3>
-          <span class="viewer-date">{{ viewerPhoto.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
-        </div>
-        <button class="photo-viewer-close" (click)="closePhotoViewer()">
-          <ion-icon name="close"></ion-icon>
-        </button>
+  <div class="photo-viewer-overlay" *ngIf="showPhotoViewer && viewerPhoto">
+    <!-- Fixed header -->
+    <div class="photo-viewer-topbar">
+      <div class="topbar-title">
+        <h3>{{ viewerMarker?.name || 'Foto' }}</h3>
+        <span>{{ viewerPhoto.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      <button class="close-btn" (click)="closePhotoViewer()">
+        <ion-icon name="close"></ion-icon>
+      </button>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="photo-viewer-scroll">
+      <img [src]="viewerPhoto.imageUrl || viewerPhoto.localPath" alt="Foto">
+
+      <div class="photo-notes" *ngIf="viewerPhoto.notes">
+        <div class="note-header"><ion-icon name="document-text"></ion-icon> Notas</div>
+        <p>{{ viewerPhoto.notes }}</p>
       </div>
 
-      <div class="photo-viewer-content">
-        <div class="photo-container">
-          <img [src]="viewerPhoto.imageUrl || viewerPhoto.localPath" alt="Foto del marcador">
-        </div>
-
-        <div class="photo-info" *ngIf="viewerPhoto.notes || viewerPhoto.aiDescription">
-          <div class="info-section notes" *ngIf="viewerPhoto.notes">
-            <div class="info-label">
-              <ion-icon name="document-text-outline"></ion-icon>
-              Notas
-            </div>
-            <p>{{ viewerPhoto.notes }}</p>
-          </div>
-
-          <div class="info-section ai-analysis" *ngIf="viewerPhoto.aiDescription">
-            <div class="info-label">
-              <ion-icon name="sparkles-outline"></ion-icon>
-              Analisis IA
-            </div>
-            <p>{{ viewerPhoto.aiDescription }}</p>
-          </div>
-        </div>
+      <div class="photo-ai" *ngIf="viewerPhoto.aiDescription">
+        <div class="note-header"><ion-icon name="sparkles"></ion-icon> Analisis IA</div>
+        <p>{{ viewerPhoto.aiDescription }}</p>
       </div>
+    </div>
 
-      <div class="photo-viewer-actions">
-        <ion-button class="action-btn edit-btn" (click)="editViewerPhotoNotes()">
-          <ion-icon slot="start" name="create-outline"></ion-icon>
-          Editar nota
-        </ion-button>
-        <ion-button class="action-btn ai-btn" (click)="analyzeViewerPhotoWithAI()">
-          <ion-icon slot="start" name="sparkles-outline"></ion-icon>
-          Analizar IA
-        </ion-button>
-        <ion-button class="action-btn delete-btn" (click)="deleteViewerPhoto()">
-          <ion-icon slot="start" name="trash-outline"></ion-icon>
-          Eliminar
-        </ion-button>
-      </div>
+    <!-- Fixed bottom actions -->
+    <div class="photo-viewer-bottom">
+      <button class="viewer-btn" (click)="editViewerPhotoNotes()">
+        <ion-icon name="create-outline"></ion-icon>
+        Editar
+      </button>
+      <button class="viewer-btn" (click)="analyzeViewerPhotoWithAI()">
+        <ion-icon name="sparkles-outline"></ion-icon>
+        IA
+      </button>
+      <button class="viewer-btn delete" (click)="deleteViewerPhoto()">
+        <ion-icon name="trash-outline"></ion-icon>
+        Eliminar
+      </button>
     </div>
   </div>
 </ion-content>
