@@ -566,10 +566,15 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
 
-    // Cerrar el action sheet manualmente
-    await this.actionSheetCtrl.dismiss();
+    // Cerrar el action sheet manualmente (ignorar error si ya está cerrado)
+    try {
+      await this.actionSheetCtrl.dismiss();
+    } catch (e) {
+      // Action sheet ya cerrado, ignorar
+    }
 
     if (!file || !this.pendingPhotoMarkerId || !this.project) {
+      console.log('No file, markerId or project:', { file: !!file, markerId: this.pendingPhotoMarkerId, project: !!this.project });
       this.pendingPhotoMarkerId = null;
       input.value = ''; // Reset para próximo uso
       return;
@@ -618,7 +623,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       this.showToast('Foto guardada correctamente', 'success');
     } catch (error: any) {
       console.error('Error procesando foto:', error);
-      this.showToast('Error al guardar la foto', 'danger');
+      this.showToast('Error: ' + (error?.message || error), 'danger');
     } finally {
       this.pendingPhotoMarkerId = null;
       input.value = ''; // Reset para próximo uso
