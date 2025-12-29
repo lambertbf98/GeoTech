@@ -13,6 +13,7 @@ import catastroRoutes from './routes/catastro.routes';
 import claudeRoutes from './routes/claude.routes';
 import exportRoutes from './routes/export.routes';
 import syncRoutes from './routes/sync.routes';
+import reportRoutes from './routes/report.routes';
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/api/catastro', catastroRoutes);
 app.use('/api/claude', claudeRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/sync', syncRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

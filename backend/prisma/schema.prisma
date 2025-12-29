@@ -45,6 +45,8 @@ model Project {
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   photos      Photo[]
+  reports     Report[]
+  kmlFiles    KmlFile[]
 
   @@index([userId])
   @@map("projects")
@@ -71,4 +73,34 @@ model Photo {
   @@index([projectId])
   @@index([latitude, longitude])
   @@map("photos")
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  name        String
+  htmlContent String   @map("html_content") @db.Text
+  fileUrl     String?  @map("file_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("reports")
+}
+
+model KmlFile {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  name        String
+  kmlContent  String   @map("kml_content") @db.Text
+  fileUrl     String?  @map("file_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("kml_files")
 }

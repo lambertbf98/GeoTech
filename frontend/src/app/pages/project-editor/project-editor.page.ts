@@ -8,6 +8,8 @@ import { CameraService } from '../../services/camera.service';
 import { ClaudeService } from '../../services/claude.service';
 import { KmlService, ProjectExportData } from '../../services/kml.service';
 import { ReportService, ReportData } from '../../services/report.service';
+import { ApiService } from '../../services/api.service';
+import { firstValueFrom } from 'rxjs';
 import { Project, ProjectZone, ProjectPath, ProjectMarker, GeoPoint, Photo } from '../../models';
 import * as L from 'leaflet';
 
@@ -59,7 +61,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     private cameraService: CameraService,
     private claudeService: ClaudeService,
     private kmlService: KmlService,
-    private reportService: ReportService
+    private reportService: ReportService,
+    private apiService: ApiService
   ) {}
 
   async ngOnInit() {
@@ -1365,33 +1368,74 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
     }
 
     try {
-      // Guardar el informe en el proyecto con fecha y hora completa
       const now = new Date();
       const dateStr = now.toLocaleDateString('es-ES');
       const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const reportName = `Informe PDD ${dateStr} ${timeStr}`;
+
+      console.log('Guardando informe en la nube:', reportName);
+
+      // Intentar guardar en la nube primero
+      const token = localStorage.getItem('token');
+      if (token && this.project.serverId) {
+        try {
+          await firstValueFrom(this.apiService.createReport(
+            this.project.serverId,
+            reportName,
+            this.reportPreviewRawHtml
+          ));
+          console.log('Informe guardado en la nube');
+
+          const alert = await this.alertCtrl.create({
+            header: 'Informe guardado',
+            message: `El informe "${reportName}" se ha guardado en la nube.`,
+            buttons: [
+              {
+                text: 'Descargar copia',
+                handler: () => {
+                  this.downloadReportAsHtml(reportName, this.reportPreviewRawHtml);
+                }
+              },
+              { text: 'OK' }
+            ]
+          });
+          await alert.present();
+          this.closeReportPreview();
+          return;
+        } catch (cloudError: any) {
+          console.warn('Error guardando en la nube, intentando local:', cloudError);
+        }
+      }
+
+      // Fallback a almacenamiento local (sin imágenes embebidas para evitar quota)
+      const reportWithoutImages = this.reportPreviewRawHtml.replace(/data:image\/[^;]+;base64,[^"']+/g, '');
       const report = {
         id: `report_${Date.now()}`,
-        name: `Informe PDD ${dateStr} ${timeStr}`,
-        htmlContent: this.reportPreviewRawHtml,
+        name: reportName,
+        htmlContent: reportWithoutImages,
         createdAt: now.toISOString()
       };
-
-      console.log('Guardando informe:', report.name);
 
       this.project.reports = this.project.reports || [];
       this.project.reports.push(report);
       await this.saveProject();
 
-      console.log('Informe guardado. Total informes:', this.project.reports.length);
+      console.log('Informe guardado localmente. Total informes:', this.project.reports.length);
 
-      // Mostrar confirmación
       const alert = await this.alertCtrl.create({
         header: 'Informe guardado',
-        message: `El informe "${report.name}" se ha guardado en el proyecto.`,
-        buttons: ['OK']
+        message: `El informe "${reportName}" se ha guardado localmente. Para guardarlo con imágenes, inicia sesión.`,
+        buttons: [
+          {
+            text: 'Descargar completo',
+            handler: () => {
+              this.downloadReportAsHtml(reportName, this.reportPreviewRawHtml);
+            }
+          },
+          { text: 'OK' }
+        ]
       });
       await alert.present();
-
       this.closeReportPreview();
     } catch (error: any) {
       console.error('Error guardando informe:', error);
@@ -1402,6 +1446,19 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       });
       await alert.present();
     }
+  }
+
+  private downloadReportAsHtml(name: string, htmlContent: string) {
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.showToast('Informe descargado', 'success');
   }
 
   async saveKmlToProject() {
@@ -1436,30 +1493,70 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       // Generar KML content
       const kmlContent = this.kmlService.generateKml(exportData);
 
-      // Guardar en el proyecto con fecha y hora completa
       const now = new Date();
       const dateStr = now.toLocaleDateString('es-ES').replace(/\//g, '-');
       const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/:/g, '-');
+      const kmlName = `${this.project.name}_${dateStr}_${timeStr}`;
+
+      console.log('Guardando KML:', kmlName);
+
+      // Intentar guardar en la nube primero
+      const token = localStorage.getItem('token');
+      if (token && this.project.serverId) {
+        try {
+          await firstValueFrom(this.apiService.createKml(
+            this.project.serverId,
+            kmlName,
+            kmlContent
+          ));
+          console.log('KML guardado en la nube');
+
+          const alert = await this.alertCtrl.create({
+            header: 'Archivo KML guardado',
+            message: `El archivo "${kmlName}.kml" se ha guardado en la nube.`,
+            buttons: [
+              {
+                text: 'Descargar copia',
+                handler: () => {
+                  this.downloadKmlFile(kmlName, kmlContent);
+                }
+              },
+              { text: 'OK' }
+            ]
+          });
+          await alert.present();
+          return;
+        } catch (cloudError: any) {
+          console.warn('Error guardando KML en la nube, intentando local:', cloudError);
+        }
+      }
+
+      // Fallback a almacenamiento local
       const kml = {
         id: `kml_${Date.now()}`,
-        name: `${this.project.name}_${dateStr}_${timeStr}`,
+        name: kmlName,
         kmlContent,
         createdAt: now.toISOString()
       };
-
-      console.log('Guardando KML:', kml.name);
 
       this.project.kmls = this.project.kmls || [];
       this.project.kmls.push(kml);
       await this.saveProject();
 
-      console.log('KML guardado. Total KMLs:', this.project.kmls.length);
+      console.log('KML guardado localmente. Total KMLs:', this.project.kmls.length);
 
-      // Mostrar confirmación
       const alert = await this.alertCtrl.create({
         header: 'Archivo KML guardado',
-        message: `El archivo "${kml.name}.kml" se ha guardado en el proyecto.`,
-        buttons: ['OK']
+        message: `El archivo "${kmlName}.kml" se ha guardado localmente.`,
+        buttons: [
+          {
+            text: 'Descargar',
+            handler: () => {
+              this.downloadKmlFile(kmlName, kmlContent);
+            }
+          },
+          { text: 'OK' }
+        ]
       });
       await alert.present();
 
@@ -1472,6 +1569,19 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       });
       await alert.present();
     }
+  }
+
+  private downloadKmlFile(name: string, kmlContent: string) {
+    const blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name.replace(/[^a-zA-Z0-9_-]/g, '_')}.kml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.showToast('Archivo KML descargado', 'success');
   }
 
   private blobToBase64(blob: Blob): Promise<string> {

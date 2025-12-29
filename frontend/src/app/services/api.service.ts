@@ -60,4 +60,48 @@ export class ApiService {
       headers
     });
   }
+
+  // ========== REPORTS ==========
+
+  // Crear un informe en la nube
+  createReport(projectId: string, name: string, htmlContent: string): Observable<any> {
+    return this.post('/reports', { projectId, name, htmlContent });
+  }
+
+  // Obtener informes de un proyecto
+  getReportsByProject(projectId: string): Observable<any> {
+    return this.get(`/reports/project/${projectId}`);
+  }
+
+  // Obtener un informe específico
+  getReport(reportId: string): Observable<any> {
+    return this.get(`/reports/${reportId}`);
+  }
+
+  // Eliminar un informe
+  deleteReport(reportId: string): Observable<any> {
+    return this.delete(`/reports/${reportId}`);
+  }
+
+  // ========== KML FILES ==========
+
+  // Crear un archivo KML en la nube
+  createKml(projectId: string, name: string, kmlContent: string): Observable<any> {
+    return this.post('/reports/kml', { projectId, name, kmlContent });
+  }
+
+  // Obtener archivos KML de un proyecto
+  getKmlsByProject(projectId: string): Observable<any> {
+    return this.get(`/reports/kml/project/${projectId}`);
+  }
+
+  // Obtener un KML específico
+  getKml(kmlId: string): Observable<any> {
+    return this.get(`/reports/kml/${kmlId}`);
+  }
+
+  // Eliminar un KML
+  deleteKml(kmlId: string): Observable<any> {
+    return this.delete(`/reports/kml/${kmlId}`);
+  }
 }
