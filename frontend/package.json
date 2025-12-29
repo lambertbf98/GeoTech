@@ -42,7 +42,6 @@
     "ionicons": "^7.0.0",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
-    "leaflet-image": "^0.4.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
