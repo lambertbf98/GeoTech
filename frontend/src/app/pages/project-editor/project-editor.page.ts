@@ -40,6 +40,11 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   private reportPreviewRawHtml = '';
   private pendingReportData: any = null;
 
+  // Photo viewer
+  showPhotoViewer = false;
+  viewerPhoto: Photo | null = null;
+  viewerMarker: ProjectMarker | null = null;
+
   // Drawing state
   drawMode: DrawMode = 'none';
   currentPoints: L.LatLng[] = [];
@@ -687,17 +692,31 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
   private addMarkerToMap(marker: ProjectMarker) {
     const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
+    const pinColor = hasPhotos ? '#10b981' : '#f59e0b';
+    const badgeHtml = hasPhotos ? '<span class="photo-badge"></span>' : '';
+
+    // SVG location pin icon
+    const svgIcon = `
+      <svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 0C7.163 0 0 7.163 0 16c0 10.512 14.112 24.327 14.745 24.918a1.667 1.667 0 002.51 0C17.888 40.327 32 26.512 32 16 32 7.163 24.837 0 16 0z" fill="${pinColor}"/>
+        <circle cx="16" cy="16" r="8" fill="white"/>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+        </filter>
+      </svg>
+      ${badgeHtml}
+    `;
+
     const icon = L.divIcon({
       className: hasPhotos ? 'project-marker has-photo' : 'project-marker',
-      html: `<div class="marker-pin">${hasPhotos ? '<span class="photo-badge"></span>' : ''}</div>`,
-      iconSize: [24, 32],
-      iconAnchor: [12, 32]
+      html: svgIcon,
+      iconSize: [32, 42],
+      iconAnchor: [16, 42]
     });
     const mapMarker = L.marker([marker.coordinate.lat, marker.coordinate.lng], {
       icon,
-      pane: 'markersPane'  // Usar pane personalizado
+      pane: 'markersPane'
     });
-    // Importante: pasar solo el ID para que showMarkerOptions busque la versión actualizada
     mapMarker.on('click', () => this.showMarkerOptionsById(marker.id));
     mapMarker.addTo(this.markersLayer!);
   }
@@ -857,34 +876,41 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   async showPhotoDetail(photo: Photo, marker: ProjectMarker) {
-    const buttons: any[] = [
-      {
-        text: 'Editar nota',
-        icon: 'create-outline',
-        handler: () => this.editPhotoNotes(photo)
-      },
-      {
-        text: 'Analizar con IA',
-        icon: 'sparkles-outline',
-        handler: () => this.analyzePhotoWithAI(photo)
-      },
-      {
-        text: 'Eliminar foto',
-        icon: 'trash-outline',
-        role: 'destructive',
-        handler: () => this.deleteMarkerPhoto(photo, marker)
-      },
-      { text: 'Cancelar', icon: 'close', role: 'cancel' }
-    ];
+    // Show photo viewer instead of action sheet
+    this.viewerPhoto = photo;
+    this.viewerMarker = marker;
+    this.showPhotoViewer = true;
+  }
 
-    const subHeader = photo.aiDescription || photo.notes || `${marker.coordinate.lat.toFixed(5)}, ${marker.coordinate.lng.toFixed(5)}`;
+  closePhotoViewer() {
+    this.showPhotoViewer = false;
+    this.viewerPhoto = null;
+    this.viewerMarker = null;
+  }
 
-    const actionSheet = await this.actionSheetCtrl.create({
-      header: marker.name,
-      subHeader: subHeader.length > 100 ? subHeader.substring(0, 100) + '...' : subHeader,
-      buttons
-    });
-    await actionSheet.present();
+  async editViewerPhotoNotes() {
+    if (this.viewerPhoto) {
+      await this.editPhotoNotes(this.viewerPhoto);
+      // Refresh viewer photo after edit
+      const updatedPhoto = this.photos.find(p => p.id === this.viewerPhoto?.id);
+      if (updatedPhoto) this.viewerPhoto = updatedPhoto;
+    }
+  }
+
+  async analyzeViewerPhotoWithAI() {
+    if (this.viewerPhoto) {
+      this.closePhotoViewer();
+      await this.analyzePhotoWithAI(this.viewerPhoto);
+    }
+  }
+
+  async deleteViewerPhoto() {
+    if (this.viewerPhoto && this.viewerMarker) {
+      const photo = this.viewerPhoto;
+      const marker = this.viewerMarker;
+      this.closePhotoViewer();
+      await this.deleteMarkerPhoto(photo, marker);
+    }
   }
 
   async deleteMarkerPhoto(photo: Photo, marker: ProjectMarker) {

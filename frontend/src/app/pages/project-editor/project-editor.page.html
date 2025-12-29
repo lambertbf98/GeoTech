@@ -144,4 +144,56 @@
     style="position: fixed; top: -1000px; left: -1000px; opacity: 0; width: 1px; height: 1px; pointer-events: none;"
     (change)="onHiddenPhotoInputChange($event)"
   />
+
+  <!-- Photo Viewer Overlay -->
+  <div class="photo-viewer-overlay" *ngIf="showPhotoViewer && viewerPhoto">
+    <div class="photo-viewer-header">
+      <div class="viewer-title">
+        <h3>{{ viewerMarker?.name || 'Foto' }}</h3>
+        <span class="viewer-date">{{ viewerPhoto.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      <ion-button fill="clear" color="light" (click)="closePhotoViewer()">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </div>
+
+    <div class="photo-viewer-content">
+      <div class="photo-container">
+        <img [src]="viewerPhoto.imageUrl || viewerPhoto.localPath" alt="Foto del marcador">
+      </div>
+
+      <div class="photo-info" *ngIf="viewerPhoto.notes || viewerPhoto.aiDescription">
+        <div class="info-section notes" *ngIf="viewerPhoto.notes">
+          <div class="info-label">
+            <ion-icon name="document-text-outline"></ion-icon>
+            Notas
+          </div>
+          <p>{{ viewerPhoto.notes }}</p>
+        </div>
+
+        <div class="info-section ai-analysis" *ngIf="viewerPhoto.aiDescription">
+          <div class="info-label">
+            <ion-icon name="sparkles-outline"></ion-icon>
+            Analisis IA
+          </div>
+          <p>{{ viewerPhoto.aiDescription }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-viewer-actions">
+      <ion-button color="medium" fill="outline" (click)="editViewerPhotoNotes()">
+        <ion-icon slot="start" name="create-outline"></ion-icon>
+        Editar nota
+      </ion-button>
+      <ion-button color="primary" fill="outline" (click)="analyzeViewerPhotoWithAI()">
+        <ion-icon slot="start" name="sparkles-outline"></ion-icon>
+        Analizar IA
+      </ion-button>
+      <ion-button color="danger" fill="outline" (click)="deleteViewerPhoto()">
+        <ion-icon slot="start" name="trash-outline"></ion-icon>
+        Eliminar
+      </ion-button>
+    </div>
+  </div>
 </ion-content>
