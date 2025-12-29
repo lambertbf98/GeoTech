@@ -135,4 +135,13 @@
       </div>
     </div>
   </div>
+  <!-- Hidden file input for iOS Safari compatibility -->
+  <input
+    #hiddenPhotoInput
+    type="file"
+    accept="image/*"
+    capture="environment"
+    style="position: fixed; top: -1000px; left: -1000px; opacity: 0; width: 1px; height: 1px; pointer-events: none;"
+    (change)="onHiddenPhotoInputChange($event)"
+  />
 </ion-content>

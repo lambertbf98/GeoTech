@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController, AlertController, ToastController, ActionSheetController } from '@ionic/angular';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -22,6 +22,10 @@ type DrawMode = 'none' | 'zone' | 'path' | 'marker';
   styleUrls: ['./project-editor.page.scss'],
 })
 export class ProjectEditorPage implements OnInit, OnDestroy {
+  // ViewChild para el input de foto oculto (iOS Safari compatibility)
+  @ViewChild('hiddenPhotoInput', { static: false }) hiddenPhotoInput!: ElementRef<HTMLInputElement>;
+  private pendingPhotoMarkerId: string | null = null;
+
   project: Project | null = null;
   photos: Photo[] = [];
 
@@ -557,6 +561,84 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     }
   }
 
+  // Handler para el input de foto oculto (iOS Safari compatibility)
+  async onHiddenPhotoInputChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    // Cerrar el action sheet manualmente
+    await this.actionSheetCtrl.dismiss();
+
+    if (!file || !this.pendingPhotoMarkerId || !this.project) {
+      this.pendingPhotoMarkerId = null;
+      input.value = ''; // Reset para próximo uso
+      return;
+    }
+
+    const markerId = this.pendingPhotoMarkerId;
+    const marker = this.project.markers?.find(m => m.id === markerId);
+
+    if (!marker) {
+      console.error('Marcador no encontrado:', markerId);
+      this.pendingPhotoMarkerId = null;
+      input.value = '';
+      return;
+    }
+
+    try {
+      // Convertir archivo a base64
+      const base64 = await this.fileToBase64(file);
+      const base64Image = `data:image/jpeg;base64,${base64}`;
+
+      const photo: Photo = {
+        id: `photo_${Date.now()}`,
+        projectId: this.project.id,
+        localPath: `web_${Date.now()}.jpeg`,
+        imageUrl: base64Image,
+        latitude: marker.coordinate.lat,
+        longitude: marker.coordinate.lng,
+        timestamp: new Date().toISOString(),
+        synced: false,
+        notes: `Punto: ${marker.name}`
+      };
+
+      await this.storageService.savePhoto(photo);
+      this.photos.push(photo);
+
+      // Actualizar marcador
+      const projectMarker = this.project.markers?.find(m => m.id === markerId);
+      if (projectMarker) {
+        projectMarker.photoIds = projectMarker.photoIds || [];
+        projectMarker.photoIds.push(photo.id);
+        console.log('Foto añadida al marcador. Total fotos:', projectMarker.photoIds.length);
+      }
+
+      await this.saveProject();
+      this.renderProjectElements();
+      this.showToast('Foto guardada correctamente', 'success');
+    } catch (error: any) {
+      console.error('Error procesando foto:', error);
+      this.showToast('Error al guardar la foto', 'danger');
+    } finally {
+      this.pendingPhotoMarkerId = null;
+      input.value = ''; // Reset para próximo uso
+    }
+  }
+
+  // Convertir File a base64
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // Mantener el método anterior para compatibilidad
   async takePhotoForMarker(marker: ProjectMarker) {
     await this.takePhotoForMarkerId(marker.id);
@@ -615,7 +697,13 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       text: 'Tomar foto',
       icon: 'camera-outline',
       handler: () => {
-        this.takePhotoForMarkerId(markerId);
+        // CRÍTICO: Guardar el markerId y disparar el input SINCRÓNICAMENTE
+        // iOS Safari requiere que el click() ocurra en el mismo stack que el user gesture
+        this.pendingPhotoMarkerId = markerId;
+        if (this.hiddenPhotoInput?.nativeElement) {
+          this.hiddenPhotoInput.nativeElement.click();
+        }
+        return false; // Prevenir cierre automático del action sheet
       }
     });
 
