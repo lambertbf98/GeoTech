@@ -412,38 +412,71 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.95);
+  background: rgba(0, 0, 0, 0.9);
   z-index: 10000;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   animation: fadeIn 0.2s ease-out;
+  touch-action: none; // Prevent scroll/zoom on background
+}
+
+.photo-viewer-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10001;
+  transition: all 0.2s ease;
+
+  ion-icon {
+    font-size: 24px;
+  }
+
+  &:hover, &:active {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: white;
+    transform: scale(1.1);
+  }
+}
+
+.photo-viewer-container {
+  width: 90%;
+  max-width: 500px;
+  max-height: 85vh;
+  background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .photo-viewer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding: 16px 20px;
   background: rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
-  .viewer-title {
-    h3 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-      color: white;
-    }
-
-    .viewer-date {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.6);
-    }
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
   }
 
-  ion-button {
-    --color: white;
-    margin: 0;
+  .viewer-date {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
   }
 }
 

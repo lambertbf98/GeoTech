@@ -695,14 +695,11 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     const pinColor = hasPhotos ? '#10b981' : '#f59e0b';
     const badgeHtml = hasPhotos ? '<span class="photo-badge"></span>' : '';
 
-    // SVG location pin icon
+    // SVG location pin icon - smaller with compact white circle
     const svgIcon = `
-      <svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16 0C7.163 0 0 7.163 0 16c0 10.512 14.112 24.327 14.745 24.918a1.667 1.667 0 002.51 0C17.888 40.327 32 26.512 32 16 32 7.163 24.837 0 16 0z" fill="${pinColor}"/>
-        <circle cx="16" cy="16" r="8" fill="white"/>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-        </filter>
+      <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 0C6.268 0 0 6.268 0 14c0 9.198 12.348 21.286 12.902 21.803a1.458 1.458 0 002.196 0C15.652 35.286 28 23.198 28 14 28 6.268 21.732 0 14 0z" fill="${pinColor}"/>
+        <circle cx="14" cy="14" r="5" fill="white"/>
       </svg>
       ${badgeHtml}
     `;
@@ -710,8 +707,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     const icon = L.divIcon({
       className: hasPhotos ? 'project-marker has-photo' : 'project-marker',
       html: svgIcon,
-      iconSize: [32, 42],
-      iconAnchor: [16, 42]
+      iconSize: [28, 36],
+      iconAnchor: [14, 36]
     });
     const mapMarker = L.marker([marker.coordinate.lat, marker.coordinate.lng], {
       icon,

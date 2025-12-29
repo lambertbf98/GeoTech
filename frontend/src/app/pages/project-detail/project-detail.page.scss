@@ -870,135 +870,138 @@ ion-back-button {
     }
   }
 
-  .leaflet-popup-content-wrapper {
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    max-width: 400px !important;
-    background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .leaflet-popup-tip {
-    background: #1e293b;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-top: none;
-    border-left: none;
-  }
-
-  .leaflet-popup-close-button {
-    color: rgba(255, 255, 255, 0.7) !important;
-    font-size: 20px !important;
-    top: 8px !important;
-    right: 10px !important;
-
-    &:hover {
-      color: white !important;
-    }
-  }
-
-  .leaflet-popup-content {
-    margin: 16px 20px;
-    font-size: 14px;
-    line-height: 1.5;
-    max-width: 380px !important;
-    color: rgba(255, 255, 255, 0.9);
-
-    h3 {
-      margin: 0 0 12px 0;
-      color: white;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    h4 {
-      margin: 12px 0 8px 0;
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    p {
-      margin: 8px 0;
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    strong {
-      color: white;
-    }
-
-    hr {
-      border: none;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-      margin: 16px 0;
-    }
-
-    img {
-      max-width: 100% !important;
-      height: auto !important;
-      border-radius: 12px;
-      margin: 12px 0;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    }
-
-    // Notes styling - override inline styles
-    div[style*="background:#e8ffe8"],
-    div[style*="background: #e8ffe8"] {
-      background: rgba(16, 185, 129, 0.15) !important;
-      border: 1px solid rgba(16, 185, 129, 0.3) !important;
-      border-radius: 8px !important;
-      padding: 10px !important;
-      margin: 8px 0 !important;
-      color: #34d399 !important;
-    }
-
-    // AI analysis styling - override inline styles
-    div[style*="background:#fff3e0"],
-    div[style*="background: #fff3e0"],
-    div[style*="background:#e3f2fd"],
-    div[style*="background: #e3f2fd"] {
-      background: rgba(245, 158, 11, 0.15) !important;
-      border: 1px solid rgba(245, 158, 11, 0.3) !important;
-      border-radius: 8px !important;
-      padding: 10px !important;
-      margin: 8px 0 !important;
-      color: #fbbf24 !important;
-    }
-
-    // Photo card container - override inline styles
-    div[style*="border:1px solid #ddd"] {
-      background: rgba(255, 255, 255, 0.05) !important;
-      border: 1px solid rgba(255, 255, 255, 0.15) !important;
-      border-radius: 12px !important;
-      padding: 12px !important;
-    }
-  }
-
-  // Rich popup for markers with photos
-  .kml-rich-popup {
+  // Use ::ng-deep to style Leaflet popups (created dynamically outside Angular)
+  ::ng-deep {
     .leaflet-popup-content-wrapper {
-      max-width: 420px !important;
+      border-radius: 16px !important;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+      max-width: 400px !important;
+      background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .leaflet-popup-tip {
+      background: #1e293b !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-top: none !important;
+      border-left: none !important;
+    }
+
+    .leaflet-popup-close-button {
+      color: rgba(255, 255, 255, 0.7) !important;
+      font-size: 20px !important;
+      top: 8px !important;
+      right: 10px !important;
+
+      &:hover {
+        color: white !important;
+      }
     }
 
     .leaflet-popup-content {
-      max-height: 450px;
-      overflow-y: auto;
-      padding-right: 8px;
+      margin: 16px 20px !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+      max-width: 380px !important;
+      color: rgba(255, 255, 255, 0.9) !important;
 
-      &::-webkit-scrollbar {
-        width: 6px;
+      h3 {
+        margin: 0 0 12px 0 !important;
+        color: white !important;
+        font-size: 18px !important;
+        font-weight: 600 !important;
       }
 
-      &::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 3px;
+      h4 {
+        margin: 12px 0 8px 0 !important;
+        color: rgba(255, 255, 255, 0.8) !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
       }
 
-      &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 3px;
+      p {
+        margin: 8px 0 !important;
+        color: rgba(255, 255, 255, 0.8) !important;
+      }
 
-        &:hover {
-          background: rgba(255, 255, 255, 0.3);
+      strong {
+        color: white !important;
+      }
+
+      hr {
+        border: none !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+        margin: 16px 0 !important;
+      }
+
+      img {
+        max-width: 100% !important;
+        height: auto !important;
+        border-radius: 12px !important;
+        margin: 12px 0 !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+      }
+
+      // Notes styling - override inline styles
+      div[style*="background:#e8ffe8"],
+      div[style*="background: #e8ffe8"] {
+        background: rgba(16, 185, 129, 0.15) !important;
+        border: 1px solid rgba(16, 185, 129, 0.3) !important;
+        border-radius: 8px !important;
+        padding: 10px !important;
+        margin: 8px 0 !important;
+        color: #34d399 !important;
+      }
+
+      // AI analysis styling - override inline styles
+      div[style*="background:#fff3e0"],
+      div[style*="background: #fff3e0"],
+      div[style*="background:#e3f2fd"],
+      div[style*="background: #e3f2fd"] {
+        background: rgba(245, 158, 11, 0.15) !important;
+        border: 1px solid rgba(245, 158, 11, 0.3) !important;
+        border-radius: 8px !important;
+        padding: 10px !important;
+        margin: 8px 0 !important;
+        color: #fbbf24 !important;
+      }
+
+      // Photo card container - override inline styles
+      div[style*="border:1px solid #ddd"] {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
+      }
+    }
+
+    // Rich popup for markers with photos
+    .kml-rich-popup {
+      .leaflet-popup-content-wrapper {
+        max-width: 420px !important;
+      }
+
+      .leaflet-popup-content {
+        max-height: 450px !important;
+        overflow-y: auto !important;
+        padding-right: 8px !important;
+
+        &::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        &::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 3px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 3px;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.3);
+          }
         }
       }
     }
