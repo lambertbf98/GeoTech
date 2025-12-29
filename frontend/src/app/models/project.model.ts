@@ -28,6 +28,7 @@ export interface ProjectMarker {
   coordinate: GeoPoint;
   photoIds?: string[];
   aiDescription?: string;
+  order?: number; // Número de orden del punto (1, 2, 3...)
   createdAt: string;
 }
 

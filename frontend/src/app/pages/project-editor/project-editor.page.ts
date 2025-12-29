@@ -12,6 +12,7 @@ import { ApiService } from '../../services/api.service';
 import { firstValueFrom } from 'rxjs';
 import { Project, ProjectZone, ProjectPath, ProjectMarker, GeoPoint, Photo } from '../../models';
 import * as L from 'leaflet';
+import html2canvas from 'html2canvas';
 
 type DrawMode = 'none' | 'zone' | 'path' | 'marker';
 
@@ -108,6 +109,39 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     if (!this.project.zones) this.project.zones = [];
     if (!this.project.paths) this.project.paths = [];
     if (!this.project.markers) this.project.markers = [];
+
+    // Asignar números de orden a marcadores existentes que no los tienen
+    await this.ensureMarkerOrders();
+  }
+
+  /**
+   * Asigna números de orden a marcadores que no los tienen (compatibilidad con proyectos antiguos)
+   */
+  private async ensureMarkerOrders() {
+    if (!this.project?.markers) return;
+
+    let needsSave = false;
+    let maxOrder = 0;
+
+    // Encontrar el máximo orden existente
+    for (const marker of this.project.markers) {
+      if (marker.order && marker.order > maxOrder) {
+        maxOrder = marker.order;
+      }
+    }
+
+    // Asignar orden a marcadores que no lo tienen
+    for (const marker of this.project.markers) {
+      if (!marker.order) {
+        maxOrder++;
+        marker.order = maxOrder;
+        needsSave = true;
+      }
+    }
+
+    if (needsSave) {
+      await this.saveProject();
+    }
   }
 
   private initMap() {
@@ -503,15 +537,20 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   private async saveMarker(latlng: L.LatLng, name: string, description?: string) {
     if (!this.project) return;
 
+    // Calcular el siguiente número de orden
+    this.project.markers = this.project.markers || [];
+    const maxOrder = this.project.markers.reduce((max, m) => Math.max(max, m.order || 0), 0);
+    const nextOrder = maxOrder + 1;
+
     const marker: ProjectMarker = {
       id: `marker_${Date.now()}`,
       name,
       description,
       coordinate: { lat: latlng.lat, lng: latlng.lng },
+      order: nextOrder,
       createdAt: new Date().toISOString()
     };
 
-    this.project.markers = this.project.markers || [];
     this.project.markers.push(marker);
 
     await this.saveProject();
@@ -544,7 +583,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           longitude: marker.coordinate.lng,
           timestamp: new Date().toISOString(),
           synced: false,
-          notes: `Punto: ${marker.name}`
+          notes: `Punto ${marker.order || '?'}: ${marker.name}`
         };
 
         await this.storageService.savePhoto(photo);
@@ -609,7 +648,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         longitude: marker.coordinate.lng,
         timestamp: new Date().toISOString(),
         synced: false,
-        notes: `Punto: ${marker.name}`
+        notes: `Punto ${marker.order || '?'}: ${marker.name}`
       };
 
       await this.storageService.savePhoto(photo);
@@ -694,12 +733,14 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
     const pinColor = hasPhotos ? '#10b981' : '#f59e0b';
     const badgeHtml = hasPhotos ? '<span class="photo-badge"></span>' : '';
+    const orderNumber = marker.order || '?';
 
-    // SVG location pin icon - smaller with compact white circle
+    // SVG location pin icon with number inside
     const svgIcon = `
-      <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M14 0C6.268 0 0 6.268 0 14c0 9.198 12.348 21.286 12.902 21.803a1.458 1.458 0 002.196 0C15.652 35.286 28 23.198 28 14 28 6.268 21.732 0 14 0z" fill="${pinColor}"/>
-        <circle cx="14" cy="14" r="5" fill="white"/>
+      <svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 0C7.163 0 0 7.163 0 16c0 10.5 14.4 25 15.1 25.7a1.2 1.2 0 001.8 0C17.6 41 32 26.5 32 16c0-8.837-7.163-16-16-16z" fill="${pinColor}"/>
+        <circle cx="16" cy="16" r="11" fill="white"/>
+        <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="bold" fill="${pinColor}" font-family="Arial, sans-serif">${orderNumber}</text>
       </svg>
       ${badgeHtml}
     `;
@@ -707,8 +748,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     const icon = L.divIcon({
       className: hasPhotos ? 'project-marker has-photo' : 'project-marker',
       html: svgIcon,
-      iconSize: [28, 36],
-      iconAnchor: [14, 36]
+      iconSize: [32, 42],
+      iconAnchor: [16, 42]
     });
     const mapMarker = L.marker([marker.coordinate.lat, marker.coordinate.lng], {
       icon,
@@ -1355,6 +1396,37 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
     }
   }
 
+  // ========== MAP SCREENSHOT ==========
+
+  /**
+   * Captura el mapa actual como imagen base64
+   */
+  async captureMapScreenshot(): Promise<string> {
+    if (!this.map) return '';
+
+    try {
+      const mapContainer = document.getElementById('editorMap');
+      if (!mapContainer) return '';
+
+      // Esperar a que los tiles se carguen
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Capturar con html2canvas
+      const canvas = await html2canvas(mapContainer, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        scale: 1.5, // Mayor resolución
+        logging: false
+      });
+
+      return canvas.toDataURL('image/jpeg', 0.85);
+    } catch (error) {
+      console.error('Error capturando mapa:', error);
+      return '';
+    }
+  }
+
   // ========== EXPORT METHODS ==========
 
   async showExportOptions() {
@@ -1379,7 +1451,11 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
 
     this.isGeneratingPDD = true;
     try {
-      // 1. Preparar fotos con base64
+      // 0. Capturar screenshot del mapa
+      this.aiLoadingMessage = 'Capturando mapa...';
+      const mapScreenshot = await this.captureMapScreenshot();
+
+      // 1. Preparar fotos con base64 y asociar con marcadores
       const reportPhotos = [];
       for (const photo of this.photos) {
         let base64 = '';
@@ -1392,6 +1468,15 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
           } catch (e) { /* ignore */ }
         }
 
+        // Buscar el marcador asociado a esta foto
+        let markerOrder: number | undefined;
+        let markerName: string | undefined;
+        const associatedMarker = this.project?.markers?.find(m => m.photoIds?.includes(photo.id));
+        if (associatedMarker) {
+          markerOrder = associatedMarker.order;
+          markerName = associatedMarker.name;
+        }
+
         reportPhotos.push({
           id: photo.id,
           base64,
@@ -1401,9 +1486,30 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
           longitude: photo.longitude,
           timestamp: photo.timestamp,
           location: photo.location,
-          catastroRef: photo.catastroRef
+          catastroRef: photo.catastroRef,
+          markerOrder,
+          markerName
         });
       }
+
+      // Ordenar fotos por número de marcador
+      reportPhotos.sort((a, b) => {
+        if (a.markerOrder === undefined && b.markerOrder === undefined) return 0;
+        if (a.markerOrder === undefined) return 1;
+        if (b.markerOrder === undefined) return -1;
+        return a.markerOrder - b.markerOrder;
+      });
+
+      // 1.5 Preparar datos de marcadores para el reporte
+      const reportMarkers = this.project.markers?.map(m => ({
+        order: m.order || 0,
+        name: m.name,
+        description: m.description,
+        aiDescription: m.aiDescription,
+        latitude: m.coordinate.lat,
+        longitude: m.coordinate.lng,
+        photoCount: m.photoIds?.length || 0
+      })).sort((a, b) => a.order - b.order) || [];
 
       // 2. Calcular métricas geométricas para zonas y trazados
       const zonesWithMetrics = this.project.zones?.map(z => {
@@ -1475,6 +1581,8 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         projectLocation: this.project.location,
         createdAt: this.project.createdAt.toString(),
         aiSummary,
+        mapScreenshot,
+        markers: reportMarkers,
         photos: reportPhotos,
         zones: zonesWithMetrics,
         paths: pathsWithMetrics,

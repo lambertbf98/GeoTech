@@ -28,6 +28,8 @@ export interface ReportPhoto {
   aiDescription?: string;
   location?: string;
   catastroRef?: string;
+  markerOrder?: number; // Número del punto de interés asociado
+  markerName?: string;  // Nombre del punto de interés asociado
 }
 
 export interface ReportZone {
@@ -50,6 +52,16 @@ export interface ReportPath {
   dimensions?: string;
 }
 
+export interface ReportMarker {
+  order: number;
+  name: string;
+  description?: string;
+  aiDescription?: string;
+  latitude: number;
+  longitude: number;
+  photoCount: number;
+}
+
 export interface ReportData {
   projectName: string;
   projectDescription?: string;
@@ -59,6 +71,8 @@ export interface ReportData {
   companyName?: string;
   coverImage?: string;
   aiSummary?: string;
+  mapScreenshot?: string; // Captura del mapa con todos los elementos
+  markers?: ReportMarker[]; // Puntos de interés con su número de orden
   photos: ReportPhoto[];
   zones?: ReportZone[];
   paths?: ReportPath[];
@@ -282,6 +296,69 @@ export class ReportService {
           padding-top: 20px;
           border-top: 1px solid #ddd;
         }
+        .map-screenshot {
+          width: 100%;
+          border-radius: 8px;
+          border: 2px solid #1a365d;
+        }
+        .markers-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 12px;
+          margin-top: 15px;
+        }
+        .marker-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 10px;
+          background: #f0f4f8;
+          border-radius: 8px;
+        }
+        .marker-number {
+          flex-shrink: 0;
+          width: 32px;
+          height: 32px;
+          background: #f59e0b;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 14px;
+        }
+        .marker-number.has-photos {
+          background: #10b981;
+        }
+        .marker-info {
+          flex: 1;
+        }
+        .marker-info strong {
+          color: #1a365d;
+          font-size: 14px;
+        }
+        .marker-info small {
+          display: block;
+          color: #666;
+          font-size: 11px;
+        }
+        .photo-marker-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          background: #f59e0b;
+          color: white;
+          border-radius: 50%;
+          font-weight: bold;
+          font-size: 12px;
+          margin-right: 8px;
+        }
+        .photo-marker-badge.has-photos {
+          background: #10b981;
+        }
       </style>
 
       <!-- Portada -->
@@ -302,6 +379,39 @@ export class ReportService {
         <div class="ai-summary">${this.escapeHtml(data.aiSummary)}</div>
       </div>
       `;
+    }
+
+    // Mapa del proyecto
+    if (data.mapScreenshot) {
+      html += `
+      <div class="report-section">
+        <div class="section-title">Ubicación y Puntos de Interés</div>
+        <img src="${data.mapScreenshot}" alt="Mapa del proyecto" class="map-screenshot">
+      `;
+
+      // Puntos de interés
+      if (data.markers && data.markers.length > 0) {
+        html += `
+        <h4 style="margin: 20px 0 10px;">Puntos de Interés:</h4>
+        <div class="markers-grid">
+        `;
+        data.markers.forEach(marker => {
+          const hasPhotos = marker.photoCount > 0;
+          html += `
+          <div class="marker-item">
+            <div class="marker-number ${hasPhotos ? 'has-photos' : ''}">${marker.order}</div>
+            <div class="marker-info">
+              <strong>${this.escapeHtml(marker.name)}</strong>
+              ${marker.description ? `<small>${this.escapeHtml(marker.description)}</small>` : ''}
+              <small>${marker.photoCount} foto${marker.photoCount !== 1 ? 's' : ''}</small>
+            </div>
+          </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      html += `</div>`;
     }
 
     // Zonas y Viales
@@ -355,11 +465,15 @@ export class ReportService {
       `;
 
       data.photos.forEach((photo, i) => {
+        const hasMarker = photo.markerOrder !== undefined && photo.markerOrder !== null;
         html += `
         <div class="photo-card">
           ${photo.base64 ? `<img src="${photo.base64}" alt="Foto ${i + 1}">` : '<div class="no-image">Sin imagen</div>'}
           <div class="photo-details">
-            <p><strong>Foto ${i + 1}</strong></p>
+            <p>
+              ${hasMarker ? `<span class="photo-marker-badge has-photos">${photo.markerOrder}</span>` : ''}
+              <strong>${hasMarker ? this.escapeHtml(photo.markerName || '') : `Foto ${i + 1}`}</strong>
+            </p>
             ${photo.latitude && photo.longitude ? `<p class="coords">${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}</p>` : ''}
             ${photo.location ? `<p>${this.escapeHtml(photo.location)}</p>` : ''}
             ${photo.timestamp ? `<p>${this.formatDateTime(photo.timestamp)}</p>` : ''}
