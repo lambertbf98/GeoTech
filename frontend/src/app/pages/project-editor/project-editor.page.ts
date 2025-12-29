@@ -1357,7 +1357,13 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
   }
 
   async saveReportToProject() {
-    if (!this.pendingReportData || !this.project) return;
+    console.log('saveReportToProject llamado', { pendingReportData: !!this.pendingReportData, project: !!this.project });
+
+    if (!this.pendingReportData || !this.project) {
+      console.error('No hay datos de reporte o proyecto');
+      return;
+    }
+
     try {
       // Guardar el informe en el proyecto con fecha y hora completa
       const now = new Date();
@@ -1369,18 +1375,43 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         htmlContent: this.reportPreviewRawHtml,
         createdAt: now.toISOString()
       };
+
+      console.log('Guardando informe:', report.name);
+
       this.project.reports = this.project.reports || [];
       this.project.reports.push(report);
       await this.saveProject();
 
+      console.log('Informe guardado. Total informes:', this.project.reports.length);
+
+      // Mostrar confirmación
+      const alert = await this.alertCtrl.create({
+        header: 'Informe guardado',
+        message: `El informe "${report.name}" se ha guardado en el proyecto.`,
+        buttons: ['OK']
+      });
+      await alert.present();
+
       this.closeReportPreview();
     } catch (error: any) {
       console.error('Error guardando informe:', error);
+      const alert = await this.alertCtrl.create({
+        header: 'Error',
+        message: 'No se pudo guardar el informe: ' + error.message,
+        buttons: ['OK']
+      });
+      await alert.present();
     }
   }
 
   async saveKmlToProject() {
-    if (!this.project) return;
+    console.log('saveKmlToProject llamado', { project: !!this.project });
+
+    if (!this.project) {
+      console.error('No hay proyecto');
+      return;
+    }
+
     try {
       const exportData = {
         name: this.project.name,
@@ -1400,6 +1431,8 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         markers: this.project.markers?.map(m => ({ name: m.name, description: m.description, coordinate: m.coordinate }))
       };
 
+      console.log('Generando KML...', exportData);
+
       // Generar KML content
       const kmlContent = this.kmlService.generateKml(exportData);
 
@@ -1413,11 +1446,31 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         kmlContent,
         createdAt: now.toISOString()
       };
+
+      console.log('Guardando KML:', kml.name);
+
       this.project.kmls = this.project.kmls || [];
       this.project.kmls.push(kml);
       await this.saveProject();
+
+      console.log('KML guardado. Total KMLs:', this.project.kmls.length);
+
+      // Mostrar confirmación
+      const alert = await this.alertCtrl.create({
+        header: 'Archivo KML guardado',
+        message: `El archivo "${kml.name}.kml" se ha guardado en el proyecto.`,
+        buttons: ['OK']
+      });
+      await alert.present();
+
     } catch (error: any) {
       console.error('Error guardando KML:', error);
+      const alert = await this.alertCtrl.create({
+        header: 'Error',
+        message: 'No se pudo guardar el archivo KML: ' + error.message,
+        buttons: ['OK']
+      });
+      await alert.present();
     }
   }
 
