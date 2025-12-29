@@ -38,34 +38,18 @@ export class CameraService {
 
   private takeWebPhoto(): Promise<CapturedPhoto> {
     return new Promise((resolve, reject) => {
-      // Limpiar cualquier input anterior que pueda haber quedado
-      const oldInputs = document.querySelectorAll('input[data-camera-input="true"]');
-      oldInputs.forEach(el => el.remove());
-
-      // Create fresh input each time
+      // Create fresh input each time to avoid issues
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = 'image/*';
       fileInput.capture = 'environment';
       fileInput.style.display = 'none';
-      fileInput.setAttribute('data-camera-input', 'true');
       document.body.appendChild(fileInput);
 
-      let handled = false;
-
-      const cleanup = () => {
-        if (fileInput.parentNode) {
-          fileInput.remove();
-        }
-      };
-
       // Handle file selection
-      const handleChange = async () => {
-        if (handled) return;
-        handled = true;
-
+      fileInput.addEventListener('change', async () => {
         const file = fileInput.files?.[0];
-        cleanup();
+        document.body.removeChild(fileInput);
 
         if (!file) {
           reject(new Error('No se selecciono ninguna imagen'));
@@ -85,25 +69,13 @@ export class CameraService {
         } catch (error) {
           reject(error);
         }
-      };
+      });
 
-      // Handle cancel
-      const handleCancel = () => {
-        if (handled) return;
-        handled = true;
-        cleanup();
+      // Handle cancel - use a timeout to detect if no file was selected
+      fileInput.addEventListener('cancel', () => {
+        document.body.removeChild(fileInput);
         reject(new Error('Captura cancelada'));
-      };
-
-      fileInput.addEventListener('change', handleChange);
-      fileInput.addEventListener('cancel', handleCancel);
-
-      // Timeout de seguridad para limpiar si algo falla
-      setTimeout(() => {
-        if (!handled) {
-          cleanup();
-        }
-      }, 60000); // 1 minuto
+      });
 
       // Trigger the file picker
       fileInput.click();
