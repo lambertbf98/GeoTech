@@ -363,7 +363,8 @@ export class ReportService {
             ${photo.latitude && photo.longitude ? `<p class="coords">${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}</p>` : ''}
             ${photo.location ? `<p>${this.escapeHtml(photo.location)}</p>` : ''}
             ${photo.timestamp ? `<p>${this.formatDateTime(photo.timestamp)}</p>` : ''}
-            ${photo.aiDescription ? `<div class="ai-desc">${this.escapeHtml(photo.aiDescription)}</div>` : ''}
+            ${photo.description ? `<div style="background:#e8ffe8; padding:8px; border-radius:4px; margin-top:8px;"><strong>Notas:</strong> ${this.escapeHtml(photo.description)}</div>` : ''}
+            ${photo.aiDescription ? `<div class="ai-desc"><strong>IA:</strong> ${this.escapeHtml(photo.aiDescription)}</div>` : ''}
           </div>
         </div>
         `;

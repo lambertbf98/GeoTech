@@ -620,10 +620,13 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
       await this.saveProject();
       this.renderProjectElements();
-      this.showToast('Foto guardada correctamente', 'success');
+      // Sin toast - el usuario ve el cambio visual en el marcador
     } catch (error: any) {
       console.error('Error procesando foto:', error);
-      this.showToast('Error: ' + (error?.message || error), 'danger');
+      // Solo mostrar error si es crítico
+      if (error?.message?.includes('cuota') || error?.message?.includes('quota')) {
+        this.showToast('Sin espacio. Elimina fotos antiguas.', 'warning');
+      }
     } finally {
       this.pendingPhotoMarkerId = null;
       input.value = ''; // Reset para próximo uso
@@ -1525,12 +1528,11 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         }
       }
 
-      // Fallback a almacenamiento local (sin imágenes embebidas para evitar quota)
-      const reportWithoutImages = this.reportPreviewRawHtml.replace(/data:image\/[^;]+;base64,[^"']+/g, '');
+      // Guardar localmente con imágenes (IndexedDB tiene espacio suficiente)
       const report = {
         id: `report_${Date.now()}`,
         name: reportName,
-        htmlContent: reportWithoutImages,
+        htmlContent: this.reportPreviewRawHtml,
         createdAt: now.toISOString()
       };
 
