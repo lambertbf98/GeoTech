@@ -506,9 +506,18 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     this.renderProjectElements();
   }
 
-  async takePhotoForMarker(marker: ProjectMarker) {
+  // Método que recibe el ID y busca el marcador actualizado
+  async takePhotoForMarkerId(markerId: string) {
+    const marker = this.project?.markers?.find(m => m.id === markerId);
+    if (!marker) {
+      console.error('Marcador no encontrado:', markerId);
+      return;
+    }
+
     try {
+      console.log('Abriendo cámara para marcador:', marker.name);
       const photoData = await this.cameraService.takePhoto();
+      console.log('Foto capturada:', photoData ? 'OK' : 'null');
 
       if (photoData && this.project) {
         // Guardar base64 para persistencia
@@ -529,11 +538,12 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         await this.storageService.savePhoto(photo);
         this.photos.push(photo);
 
-        // Buscar el marcador en el proyecto y actualizar sus photoIds
-        const projectMarker = this.project.markers?.find(m => m.id === marker.id);
+        // Buscar el marcador de nuevo para asegurar la última versión
+        const projectMarker = this.project.markers?.find(m => m.id === markerId);
         if (projectMarker) {
           projectMarker.photoIds = projectMarker.photoIds || [];
           projectMarker.photoIds.push(photo.id);
+          console.log('Foto añadida al marcador. Total fotos:', projectMarker.photoIds.length);
         }
 
         await this.saveProject();
@@ -542,6 +552,11 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     } catch (error: any) {
       console.error('Error tomando foto:', error);
     }
+  }
+
+  // Mantener el método anterior para compatibilidad
+  async takePhotoForMarker(marker: ProjectMarker) {
+    await this.takePhotoForMarkerId(marker.id);
   }
 
   private addMarkerToMap(marker: ProjectMarker) {
@@ -597,8 +612,8 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       text: 'Tomar foto',
       icon: 'camera-outline',
       handler: () => {
-        const m = this.project?.markers?.find(x => x.id === markerId);
-        if (m) this.takePhotoForMarker(m);
+        // Llamar directamente con el ID, sin buscar de nuevo
+        this.takePhotoForMarkerId(markerId);
       }
     });
 
