@@ -1652,9 +1652,9 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       const kmlContent = this.kmlService.generateKml(exportData);
 
       const now = new Date();
-      const dateStr = now.toLocaleDateString('es-ES').replace(/\//g, '-');
-      const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/:/g, '-');
-      const kmlName = `${this.project.name}_${dateStr}_${timeStr}`;
+      const dateStr = now.toLocaleDateString('es-ES');
+      const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const kmlName = `Informe KML ${dateStr} ${timeStr}`;
 
       console.log('Guardando KML:', kmlName);
 
