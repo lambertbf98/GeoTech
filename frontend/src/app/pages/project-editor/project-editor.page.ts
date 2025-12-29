@@ -630,15 +630,48 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     }
   }
 
-  // Convertir File a base64
+  // Convertir File a base64 CON COMPRESIÓN para no exceder cuota de almacenamiento
   private fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      img.onload = () => {
+        // Redimensionar a máximo 800px manteniendo proporción
+        const maxSize = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxSize) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        // Comprimir a JPEG con calidad 0.6 (60%)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        const base64 = dataUrl.split(',')[1];
+        resolve(base64);
+      };
+
+      img.onerror = reject;
+
+      // Leer archivo como URL para la imagen
       const reader = new FileReader();
       reader.onerror = reject;
       reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1];
-        resolve(base64);
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
     });
