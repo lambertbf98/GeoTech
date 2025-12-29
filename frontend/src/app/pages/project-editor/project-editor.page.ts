@@ -1373,14 +1373,15 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const reportName = `Informe PDD ${dateStr} ${timeStr}`;
 
-      console.log('Guardando informe en la nube:', reportName);
-
-      // Intentar guardar en la nube primero
+      // Intentar guardar en la nube si hay sesión
       const token = localStorage.getItem('token');
-      if (token && this.project.serverId) {
+      const projectId = this.project.serverId || this.project.id;
+
+      if (token) {
         try {
+          console.log('Guardando informe en la nube:', reportName);
           await firstValueFrom(this.apiService.createReport(
-            this.project.serverId,
+            projectId,
             reportName,
             this.reportPreviewRawHtml
           ));
@@ -1388,16 +1389,8 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
 
           const alert = await this.alertCtrl.create({
             header: 'Informe guardado',
-            message: `El informe "${reportName}" se ha guardado en la nube.`,
-            buttons: [
-              {
-                text: 'Descargar copia',
-                handler: () => {
-                  this.downloadReportAsHtml(reportName, this.reportPreviewRawHtml);
-                }
-              },
-              { text: 'OK' }
-            ]
+            message: `El informe "${reportName}" se ha guardado correctamente.`,
+            buttons: ['OK']
           });
           await alert.present();
           this.closeReportPreview();
@@ -1424,16 +1417,8 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
 
       const alert = await this.alertCtrl.create({
         header: 'Informe guardado',
-        message: `El informe "${reportName}" se ha guardado localmente. Para guardarlo con imágenes, inicia sesión.`,
-        buttons: [
-          {
-            text: 'Descargar completo',
-            handler: () => {
-              this.downloadReportAsHtml(reportName, this.reportPreviewRawHtml);
-            }
-          },
-          { text: 'OK' }
-        ]
+        message: `El informe "${reportName}" se ha guardado correctamente.`,
+        buttons: ['OK']
       });
       await alert.present();
       this.closeReportPreview();
@@ -1500,12 +1485,14 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
 
       console.log('Guardando KML:', kmlName);
 
-      // Intentar guardar en la nube primero
+      // Intentar guardar en la nube si hay sesión
       const token = localStorage.getItem('token');
-      if (token && this.project.serverId) {
+      const projectId = this.project.serverId || this.project.id;
+
+      if (token) {
         try {
           await firstValueFrom(this.apiService.createKml(
-            this.project.serverId,
+            projectId,
             kmlName,
             kmlContent
           ));
@@ -1513,16 +1500,8 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
 
           const alert = await this.alertCtrl.create({
             header: 'Archivo KML guardado',
-            message: `El archivo "${kmlName}.kml" se ha guardado en la nube.`,
-            buttons: [
-              {
-                text: 'Descargar copia',
-                handler: () => {
-                  this.downloadKmlFile(kmlName, kmlContent);
-                }
-              },
-              { text: 'OK' }
-            ]
+            message: `El archivo "${kmlName}.kml" se ha guardado correctamente.`,
+            buttons: ['OK']
           });
           await alert.present();
           return;
@@ -1547,16 +1526,8 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
 
       const alert = await this.alertCtrl.create({
         header: 'Archivo KML guardado',
-        message: `El archivo "${kmlName}.kml" se ha guardado localmente.`,
-        buttons: [
-          {
-            text: 'Descargar',
-            handler: () => {
-              this.downloadKmlFile(kmlName, kmlContent);
-            }
-          },
-          { text: 'OK' }
-        ]
+        message: `El archivo "${kmlName}.kml" se ha guardado correctamente.`,
+        buttons: ['OK']
       });
       await alert.present();
 
