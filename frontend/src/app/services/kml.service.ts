@@ -49,7 +49,14 @@ export interface ProjectExportData {
   markers?: {
     name: string;
     description?: string;
+    aiDescription?: string;
     coordinate: { lat: number; lng: number };
+    photos?: {
+      id: string;
+      base64?: string;
+      notes?: string;
+      aiDescription?: string;
+    }[];
   }[];
   measurements?: {
     type: 'distance' | 'area';
@@ -277,10 +284,54 @@ export class KmlService {
       <name>Puntos de interés</name>
 `;
       data.markers.forEach((marker, index) => {
-        const description = marker.description || '';
+        // Build rich description with photos, notes and AI descriptions
+        let descriptionHtml = '';
+
+        // Marker description
+        if (marker.description) {
+          descriptionHtml += `<p><strong>Descripcion:</strong> ${this.escapeXml(marker.description)}</p>`;
+        }
+
+        // AI description at marker level
+        if (marker.aiDescription) {
+          descriptionHtml += `<div style="background:#e3f2fd;padding:8px;border-radius:4px;margin:8px 0;">
+            <strong>Analisis IA:</strong><br/>${this.escapeXml(marker.aiDescription)}
+          </div>`;
+        }
+
+        // Photos with their notes and AI descriptions
+        if (marker.photos && marker.photos.length > 0) {
+          descriptionHtml += `<hr/><h4>Fotos (${marker.photos.length}):</h4>`;
+          marker.photos.forEach((photo, photoIndex) => {
+            descriptionHtml += `<div style="margin:10px 0;padding:10px;border:1px solid #ddd;border-radius:8px;">`;
+
+            // Photo image
+            if (photo.base64) {
+              const imgSrc = photo.base64.startsWith('data:') ? photo.base64 : `data:image/jpeg;base64,${photo.base64}`;
+              descriptionHtml += `<img src="${imgSrc}" style="max-width:400px;max-height:300px;border-radius:4px;"/><br/>`;
+            }
+
+            // Photo notes
+            if (photo.notes) {
+              descriptionHtml += `<p style="background:#e8ffe8;padding:6px;border-radius:4px;margin:6px 0;">
+                <strong>Notas:</strong> ${this.escapeXml(photo.notes)}
+              </p>`;
+            }
+
+            // Photo AI description
+            if (photo.aiDescription) {
+              descriptionHtml += `<p style="background:#fff3e0;padding:6px;border-radius:4px;margin:6px 0;">
+                <strong>Analisis IA:</strong> ${this.escapeXml(photo.aiDescription)}
+              </p>`;
+            }
+
+            descriptionHtml += `</div>`;
+          });
+        }
+
         kml += `      <Placemark>
         <name>${this.escapeXml(marker.name || `Punto ${index + 1}`)}</name>
-        <description><![CDATA[${this.escapeXml(description)}]]></description>
+        <description><![CDATA[${descriptionHtml}]]></description>
         <styleUrl>#markerStyle</styleUrl>
         <Point>
           <coordinates>${marker.coordinate.lng},${marker.coordinate.lat},0</coordinates>

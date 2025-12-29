@@ -1597,7 +1597,29 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         })),
         zones: this.project.zones?.map(z => ({ name: z.name, description: z.description, coordinates: z.coordinates })),
         paths: this.project.paths?.map(p => ({ name: p.name, description: p.description, coordinates: p.coordinates })),
-        markers: this.project.markers?.map(m => ({ name: m.name, description: m.description, coordinate: m.coordinate }))
+        markers: this.project.markers?.map(m => {
+          // Get photos associated with this marker
+          const markerPhotos = m.photoIds?.map(photoId => {
+            const photo = this.photos.find(p => p.id === photoId);
+            if (photo) {
+              return {
+                id: photo.id,
+                base64: photo.imageUrl || photo.localPath || '',
+                notes: photo.notes,
+                aiDescription: photo.aiDescription
+              };
+            }
+            return null;
+          }).filter(p => p !== null) || [];
+
+          return {
+            name: m.name,
+            description: m.description,
+            aiDescription: m.aiDescription,
+            coordinate: m.coordinate,
+            photos: markerPhotos
+          };
+        })
       };
 
       console.log('Generando KML...', exportData);

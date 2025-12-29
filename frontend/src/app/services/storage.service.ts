@@ -2,26 +2,27 @@ import { Injectable } from '@angular/core';
 import { Preferences } from '@capacitor/preferences';
 import { Project, Photo, SyncQueueItem, Measurement } from '../models';
 
-// IndexedDB para fotos (más espacio que localStorage)
+// IndexedDB para todo el almacenamiento grande
 const DB_NAME = 'geotech_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incrementar versión para agregar stores
 const PHOTOS_STORE = 'photos';
+const PROJECTS_STORE = 'projects';
 
 @Injectable({
   providedIn: 'root'
 })
 export class StorageService {
-  private readonly PROJECTS_KEY = 'geotech_projects';
   private readonly SYNC_QUEUE_KEY = 'geotech_sync_queue';
   private readonly MEASUREMENTS_KEY = 'geotech_measurements';
 
   private db: IDBDatabase | null = null;
+  private dbReady: Promise<IDBDatabase> | null = null;
 
   constructor() {
-    this.initIndexedDB();
+    this.dbReady = this.initIndexedDB();
   }
 
-  // ========== INDEXED DB PARA FOTOS ==========
+  // ========== INDEXED DB ==========
   private async initIndexedDB(): Promise<IDBDatabase> {
     if (this.db) return this.db;
 
@@ -41,10 +42,15 @@ export class StorageService {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        // Crear store para fotos si no existe
+        // Store para fotos
         if (!db.objectStoreNames.contains(PHOTOS_STORE)) {
-          const store = db.createObjectStore(PHOTOS_STORE, { keyPath: 'id' });
-          store.createIndex('projectId', 'projectId', { unique: false });
+          const photosStore = db.createObjectStore(PHOTOS_STORE, { keyPath: 'id' });
+          photosStore.createIndex('projectId', 'projectId', { unique: false });
+        }
+
+        // Store para proyectos (nuevo en v2)
+        if (!db.objectStoreNames.contains(PROJECTS_STORE)) {
+          db.createObjectStore(PROJECTS_STORE, { keyPath: 'id' });
         }
       };
     });
@@ -52,57 +58,105 @@ export class StorageService {
 
   private async getDB(): Promise<IDBDatabase> {
     if (this.db) return this.db;
+    if (this.dbReady) return this.dbReady;
     return this.initIndexedDB();
   }
 
-  // ========== PROJECTS (Preferences - son pequeños) ==========
+  // ========== PROJECTS (IndexedDB) ==========
   async getProjects(): Promise<Project[]> {
-    const { value } = await Preferences.get({ key: this.PROJECTS_KEY });
+    try {
+      const db = await this.getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([PROJECTS_STORE], 'readonly');
+        const store = transaction.objectStore(PROJECTS_STORE);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('Error getting projects from IndexedDB:', error);
+      // Fallback a Preferences
+      return this.getProjectsFromPreferences();
+    }
+  }
+
+  private async getProjectsFromPreferences(): Promise<Project[]> {
+    const { value } = await Preferences.get({ key: 'geotech_projects' });
     return value ? JSON.parse(value) : [];
   }
 
   async setProjects(projects: Project[]): Promise<void> {
-    await Preferences.set({
-      key: this.PROJECTS_KEY,
-      value: JSON.stringify(projects)
-    });
+    try {
+      const db = await this.getDB();
+      const transaction = db.transaction([PROJECTS_STORE], 'readwrite');
+      const store = transaction.objectStore(PROJECTS_STORE);
+
+      // Limpiar y re-agregar todos
+      store.clear();
+      for (const project of projects) {
+        store.put(project);
+      }
+    } catch (error) {
+      console.error('Error setting projects:', error);
+    }
   }
 
   async saveProject(project: Project): Promise<void> {
-    const projects = await this.getProjects();
-    const index = projects.findIndex(p => p.id === project.id);
-    if (index >= 0) {
-      projects[index] = project;
-    } else {
-      projects.push(project);
+    try {
+      const db = await this.getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([PROJECTS_STORE], 'readwrite');
+        const store = transaction.objectStore(PROJECTS_STORE);
+        const request = store.put(project);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('Error saving project:', error);
+      throw error;
     }
-    await Preferences.set({
-      key: this.PROJECTS_KEY,
-      value: JSON.stringify(projects)
-    });
   }
 
   async deleteProject(projectId: string): Promise<void> {
-    const projects = await this.getProjects();
-    const filtered = projects.filter(p => p.id !== projectId);
-    await Preferences.set({
-      key: this.PROJECTS_KEY,
-      value: JSON.stringify(filtered)
-    });
+    try {
+      const db = await this.getDB();
 
-    // Eliminar fotos del proyecto de IndexedDB
-    const photos = await this.getPhotos(projectId);
-    for (const photo of photos) {
-      await this.deletePhoto(photo.id);
+      // Eliminar proyecto
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction([PROJECTS_STORE], 'readwrite');
+        const store = transaction.objectStore(PROJECTS_STORE);
+        const request = store.delete(projectId);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+
+      // Eliminar fotos del proyecto
+      const photos = await this.getPhotos(projectId);
+      for (const photo of photos) {
+        await this.deletePhoto(photo.id);
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
     }
   }
 
   async getProject(projectId: string): Promise<Project | undefined> {
-    const projects = await this.getProjects();
-    return projects.find(p => p.id === projectId);
+    try {
+      const db = await this.getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([PROJECTS_STORE], 'readonly');
+        const store = transaction.objectStore(PROJECTS_STORE);
+        const request = store.get(projectId);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('Error getting project:', error);
+      return undefined;
+    }
   }
 
-  // ========== PHOTOS (IndexedDB - más espacio) ==========
+  // ========== PHOTOS (IndexedDB) ==========
   async getPhotos(projectId?: string): Promise<Photo[]> {
     try {
       const db = await this.getDB();
@@ -123,20 +177,9 @@ export class StorageService {
         }
       });
     } catch (error) {
-      console.error('Error getting photos from IndexedDB:', error);
-      // Fallback a Preferences si IndexedDB falla
-      return this.getPhotosFromPreferences(projectId);
+      console.error('Error getting photos:', error);
+      return [];
     }
-  }
-
-  // Fallback para compatibilidad
-  private async getPhotosFromPreferences(projectId?: string): Promise<Photo[]> {
-    const { value } = await Preferences.get({ key: 'geotech_photos' });
-    const photos: Photo[] = value ? JSON.parse(value) : [];
-    if (projectId) {
-      return photos.filter(p => p.projectId === projectId);
-    }
-    return photos;
   }
 
   async savePhoto(photo: Photo): Promise<void> {
@@ -181,7 +224,7 @@ export class StorageService {
         request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Error deleting photo from IndexedDB:', error);
+      console.error('Error deleting photo:', error);
     }
   }
 
@@ -198,12 +241,12 @@ export class StorageService {
         request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Error getting photo from IndexedDB:', error);
+      console.error('Error getting photo:', error);
       return undefined;
     }
   }
 
-  // ========== SYNC QUEUE ==========
+  // ========== SYNC QUEUE (pequeño, usa Preferences) ==========
   async getSyncQueue(): Promise<SyncQueueItem[]> {
     const { value } = await Preferences.get({ key: this.SYNC_QUEUE_KEY });
     return value ? JSON.parse(value) : [];
@@ -257,12 +300,11 @@ export class StorageService {
 
   async clearAll(): Promise<void> {
     await Preferences.clear();
-    // También limpiar IndexedDB
     try {
       const db = await this.getDB();
-      const transaction = db.transaction([PHOTOS_STORE], 'readwrite');
-      const store = transaction.objectStore(PHOTOS_STORE);
-      store.clear();
+      const transaction = db.transaction([PHOTOS_STORE, PROJECTS_STORE], 'readwrite');
+      transaction.objectStore(PHOTOS_STORE).clear();
+      transaction.objectStore(PROJECTS_STORE).clear();
     } catch (error) {
       console.error('Error clearing IndexedDB:', error);
     }
@@ -272,7 +314,7 @@ export class StorageService {
     await this.clearAll();
   }
 
-  // ========== MEASUREMENTS ==========
+  // ========== MEASUREMENTS (pequeño, usa Preferences) ==========
   async getMeasurements(): Promise<Measurement[]> {
     const { value } = await Preferences.get({ key: this.MEASUREMENTS_KEY });
     return value ? JSON.parse(value) : [];
@@ -308,26 +350,36 @@ export class StorageService {
     });
   }
 
-  // ========== MIGRACIÓN DE FOTOS ANTIGUAS ==========
-  async migratePhotosToIndexedDB(): Promise<void> {
+  // ========== MIGRACIÓN DE DATOS ANTIGUOS ==========
+  async migrateToIndexedDB(): Promise<void> {
     try {
-      // Obtener fotos del localStorage antiguo
-      const { value } = await Preferences.get({ key: 'geotech_photos' });
-      if (!value) return;
-
-      const oldPhotos: Photo[] = JSON.parse(value);
-      if (oldPhotos.length === 0) return;
-
-      console.log(`Migrando ${oldPhotos.length} fotos a IndexedDB...`);
-
-      // Guardar cada foto en IndexedDB
-      for (const photo of oldPhotos) {
-        await this.savePhoto(photo);
+      // Migrar proyectos de localStorage a IndexedDB
+      const { value: projectsValue } = await Preferences.get({ key: 'geotech_projects' });
+      if (projectsValue) {
+        const oldProjects: Project[] = JSON.parse(projectsValue);
+        if (oldProjects.length > 0) {
+          console.log(`Migrando ${oldProjects.length} proyectos a IndexedDB...`);
+          for (const project of oldProjects) {
+            await this.saveProject(project);
+          }
+          await Preferences.remove({ key: 'geotech_projects' });
+          console.log('Proyectos migrados');
+        }
       }
 
-      // Limpiar las fotos del localStorage
-      await Preferences.remove({ key: 'geotech_photos' });
-      console.log('Migración completada');
+      // Migrar fotos de localStorage a IndexedDB
+      const { value: photosValue } = await Preferences.get({ key: 'geotech_photos' });
+      if (photosValue) {
+        const oldPhotos: Photo[] = JSON.parse(photosValue);
+        if (oldPhotos.length > 0) {
+          console.log(`Migrando ${oldPhotos.length} fotos a IndexedDB...`);
+          for (const photo of oldPhotos) {
+            await this.savePhoto(photo);
+          }
+          await Preferences.remove({ key: 'geotech_photos' });
+          console.log('Fotos migradas');
+        }
+      }
     } catch (error) {
       console.error('Error durante migración:', error);
     }

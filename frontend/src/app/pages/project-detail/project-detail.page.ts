@@ -395,7 +395,18 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
             const [lng, lat] = coords.split(',').map(Number);
             if (!isNaN(lat) && !isNaN(lng)) {
               const marker = L.marker([lat, lng]).addTo(this.kmlMap!);
-              marker.bindPopup(`<strong>${name}</strong><br>${description}`);
+              // Create rich popup with scrollable content for photos
+              const popupContent = `
+                <div style="max-width:350px;max-height:400px;overflow-y:auto;">
+                  <h3 style="margin:0 0 8px 0;font-size:16px;">${name}</h3>
+                  ${description}
+                </div>
+              `;
+              marker.bindPopup(popupContent, {
+                maxWidth: 400,
+                maxHeight: 450,
+                className: 'kml-rich-popup'
+              });
               bounds.extend([lat, lng]);
             }
           }
