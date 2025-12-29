@@ -617,9 +617,24 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     buttons.push({
       text: 'Tomar foto',
       icon: 'camera-outline',
-      handler: () => {
-        // Llamar directamente con el ID, sin buscar de nuevo
-        this.takePhotoForMarkerId(markerId);
+      handler: async () => {
+        // Cerrar el action sheet y luego abrir cámara
+        // Usamos un alert intermedio para mantener el user gesture context
+        const confirmAlert = await this.alertCtrl.create({
+          header: 'Capturar foto',
+          message: `Tomar foto para "${marker.name}"`,
+          buttons: [
+            { text: 'Cancelar', role: 'cancel' },
+            {
+              text: 'Abrir cámara',
+              handler: () => {
+                this.takePhotoForMarkerId(markerId);
+              }
+            }
+          ]
+        });
+        await confirmAlert.present();
+        return true;
       }
     });
 
