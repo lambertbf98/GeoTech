@@ -48,7 +48,7 @@ export class TabsPage implements OnInit, OnDestroy {
   }
 
   async checkLicense() {
-    if (this.authService.isAuthenticated()) {
+    if (this.authService.isAuthenticated) {
       await this.licenseService.checkLicenseStatus();
     }
   }
