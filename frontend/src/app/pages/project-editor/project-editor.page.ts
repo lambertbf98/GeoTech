@@ -187,14 +187,38 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
             await this.storageService.savePhoto(newPhoto);
             this.photos.push(newPhoto);
+            localByServerId.set(sp.id, newPhoto);
             hasNewPhotos = true;
             console.log('Foto descargada del servidor:', sp.id);
           }
         }
 
+        // Resolver serverPhotoIds a photoIds locales en los marcadores
+        if (this.project.markers) {
+          let markersUpdated = false;
+          for (const marker of this.project.markers) {
+            if (marker.serverPhotoIds && marker.serverPhotoIds.length > 0) {
+              const resolvedPhotoIds: string[] = [];
+              for (const serverPhotoId of marker.serverPhotoIds) {
+                const localPhoto = localByServerId.get(serverPhotoId);
+                if (localPhoto) {
+                  resolvedPhotoIds.push(localPhoto.id);
+                }
+              }
+              // Actualizar photoIds locales
+              if (resolvedPhotoIds.length > 0) {
+                marker.photoIds = resolvedPhotoIds;
+                markersUpdated = true;
+              }
+            }
+          }
+          if (markersUpdated) {
+            await this.saveProject();
+          }
+        }
+
         if (hasNewPhotos) {
           this.renderProjectElements();
-          this.showToast('Fotos sincronizadas', 'success');
         }
       }
     } catch (e: any) {
@@ -757,13 +781,10 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
       // Subir a la nube en background si hay serverId del proyecto
       if (this.project.serverId) {
-        this.uploadPhotoToCloud(photo, base64Image);
+        this.uploadPhotoToCloud(photo, base64Image, markerId);
       }
     } catch (error: any) {
       console.error('Error procesando foto:', error);
-      if (error?.message?.includes('cuota') || error?.message?.includes('quota')) {
-        this.showToast('Sin espacio. Elimina fotos antiguas.', 'warning');
-      }
     } finally {
       this.pendingPhotoMarkerId = null;
       input.value = '';
@@ -771,7 +792,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   // Subir foto a la nube (Cloudinary)
-  private async uploadPhotoToCloud(photo: Photo, base64Image: string) {
+  private async uploadPhotoToCloud(photo: Photo, base64Image: string, markerId?: string) {
     if (!this.project?.serverId) return;
 
     try {
@@ -797,11 +818,22 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         const index = this.photos.findIndex(p => p.id === photo.id);
         if (index >= 0) this.photos[index] = photo;
 
+        // Actualizar serverPhotoIds en el marcador si existe
+        if (markerId && this.project.markers && photo.serverId) {
+          const marker = this.project.markers.find(m => m.id === markerId);
+          if (marker) {
+            marker.serverPhotoIds = marker.serverPhotoIds || [];
+            if (!marker.serverPhotoIds.includes(photo.serverId)) {
+              marker.serverPhotoIds.push(photo.serverId);
+              await this.saveProject();
+            }
+          }
+        }
+
         console.log('Foto subida a la nube:', response.photo.imageUrl);
       }
     } catch (e: any) {
       console.log('Error subiendo foto a la nube:', e?.message);
-      // La foto sigue guardada localmente, se puede reintentar después
     }
   }
 

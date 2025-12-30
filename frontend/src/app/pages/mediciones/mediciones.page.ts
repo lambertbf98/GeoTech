@@ -84,7 +84,6 @@ export class MedicionesPage implements OnInit {
   async deleteMeasurement(measurement: Measurement) {
     await this.storageService.deleteMeasurement(measurement.id);
     await this.loadMeasurements();
-    this.showToast('Medición eliminada', 'success');
   }
 
   async clearAll() {
@@ -102,7 +101,6 @@ export class MedicionesPage implements OnInit {
             setTimeout(async () => {
               await this.storageService.clearMeasurements();
               await this.loadMeasurements();
-              this.showToast('Todas las mediciones eliminadas', 'success');
             }, 100);
           }
         }

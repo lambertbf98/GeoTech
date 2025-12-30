@@ -135,13 +135,6 @@ export class ProjectsPage implements OnInit {
         // Guardar si hubo cambios
         if (hasChanges) {
           await this.storageService.setProjects(localProjects);
-          const toast = await this.toastCtrl.create({
-            message: 'Proyectos sincronizados',
-            duration: 2000,
-            position: 'top',
-            color: 'success'
-          });
-          await toast.present();
         }
 
         // Sincronizar proyectos pendientes
@@ -301,23 +294,9 @@ export class ProjectsPage implements OnInit {
     // Eliminar localmente
     this.projects = this.projects.filter(p => p.id !== project.id);
     await this.storageService.deleteProject(project.id);
-
-    const toast = await this.toastCtrl.create({
-      message: 'Proyecto eliminado',
-      duration: 2000,
-      position: 'top',
-      color: 'success'
-    });
-    await toast.present();
   }
 
   async forceSync() {
-    const toast = await this.toastCtrl.create({
-      message: 'Sincronizando proyectos...',
-      duration: 1500,
-      position: 'top'
-    });
-    await toast.present();
     await this.loadProjects();
   }
 

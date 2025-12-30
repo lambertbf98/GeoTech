@@ -26,7 +26,8 @@ export interface ProjectMarker {
   name: string;
   description?: string;
   coordinate: GeoPoint;
-  photoIds?: string[];
+  photoIds?: string[];        // IDs locales de fotos
+  serverPhotoIds?: string[];  // IDs de fotos en el servidor (para sincronización entre dispositivos)
   aiDescription?: string;
   order?: number; // Número de orden del punto (1, 2, 3...)
   createdAt: string;
