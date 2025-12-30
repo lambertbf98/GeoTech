@@ -6,8 +6,11 @@ import bcrypt from 'bcryptjs';
 const router = Router();
 const prisma = new PrismaClient();
 
-// Email del administrador
-const ADMIN_EMAIL = 'gfmemorieswork@gmail.com';
+// Emails de administradores
+const ADMIN_EMAILS = [
+  'gfmemorieswork@gmail.com',
+  'lambertborrego1998@gmail.com'
+];
 
 // GET /api/setup/init - Inicializar sistema de licencias (solo funciona una vez)
 router.get('/init', async (req: Request, res: Response) => {
@@ -34,33 +37,35 @@ router.get('/init', async (req: Request, res: Response) => {
       results.push(`Tipos de licencia ya existentes: ${existingTypes}`);
     }
 
-    // 2. Configurar usuario admin
-    const existingUser = await prisma.user.findUnique({
-      where: { email: ADMIN_EMAIL }
-    });
-
-    if (existingUser) {
-      if (!existingUser.isAdmin) {
-        await prisma.user.update({
-          where: { email: ADMIN_EMAIL },
-          data: { isAdmin: true }
-        });
-        results.push(`Usuario ${ADMIN_EMAIL} actualizado como administrador`);
-      } else {
-        results.push(`Usuario ${ADMIN_EMAIL} ya es administrador`);
-      }
-    } else {
-      const passwordHash = await bcrypt.hash('Admin123!', 10);
-      await prisma.user.create({
-        data: {
-          email: ADMIN_EMAIL,
-          passwordHash,
-          name: 'Administrador',
-          isAdmin: true
-        }
+    // 2. Configurar usuarios admin
+    for (const adminEmail of ADMIN_EMAILS) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: adminEmail }
       });
-      results.push(`Usuario admin creado: ${ADMIN_EMAIL}`);
-      results.push(`Password temporal: Admin123! (CAMBIALA EN /admin)`);
+
+      if (existingUser) {
+        if (!existingUser.isAdmin) {
+          await prisma.user.update({
+            where: { email: adminEmail },
+            data: { isAdmin: true }
+          });
+          results.push(`Usuario ${adminEmail} actualizado como administrador`);
+        } else {
+          results.push(`Usuario ${adminEmail} ya es administrador`);
+        }
+      } else {
+        const passwordHash = await bcrypt.hash('Admin123!', 10);
+        await prisma.user.create({
+          data: {
+            email: adminEmail,
+            passwordHash,
+            name: 'Administrador',
+            isAdmin: true
+          }
+        });
+        results.push(`Usuario admin creado: ${adminEmail}`);
+        results.push(`Password temporal: Admin123! (CAMBIALA EN /admin)`);
+      }
     }
 
     res.json({
@@ -68,7 +73,7 @@ router.get('/init', async (req: Request, res: Response) => {
       message: 'Sistema inicializado correctamente',
       results,
       adminPanel: '/admin',
-      adminEmail: ADMIN_EMAIL
+      adminEmails: ADMIN_EMAILS
     });
   } catch (error: any) {
     console.error('Setup error:', error);
@@ -89,12 +94,64 @@ router.get('/status', async (req: Request, res: Response) => {
       prisma.license.count()
     ]);
 
+    // Listar admins
+    const admins = await prisma.user.findMany({
+      where: { isAdmin: true },
+      select: { email: true, name: true, isAdmin: true }
+    });
+
     res.json({
       initialized: licenseTypes > 0,
       licenseTypes,
       totalUsers,
       adminUsers,
-      totalLicenses
+      totalLicenses,
+      admins
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/setup/check-user/:email - Verificar estado de un usuario
+router.get('/check-user/:email', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.params;
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, name: true, isAdmin: true, createdAt: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    res.json(user);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/setup/force-admin/:email - Forzar admin para un email
+router.get('/force-admin/:email', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.params;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado. Primero debe registrarse.' });
+    }
+
+    await prisma.user.update({
+      where: { email },
+      data: { isAdmin: true }
+    });
+
+    res.json({
+      success: true,
+      message: `Usuario ${email} ahora es administrador`,
+      user: { email, isAdmin: true }
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
