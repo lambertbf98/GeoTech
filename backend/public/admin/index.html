@@ -785,21 +785,31 @@
       try {
         const data = await apiCall(`/licenses/admin/all?page=${page}&limit=10`);
         const tbody = document.getElementById('licensesTable');
-        tbody.innerHTML = data.licenses.map(l => `
+        const now = new Date();
+        tbody.innerHTML = data.licenses.map(l => {
+          const expired = new Date(l.expiresAt) < now;
+          const actualStatus = expired ? 'expired' : l.status;
+          return `
           <tr>
             <td>
               <span class="license-key">${l.licenseKey}</span>
               <button class="copy-btn" onclick="copyToClipboard('${l.licenseKey}')">Copy</button>
             </td>
-            <td>${l.user?.email || '<em>Sin asignar</em>'}</td>
-            <td>${l.licenseType.name}</td>
-            <td><span class="badge ${l.status}">${l.status}</span></td>
-            <td>${formatDateTime(l.expiresAt)}</td>
             <td>
-              ${l.status === 'active' ? `<button class="action-btn danger" onclick="revokeLicense('${l.id}')">Revocar</button>` : ''}
+              ${l.user?.email || '<em>Sin asignar</em>'}
+              <br><small style="color:#888;">ID: ${l.userId || 'N/A'}</small>
+            </td>
+            <td>${l.licenseType.name}</td>
+            <td><span class="badge ${actualStatus}">${actualStatus}${expired && l.status === 'active' ? ' (expirada)' : ''}</span></td>
+            <td>
+              ${formatDateTime(l.expiresAt)}
+              ${expired ? '<br><small style="color:#e74c3c;">EXPIRADA</small>' : ''}
+            </td>
+            <td>
+              ${l.status === 'active' && !expired ? `<button class="action-btn danger" onclick="revokeLicense('${l.id}')">Revocar</button>` : ''}
             </td>
           </tr>
-        `).join('');
+        `}).join('');
 
         renderPagination('licensesPagination', page, Math.ceil(data.total / 10), loadLicenses);
       } catch (err) {
