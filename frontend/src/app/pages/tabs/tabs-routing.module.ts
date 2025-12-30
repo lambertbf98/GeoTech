@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { TabsPage } from './tabs.page';
+import { LicenseGuard } from '../../guards/license.guard';
 
 const routes: Routes = [
   {
@@ -9,15 +10,18 @@ const routes: Routes = [
     children: [
       {
         path: 'projects',
-        loadChildren: () => import('../projects/projects.module').then(m => m.ProjectsPageModule)
+        loadChildren: () => import('../projects/projects.module').then(m => m.ProjectsPageModule),
+        canActivate: [LicenseGuard]
       },
       {
         path: 'camera',
-        loadChildren: () => import('../camera/camera.module').then(m => m.CameraPageModule)
+        loadChildren: () => import('../camera/camera.module').then(m => m.CameraPageModule),
+        canActivate: [LicenseGuard]
       },
       {
         path: 'catastro',
-        loadChildren: () => import('../catastro/catastro.module').then(m => m.CatastroPageModule)
+        loadChildren: () => import('../catastro/catastro.module').then(m => m.CatastroPageModule),
+        canActivate: [LicenseGuard]
       },
       {
         path: 'settings',
@@ -25,11 +29,12 @@ const routes: Routes = [
       },
       {
         path: 'mediciones',
-        loadChildren: () => import('../mediciones/mediciones.module').then(m => m.MedicionesPageModule)
+        loadChildren: () => import('../mediciones/mediciones.module').then(m => m.MedicionesPageModule),
+        canActivate: [LicenseGuard]
       },
       {
         path: '',
-        redirectTo: 'projects',
+        redirectTo: 'settings',
         pathMatch: 'full'
       }
     ]
