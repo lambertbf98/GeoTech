@@ -305,10 +305,20 @@ export class KmlService {
           marker.photos.forEach((photo, photoIndex) => {
             descriptionHtml += `<div style="margin:10px 0;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:10px;">`;
 
-            // Photo image
+            // Photo image - handle both URLs and base64
             if (photo.base64) {
-              const imgSrc = photo.base64.startsWith('data:') ? photo.base64 : `data:image/jpeg;base64,${photo.base64}`;
-              descriptionHtml += `<img src="${imgSrc}" style="max-width:400px;max-height:300px;border-radius:4px;"/><br/>`;
+              let imgSrc = photo.base64;
+              // Check if it's a URL (http/https or blob)
+              if (imgSrc.startsWith('http://') || imgSrc.startsWith('https://') || imgSrc.startsWith('blob:')) {
+                // It's a URL, use directly
+                descriptionHtml += `<img src="${imgSrc}" style="max-width:400px;max-height:300px;border-radius:4px;"/><br/>`;
+              } else if (imgSrc.startsWith('data:')) {
+                // It's already a data URL
+                descriptionHtml += `<img src="${imgSrc}" style="max-width:400px;max-height:300px;border-radius:4px;"/><br/>`;
+              } else {
+                // Assume it's raw base64
+                descriptionHtml += `<img src="data:image/jpeg;base64,${imgSrc}" style="max-width:400px;max-height:300px;border-radius:4px;"/><br/>`;
+              }
             }
 
             // Photo notes - dark theme
