@@ -389,10 +389,20 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
     this.closePhotoViewer();
 
     try {
-      // 1. Eliminar foto del IndexedDB
+      // 1. Eliminar foto del servidor si tiene serverId
+      if (photoServerId) {
+        try {
+          await firstValueFrom(this.apiService.deleteCloudPhoto(photoServerId));
+          console.log('Foto eliminada del servidor:', photoServerId);
+        } catch (e: any) {
+          console.log('Error eliminando foto del servidor:', e?.message);
+        }
+      }
+
+      // 2. Eliminar foto del IndexedDB
       await this.storageService.deletePhoto(photoId);
 
-      // 2. Eliminar referencia del photoId de los marcadores del proyecto
+      // 3. Eliminar referencia del photoId de los marcadores del proyecto
       if (this.project.markers && this.project.markers.length > 0) {
         let projectUpdated = false;
         for (const marker of this.project.markers) {
@@ -408,13 +418,13 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
           }
         }
 
-        // 3. Guardar el proyecto actualizado
+        // 4. Guardar el proyecto actualizado
         if (projectUpdated) {
           await this.storageService.saveProject(this.project);
         }
       }
 
-      // 4. Eliminar de la lista local de fotos
+      // 5. Eliminar de la lista local de fotos
       this.photos = this.photos.filter(p => p.id !== photoId);
 
     } catch (error) {

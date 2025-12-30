@@ -82,6 +82,21 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     }
   }
 
+  // Recargar datos cada vez que se entra a la página (después de volver de otra vista)
+  async ionViewWillEnter() {
+    const projectId = this.route.snapshot.paramMap.get('id');
+    if (projectId && this.project) {
+      // Recargar fotos desde IndexedDB (por si fueron eliminadas en otra vista)
+      this.photos = await this.storageService.getPhotos(projectId);
+      // También recargar el proyecto para tener markers actualizados
+      const updatedProject = await this.storageService.getProject(projectId);
+      if (updatedProject) {
+        this.project = updatedProject;
+        this.renderProjectElements();
+      }
+    }
+  }
+
   ngOnDestroy() {
     if (this.map) {
       this.map.remove();
@@ -1125,15 +1140,25 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           text: 'Eliminar',
           role: 'destructive',
           handler: async () => {
-            // Eliminar foto del storage
+            // Eliminar foto del servidor si tiene serverId
+            if (photo.serverId) {
+              try {
+                await firstValueFrom(this.apiService.deleteCloudPhoto(photo.serverId));
+              } catch (e) { /* ignorar */ }
+            }
+
+            // Eliminar foto del storage local
             await this.storageService.deletePhoto(photo.id);
             this.photos = this.photos.filter(p => p.id !== photo.id);
 
             // Eliminar referencia del marcador
             if (marker.photoIds) {
               marker.photoIds = marker.photoIds.filter(id => id !== photo.id);
-              await this.saveProject();
             }
+            if (marker.serverPhotoIds && photo.serverId) {
+              marker.serverPhotoIds = marker.serverPhotoIds.filter(id => id !== photo.serverId);
+            }
+            await this.saveProject();
 
             this.renderProjectElements();
           }
@@ -1211,6 +1236,12 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           text: 'Eliminar',
           role: 'destructive',
           handler: async () => {
+            // Eliminar del servidor si tiene serverId
+            if (photo.serverId) {
+              try {
+                await firstValueFrom(this.apiService.deleteCloudPhoto(photo.serverId));
+              } catch (e) { /* ignorar */ }
+            }
             await this.storageService.deletePhoto(photo.id);
             this.photos = this.photos.filter(p => p.id !== photo.id);
             this.renderProjectElements();
@@ -1247,6 +1278,13 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
               // Eliminar fotos asociadas al marcador
               if (markerToDelete?.photoIds && markerToDelete.photoIds.length > 0) {
                 for (const photoId of markerToDelete.photoIds) {
+                  // Buscar la foto para obtener serverId
+                  const photo = this.photos.find(p => p.id === photoId);
+                  if (photo?.serverId) {
+                    try {
+                      await firstValueFrom(this.apiService.deleteCloudPhoto(photo.serverId));
+                    } catch (e) { /* ignorar */ }
+                  }
                   await this.storageService.deletePhoto(photoId);
                   this.photos = this.photos.filter(p => p.id !== photoId);
                 }
