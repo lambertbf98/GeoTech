@@ -45,6 +45,14 @@ export class LicenseService {
 
   // Verificar estado de licencia del usuario
   async checkLicenseStatus(): Promise<LicenseStatus> {
+    // No hacer petición si no hay token guardado
+    const token = localStorage.getItem('token');
+    if (!token) {
+      const noLicense = { hasValidLicense: false, license: null };
+      this.licenseStatusSubject.next(noLicense);
+      return noLicense;
+    }
+
     try {
       const status = await firstValueFrom(
         this.http.get<LicenseStatus>(`${this.apiUrl}/licenses/status`)

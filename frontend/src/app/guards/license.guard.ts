@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, Router, UrlTree } from '@angular/router';
 import { LicenseService } from '../services/license.service';
+import { AuthService } from '../services/auth.service';
 import { AlertController } from '@ionic/angular';
 
 @Injectable({
@@ -9,12 +10,18 @@ import { AlertController } from '@ionic/angular';
 export class LicenseGuard implements CanActivate {
   constructor(
     private licenseService: LicenseService,
+    private authService: AuthService,
     private router: Router,
     private alertController: AlertController
   ) {}
 
   async canActivate(): Promise<boolean | UrlTree> {
-    // Siempre verificar con el servidor para tener el estado actualizado
+    // Si no está autenticado, redirigir al login (no verificar licencia)
+    if (!this.authService.isAuthenticated) {
+      return this.router.createUrlTree(['/auth/login']);
+    }
+
+    // Solo verificar licencia si está autenticado
     try {
       const status = await this.licenseService.checkLicenseStatus();
       if (status.hasValidLicense) {
