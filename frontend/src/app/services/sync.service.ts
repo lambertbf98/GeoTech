@@ -163,12 +163,22 @@ export class SyncService {
         // Para fotos, necesitamos subir el archivo
         const photo = await this.storage.getPhoto(item.entityId);
         if (photo && photo.localPath) {
+          // Obtener el serverId del proyecto
+          const projects = await this.storage.getProjects();
+          const project = projects.find(p => p.id === photo.projectId);
+
+          // Si el proyecto no tiene serverId, no podemos sincronizar la foto aun
+          if (!project || !project.serverId) {
+            console.log('Proyecto no sincronizado aun, esperando...');
+            throw new Error('El proyecto debe sincronizarse primero');
+          }
+
           const base64 = await this.camera.getPhotoBase64(photo.localPath);
 
           const formData = new FormData();
           const blob = this.base64ToBlob(base64, 'image/jpeg');
           formData.append('file', blob, 'photo.jpg');
-          formData.append('projectId', photo.projectId);
+          formData.append('projectId', project.serverId); // Usar serverId del servidor
           formData.append('latitude', photo.latitude.toString());
           formData.append('longitude', photo.longitude.toString());
           if (photo.altitude) formData.append('altitude', photo.altitude.toString());
@@ -180,8 +190,11 @@ export class SyncService {
           // Actualizar foto local con datos del servidor
           if (response && response.photo) {
             photo.imageUrl = response.photo.imageUrl;
+            photo.thumbnailUrl = response.photo.thumbnailUrl;
+            (photo as any).serverId = response.photo.id;
             photo.synced = true;
             await this.storage.savePhoto(photo);
+            console.log('Foto sincronizada:', response.photo.id);
           }
         }
         break;
