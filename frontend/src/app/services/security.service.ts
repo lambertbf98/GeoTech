@@ -85,13 +85,21 @@ export class SecurityService {
    * Detecta si hay un debugger conectado
    */
   private async checkDebugger(): Promise<boolean> {
+    // Desactivado para web - solo alertar en apps nativas si es necesario
+    // La detección de DevTools causa falsas alertas cuando el desarrollador
+    // está depurando o copiando errores de la consola
+    if (!this.platform.is('capacitor')) {
+      return true; // En web siempre permitir
+    }
+
     try {
       // Verificar si hay herramientas de desarrollo abiertas
       const devToolsOpen = this.detectDevTools();
 
       if (devToolsOpen) {
         console.warn('DevTools detectadas');
-        return false;
+        // En producción móvil podríamos bloquear, pero por ahora permitir
+        return true;
       }
 
       return true;
