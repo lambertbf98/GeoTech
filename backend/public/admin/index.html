@@ -437,15 +437,15 @@
 
         // Verify admin
         const userRes = await fetch(`${API_URL}/licenses/admin/stats`, {
-          headers: { 'Authorization': `Bearer ${data.accessToken}` }
+          headers: { 'Authorization': `Bearer ${data.token}` }
         });
 
         if (!userRes.ok) {
           throw new Error('No tienes permisos de administrador');
         }
 
-        localStorage.setItem('adminToken', data.accessToken);
-        token = data.accessToken;
+        localStorage.setItem('adminToken', data.token);
+        token = data.token;
         showDashboard();
       } catch (err) {
         document.getElementById('loginError').textContent = err.message;
