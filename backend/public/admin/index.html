@@ -542,39 +542,8 @@
   <!-- Login Screen -->
   <div id="loginScreen" class="login-container">
     <div class="login-box">
-      <!-- GeoTech Globe Logo -->
-      <svg class="login-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="globeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
-          </linearGradient>
-          <linearGradient id="glowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:0.8" />
-            <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:0.4" />
-          </linearGradient>
-        </defs>
-        <!-- Outer glow circle -->
-        <circle cx="50" cy="50" r="48" fill="url(#glowGradient)" opacity="0.3"/>
-        <!-- Main globe -->
-        <circle cx="50" cy="50" r="40" fill="url(#globeGradient)" stroke="#60a5fa" stroke-width="2"/>
-        <!-- Globe lines - horizontal -->
-        <ellipse cx="50" cy="50" rx="40" ry="15" fill="none" stroke="#1e3a5f" stroke-width="1.5" opacity="0.6"/>
-        <ellipse cx="50" cy="35" rx="35" ry="10" fill="none" stroke="#1e3a5f" stroke-width="1" opacity="0.5"/>
-        <ellipse cx="50" cy="65" rx="35" ry="10" fill="none" stroke="#1e3a5f" stroke-width="1" opacity="0.5"/>
-        <!-- Globe lines - vertical -->
-        <ellipse cx="50" cy="50" rx="15" ry="40" fill="none" stroke="#1e3a5f" stroke-width="1.5" opacity="0.6"/>
-        <ellipse cx="50" cy="50" rx="30" ry="40" fill="none" stroke="#1e3a5f" stroke-width="1" opacity="0.4"/>
-        <!-- Center meridian -->
-        <line x1="50" y1="10" x2="50" y2="90" stroke="#1e3a5f" stroke-width="1" opacity="0.5"/>
-        <!-- Highlight -->
-        <circle cx="35" cy="35" r="12" fill="white" opacity="0.15"/>
-        <!-- Location pin -->
-        <g transform="translate(60, 30)">
-          <path d="M0 0 C-6 -10 -10 -18 0 -25 C10 -18 6 -10 0 0 Z" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>
-          <circle cx="0" cy="-18" r="4" fill="#fff"/>
-        </g>
-      </svg>
+      <!-- GeoTech Logo -->
+      <img src="logo.png" alt="GeoTech" class="login-logo">
       <h1 class="login-title">GeoTech Admin</h1>
       <p class="login-subtitle">Panel de administracion</p>
       <div id="loginError" class="error-msg hidden"></div>
@@ -596,22 +565,7 @@
   <div id="adminPanel" class="hidden">
     <header class="header">
       <div class="logo-container">
-        <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="headerGlobeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#3b82f6" />
-              <stop offset="100%" style="stop-color:#06b6d4" />
-            </linearGradient>
-          </defs>
-          <circle cx="50" cy="50" r="40" fill="url(#headerGlobeGrad)" stroke="#60a5fa" stroke-width="2"/>
-          <ellipse cx="50" cy="50" rx="40" ry="15" fill="none" stroke="#1e3a5f" stroke-width="1.5" opacity="0.6"/>
-          <ellipse cx="50" cy="50" rx="15" ry="40" fill="none" stroke="#1e3a5f" stroke-width="1.5" opacity="0.6"/>
-          <circle cx="35" cy="35" r="10" fill="white" opacity="0.15"/>
-          <g transform="translate(60, 30)">
-            <path d="M0 0 C-5 -8 -8 -14 0 -20 C8 -14 5 -8 0 0 Z" fill="#ef4444" stroke="#fff" stroke-width="1"/>
-            <circle cx="0" cy="-14" r="3" fill="#fff"/>
-          </g>
-        </svg>
+        <img src="logo.png" alt="GeoTech" class="logo-icon">
         <h1>GeoTech Admin</h1>
       </div>
       <div class="header-user">

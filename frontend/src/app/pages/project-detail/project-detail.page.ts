@@ -241,14 +241,24 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
         let hasNewReports = false;
         for (const sr of serverReports) {
           if (!localReportIds.has(sr.id)) {
-            localReports.push({
-              id: sr.id,
-              name: sr.name,
-              htmlContent: sr.htmlContent,
-              createdAt: sr.createdAt
-            });
-            hasNewReports = true;
-            console.log('Informe sincronizado desde servidor:', sr.name);
+            // Obtener el contenido completo del informe
+            try {
+              const fullReport: any = await firstValueFrom(
+                this.apiService.getReport(sr.id)
+              );
+              if (fullReport?.report) {
+                localReports.push({
+                  id: fullReport.report.id,
+                  name: fullReport.report.name,
+                  htmlContent: fullReport.report.htmlContent,
+                  createdAt: fullReport.report.createdAt
+                });
+                hasNewReports = true;
+                console.log('Informe sincronizado desde servidor:', sr.name);
+              }
+            } catch (e) {
+              console.log('Error obteniendo informe:', sr.id);
+            }
           }
         }
 
@@ -271,14 +281,24 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
         let hasNewKmls = false;
         for (const sk of serverKmls) {
           if (!localKmlIds.has(sk.id)) {
-            localKmls.push({
-              id: sk.id,
-              name: sk.name,
-              kmlContent: sk.kmlContent,
-              createdAt: sk.createdAt
-            });
-            hasNewKmls = true;
-            console.log('KML sincronizado desde servidor:', sk.name);
+            // Obtener el contenido completo del KML
+            try {
+              const fullKml: any = await firstValueFrom(
+                this.apiService.getKml(sk.id)
+              );
+              if (fullKml?.kml) {
+                localKmls.push({
+                  id: fullKml.kml.id,
+                  name: fullKml.kml.name,
+                  kmlContent: fullKml.kml.kmlContent,
+                  createdAt: fullKml.kml.createdAt
+                });
+                hasNewKmls = true;
+                console.log('KML sincronizado desde servidor:', sk.name);
+              }
+            } catch (e) {
+              console.log('Error obteniendo KML:', sk.id);
+            }
           }
         }
 
@@ -515,6 +535,14 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
           text: 'Eliminar',
           role: 'destructive',
           handler: async () => {
+            // Eliminar del servidor si existe
+            try {
+              await firstValueFrom(this.apiService.deleteReport(report.id));
+              console.log('Informe eliminado del servidor:', report.id);
+            } catch (e: any) {
+              console.log('Error eliminando del servidor:', e?.message);
+            }
+            // Eliminar localmente
             this.project!.reports = this.project!.reports?.filter(r => r.id !== report.id);
             await this.storageService.saveProject(this.project!);
             this.closeReportViewer();
@@ -676,6 +704,14 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
           text: 'Eliminar',
           role: 'destructive',
           handler: async () => {
+            // Eliminar del servidor si existe
+            try {
+              await firstValueFrom(this.apiService.deleteKml(kml.id));
+              console.log('KML eliminado del servidor:', kml.id);
+            } catch (e: any) {
+              console.log('Error eliminando del servidor:', e?.message);
+            }
+            // Eliminar localmente
             this.project!.kmls = this.project!.kmls?.filter(k => k.id !== kml.id);
             await this.storageService.saveProject(this.project!);
             this.closeKmlViewer();
