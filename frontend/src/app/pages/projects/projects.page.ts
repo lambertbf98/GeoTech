@@ -50,46 +50,100 @@ export class ProjectsPage implements OnInit {
       try {
         const response: any = await firstValueFrom(this.apiService.get<any>("/projects"));
         const serverProjects = response?.projects || [];
+        console.log('Proyectos en servidor:', serverProjects.length);
+        console.log('Proyectos locales:', localProjects.length);
 
-        if (serverProjects.length > 0) {
-          // Crear mapa de proyectos locales por serverId
-          const localByServerId = new Map<string, Project>();
-          localProjects.forEach(p => {
-            if (p.serverId) localByServerId.set(p.serverId, p);
-          });
+        // Crear mapa de proyectos del servidor por ID
+        const serverById = new Map<string, any>();
+        serverProjects.forEach((sp: any) => serverById.set(sp.id, sp));
 
-          // Agregar proyectos del servidor que no están localmente
-          for (const sp of serverProjects) {
-            if (!localByServerId.has(sp.id)) {
-              // Proyecto existe en servidor pero no localmente
-              const newLocal: Project = {
-                id: 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-                serverId: sp.id,
-                name: sp.name,
-                description: sp.description || '',
-                location: sp.location || '',
-                photoCount: sp.photoCount || 0,
-                createdAt: new Date(sp.createdAt),
-                updatedAt: new Date(sp.updatedAt || sp.createdAt),
-                synced: true
-              };
-              localProjects.push(newLocal);
-              console.log('Proyecto descargado del servidor:', sp.name);
+        // Crear mapa de proyectos locales por serverId
+        const localByServerId = new Map<string, Project>();
+        localProjects.forEach(p => {
+          if (p.serverId) localByServerId.set(p.serverId, p);
+        });
+
+        let hasChanges = false;
+
+        // 1. Subir proyectos locales que NO tienen serverId al servidor
+        for (const lp of localProjects) {
+          if (!lp.serverId && !lp.synced) {
+            try {
+              console.log('Subiendo proyecto local al servidor:', lp.name);
+              const resp: any = await firstValueFrom(this.apiService.post<any>("/projects", {
+                name: lp.name,
+                description: lp.description,
+                location: lp.location
+              }));
+              if (resp?.project?.id) {
+                lp.serverId = resp.project.id;
+                lp.synced = true;
+                hasChanges = true;
+                console.log('Proyecto subido con serverId:', lp.serverId);
+              }
+            } catch (e: any) {
+              console.log('Error subiendo proyecto:', lp.name, e?.message);
             }
           }
+        }
 
-          // Guardar proyectos actualizados
+        // 2. Descargar proyectos del servidor que NO existen localmente
+        for (const sp of serverProjects) {
+          if (!localByServerId.has(sp.id)) {
+            const newLocal: Project = {
+              id: 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+              serverId: sp.id,
+              name: sp.name,
+              description: sp.description || '',
+              location: sp.location || '',
+              photoCount: sp.photoCount || 0,
+              createdAt: new Date(sp.createdAt),
+              updatedAt: new Date(sp.updatedAt || sp.createdAt),
+              synced: true
+            };
+            localProjects.push(newLocal);
+            hasChanges = true;
+            console.log('Proyecto descargado del servidor:', sp.name);
+          }
+        }
+
+        // Guardar si hubo cambios
+        if (hasChanges) {
           await this.storageService.setProjects(localProjects);
+          const toast = await this.toastCtrl.create({
+            message: 'Proyectos sincronizados',
+            duration: 2000,
+            position: 'top',
+            color: 'success'
+          });
+          await toast.present();
         }
 
         // Sincronizar proyectos pendientes
         await this.syncService.syncPending();
       } catch (e: any) {
-        console.log('Error loading server projects:', e?.message || e);
+        console.error('Error sincronizando proyectos:', e?.message || e);
+        // Mostrar error si hay problemas de autenticación
+        if (e?.status === 401) {
+          const toast = await this.toastCtrl.create({
+            message: 'Sesion expirada. Vuelve a iniciar sesion.',
+            duration: 3000,
+            position: 'top',
+            color: 'warning'
+          });
+          await toast.present();
+        }
       }
     } catch (error) {
       this.isOnline = false;
     }
+
+    // Ordenar por fecha de actualización (más recientes primero)
+    localProjects.sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.createdAt).getTime();
+      const dateB = new Date(b.updatedAt || b.createdAt).getTime();
+      return dateB - dateA;
+    });
 
     this.projects = localProjects;
     this.isLoading = false;
@@ -210,6 +264,16 @@ export class ProjectsPage implements OnInit {
   async deleteProject(project: Project) {
     this.projects = this.projects.filter(p => p.id !== project.id);
     await this.storageService.setProjects(this.projects);
+  }
+
+  async forceSync() {
+    const toast = await this.toastCtrl.create({
+      message: 'Sincronizando proyectos...',
+      duration: 1500,
+      position: 'top'
+    });
+    await toast.present();
+    await this.loadProjects();
   }
 
   formatDate(dateString: string | Date): string {

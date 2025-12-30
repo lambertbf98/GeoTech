@@ -2,6 +2,9 @@
   <ion-toolbar>
     <ion-title>Proyectos</ion-title>
     <ion-buttons slot="end">
+      <ion-button (click)="forceSync()" *ngIf="isOnline" title="Sincronizar">
+        <ion-icon name="sync-outline" slot="icon-only"></ion-icon>
+      </ion-button>
       <ion-button (click)="createProject()">
         <ion-icon name="add-outline" slot="icon-only"></ion-icon>
       </ion-button>
@@ -47,6 +50,8 @@
     <ion-item *ngFor="let project of filteredProjects" (click)="openProject(project)" button detail>
       <div class="project-icon" slot="start">
         <ion-icon name="folder-outline"></ion-icon>
+        <ion-icon *ngIf="project.synced" name="cloud-done-outline" class="sync-badge synced" title="Sincronizado"></ion-icon>
+        <ion-icon *ngIf="!project.synced" name="cloud-offline-outline" class="sync-badge not-synced" title="No sincronizado"></ion-icon>
       </div>
       <ion-label>
         <h2 class="project-name">{{ project.name }}</h2>
