@@ -337,4 +337,20 @@ router.delete(
   }
 );
 
+// DELETE /api/licenses/admin/project/:id - Eliminar proyecto
+router.delete(
+  '/admin/project/:id',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      await licenseService.deleteProject(id);
+      res.json({ success: true, message: 'Proyecto eliminado' });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;

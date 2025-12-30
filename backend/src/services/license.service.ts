@@ -403,6 +403,21 @@ export class LicenseService {
       where: { id: userId }
     });
   }
+
+  // ADMIN: Eliminar proyecto
+  async deleteProject(projectId: string) {
+    // Prisma cascade delete eliminara fotos, reports, kmlFiles
+    await prisma.project.delete({
+      where: { id: projectId }
+    });
+  }
+
+  // ADMIN: Obtener estadisticas de proyectos para un usuario
+  async getUserProjectsCount(userId: string): Promise<number> {
+    return prisma.project.count({
+      where: { userId }
+    });
+  }
 }
 
 export const licenseService = new LicenseService();
