@@ -106,7 +106,7 @@ export class LicenseService {
         licenseTypeId,
         userId: userId || '',
         status: userId ? 'active' : 'pending',
-        activatedAt: userId ? now : now,
+        activatedAt: now,
         expiresAt
       },
       include: { licenseType: true }

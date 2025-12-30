@@ -14,22 +14,14 @@ export class LicenseGuard implements CanActivate {
   ) {}
 
   async canActivate(): Promise<boolean | UrlTree> {
-    // Primero verificar el estado actual en cache
-    let hasLicense = this.licenseService.hasValidLicense();
-
-    // Si no tiene licencia en cache, verificar con el servidor
-    if (!hasLicense) {
-      try {
-        const status = await this.licenseService.checkLicenseStatus();
-        hasLicense = status.hasValidLicense;
-      } catch (error) {
-        console.error('Error checking license:', error);
-        hasLicense = false;
+    // Siempre verificar con el servidor para tener el estado actualizado
+    try {
+      const status = await this.licenseService.checkLicenseStatus();
+      if (status.hasValidLicense) {
+        return true;
       }
-    }
-
-    if (hasLicense) {
-      return true;
+    } catch (error) {
+      console.error('Error checking license:', error);
     }
 
     // Mostrar alerta y redirigir a settings

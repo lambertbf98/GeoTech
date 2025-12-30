@@ -1,10 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { AlertController } from '@ionic/angular';
-import { Subscription, filter } from 'rxjs';
+import { AlertController, Platform } from '@ionic/angular';
+import { Subscription, filter, interval } from 'rxjs';
 import { SyncService } from '../../services/sync.service';
 import { LicenseService, LicenseStatus } from '../../services/license.service';
 import { AuthService } from '../../services/auth.service';
+import { App } from '@capacitor/app';
 
 @Component({
   standalone: false,
@@ -17,13 +18,16 @@ export class TabsPage implements OnInit, OnDestroy {
   hasLicense = false;
   licenseChecked = false;
   private licenseSub: Subscription | null = null;
+  private refreshInterval: Subscription | null = null;
+  private appStateListener: any = null;
 
   constructor(
     private syncService: SyncService,
     private licenseService: LicenseService,
     private authService: AuthService,
     private alertController: AlertController,
-    private router: Router
+    private router: Router,
+    private platform: Platform
   ) {}
 
   async ngOnInit() {
@@ -39,11 +43,29 @@ export class TabsPage implements OnInit, OnDestroy {
 
     // Verificar licencia al iniciar
     await this.checkLicense();
+
+    // Verificar licencia cada 30 segundos
+    this.refreshInterval = interval(30000).subscribe(() => {
+      this.checkLicense();
+    });
+
+    // Verificar licencia cuando la app vuelve de background
+    this.appStateListener = await App.addListener('appStateChange', async ({ isActive }) => {
+      if (isActive) {
+        await this.checkLicense();
+      }
+    });
   }
 
   ngOnDestroy() {
     if (this.licenseSub) {
       this.licenseSub.unsubscribe();
+    }
+    if (this.refreshInterval) {
+      this.refreshInterval.unsubscribe();
+    }
+    if (this.appStateListener) {
+      this.appStateListener.remove();
     }
   }
 
