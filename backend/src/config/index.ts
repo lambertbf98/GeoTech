@@ -3,6 +3,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Detectar URL de producción automáticamente
+const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT;
+const railwayUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+  : 'https://geotech-production.up.railway.app';
+
 export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -30,7 +36,7 @@ export const config = {
   },
 
   app: {
-    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:8100',
-    backendUrl: process.env.BACKEND_URL || 'http://localhost:3000'
+    frontendUrl: process.env.FRONTEND_URL || (isProduction ? railwayUrl : 'http://localhost:8100'),
+    backendUrl: process.env.BACKEND_URL || (isProduction ? railwayUrl : 'http://localhost:3000')
   }
 };
