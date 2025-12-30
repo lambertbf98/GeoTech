@@ -481,3 +481,607 @@ Sincronizar cambios offline.
   }
 }
 ```
+
+---
+
+## Licencias
+
+### GET /licenses/status
+Obtener estado de licencia del usuario autenticado.
+
+**Response (200):**
+```json
+{
+  "hasValidLicense": true,
+  "license": {
+    "id": "uuid",
+    "licenseKey": "XXXX-XXXX-XXXX-XXXX",
+    "type": "Mensual",
+    "status": "active",
+    "expiresAt": "2025-01-30T10:00:00Z",
+    "daysRemaining": 30,
+    "hoursRemaining": 720,
+    "minutesRemaining": 43200
+  }
+}
+```
+
+### POST /licenses/activate
+Activar una licencia con clave.
+
+**Request:**
+```json
+{
+  "licenseKey": "XXXX-XXXX-XXXX-XXXX"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Licencia activada correctamente",
+  "license": {
+    "id": "uuid",
+    "type": "Mensual",
+    "expiresAt": "2025-01-30T10:00:00Z"
+  }
+}
+```
+
+**Errores posibles:**
+- `Clave de licencia no válida` - La clave no existe
+- `Esta licencia ya fue utilizada` - Licencia de un solo uso ya activada
+- `Esta licencia ya fue utilizada por otro usuario` - Otra cuenta la activó
+- `Esta licencia ha sido revocada` - Admin la revocó
+- `Esta licencia ha expirado` - Fecha de expiración pasada
+
+### GET /licenses/types
+Obtener tipos de licencia disponibles (público).
+
+**Response (200):**
+```json
+[
+  {
+    "id": "uuid",
+    "name": "Mensual",
+    "code": "monthly",
+    "durationDays": 30,
+    "durationHours": 0,
+    "price": 9.99,
+    "promoPrice": null,
+    "promoEndsAt": null,
+    "description": "Acceso completo por 30 días",
+    "isActive": true
+  },
+  {
+    "id": "uuid",
+    "name": "Prueba 2 horas",
+    "code": "trial_2h",
+    "durationDays": 0,
+    "durationHours": 2,
+    "price": 0.99,
+    "description": "Licencia de prueba",
+    "isActive": true
+  }
+]
+```
+
+---
+
+## Informes (Reports)
+
+### GET /reports/project/:projectId
+Obtener todos los informes de un proyecto.
+
+**Response (200):**
+```json
+{
+  "reports": [
+    {
+      "id": "uuid",
+      "name": "Informe PDD - Proyecto A",
+      "createdAt": "2024-12-25T10:00:00Z",
+      "updatedAt": "2024-12-25T10:00:00Z"
+    }
+  ]
+}
+```
+
+### GET /reports/:id
+Obtener un informe específico con contenido (verifica propiedad).
+
+**Response (200):**
+```json
+{
+  "report": {
+    "id": "uuid",
+    "projectId": "uuid",
+    "name": "Informe PDD - Proyecto A",
+    "htmlContent": "<!DOCTYPE html>...",
+    "fileUrl": null,
+    "createdAt": "2024-12-25T10:00:00Z",
+    "updatedAt": "2024-12-25T10:00:00Z"
+  }
+}
+```
+
+### POST /reports
+Crear nuevo informe.
+
+**Request:**
+```json
+{
+  "projectId": "uuid",
+  "name": "Informe PDD - Proyecto A",
+  "htmlContent": "<!DOCTYPE html>..."
+}
+```
+
+**Response (201):**
+```json
+{
+  "report": {
+    "id": "uuid",
+    "projectId": "uuid",
+    "name": "Informe PDD - Proyecto A",
+    "htmlContent": "<!DOCTYPE html>...",
+    "createdAt": "2024-12-25T10:00:00Z"
+  }
+}
+```
+
+### DELETE /reports/:id
+Eliminar un informe.
+
+**Response (204):** No content
+
+---
+
+## Archivos KML
+
+### GET /reports/kml/project/:projectId
+Obtener todos los KML de un proyecto.
+
+**Response (200):**
+```json
+{
+  "kmlFiles": [
+    {
+      "id": "uuid",
+      "name": "Proyecto A - Mapa",
+      "createdAt": "2024-12-25T10:00:00Z",
+      "updatedAt": "2024-12-25T10:00:00Z"
+    }
+  ]
+}
+```
+
+### GET /reports/kml/:id
+Obtener un KML específico con contenido (verifica propiedad).
+
+**Response (200):**
+```json
+{
+  "kml": {
+    "id": "uuid",
+    "projectId": "uuid",
+    "name": "Proyecto A - Mapa",
+    "kmlContent": "<?xml version=\"1.0\"?>...",
+    "fileUrl": null,
+    "createdAt": "2024-12-25T10:00:00Z",
+    "updatedAt": "2024-12-25T10:00:00Z"
+  }
+}
+```
+
+### POST /reports/kml
+Crear nuevo archivo KML.
+
+**Request:**
+```json
+{
+  "projectId": "uuid",
+  "name": "Proyecto A - Mapa",
+  "kmlContent": "<?xml version=\"1.0\"?>..."
+}
+```
+
+**Response (201):**
+```json
+{
+  "kml": {
+    "id": "uuid",
+    "name": "Proyecto A - Mapa",
+    "createdAt": "2024-12-25T10:00:00Z"
+  }
+}
+```
+
+### DELETE /reports/kml/:id
+Eliminar un archivo KML.
+
+**Response (204):** No content
+
+---
+
+## Admin - Licencias
+
+> **Nota:** Todas las rutas de admin requieren token de usuario con `isAdmin: true`
+
+### GET /licenses/admin/stats
+Obtener estadísticas generales.
+
+**Response (200):**
+```json
+{
+  "totalUsers": 150,
+  "totalLicenses": 200,
+  "activeLicenses": 45,
+  "expiredLicenses": 155,
+  "totalProjects": 320,
+  "totalRevenue": 1500.50
+}
+```
+
+### GET /licenses/admin/users
+Obtener todos los usuarios paginados.
+
+**Query params:**
+- `page`: Número de página (default: 1)
+- `limit`: Resultados por página (default: 20)
+
+**Response (200):**
+```json
+{
+  "users": [
+    {
+      "id": "uuid",
+      "email": "usuario@ejemplo.com",
+      "name": "Nombre Usuario",
+      "isAdmin": false,
+      "createdAt": "2024-12-01T10:00:00Z",
+      "hasActiveLicense": true,
+      "licenses": [...],
+      "_count": { "projects": 5 }
+    }
+  ],
+  "total": 150,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 8
+}
+```
+
+### GET /licenses/admin/user/:id
+Obtener detalle de usuario con proyectos y licencias.
+
+**Response (200):**
+```json
+{
+  "user": {
+    "id": "uuid",
+    "email": "usuario@ejemplo.com",
+    "name": "Nombre Usuario",
+    "isAdmin": false,
+    "createdAt": "2024-12-01T10:00:00Z",
+    "licenses": [...],
+    "projects": [
+      {
+        "id": "uuid",
+        "name": "Proyecto A",
+        "description": "...",
+        "createdAt": "2024-12-10T10:00:00Z",
+        "_count": { "photos": 15 }
+      }
+    ],
+    "_count": { "projects": 5 }
+  }
+}
+```
+
+### GET /licenses/admin/all
+Obtener todas las licencias paginadas.
+
+**Query params:**
+- `page`: Número de página (default: 1)
+- `limit`: Resultados por página (default: 20)
+
+**Response (200):**
+```json
+{
+  "licenses": [
+    {
+      "id": "uuid",
+      "licenseKey": "XXXX-XXXX-XXXX-XXXX",
+      "status": "active",
+      "expiresAt": "2025-01-30T10:00:00Z",
+      "createdAt": "2024-12-30T10:00:00Z",
+      "user": {
+        "id": "uuid",
+        "email": "usuario@ejemplo.com",
+        "name": "Nombre"
+      },
+      "licenseType": {
+        "id": "uuid",
+        "name": "Mensual",
+        "code": "monthly"
+      }
+    }
+  ],
+  "total": 200,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 10
+}
+```
+
+### POST /licenses/admin/create
+Crear nueva licencia manualmente.
+
+**Request:**
+```json
+{
+  "licenseTypeId": "uuid",
+  "userId": "uuid"  // Opcional - si no se envía, queda pendiente de activar
+}
+```
+
+**Response (201):**
+```json
+{
+  "id": "uuid",
+  "licenseKey": "XXXX-XXXX-XXXX-XXXX",
+  "status": "pending",  // o "active" si se asignó usuario
+  "expiresAt": "2025-01-30T10:00:00Z",
+  "licenseType": {...}
+}
+```
+
+### POST /licenses/admin/revoke/:id
+Revocar una licencia activa.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Licencia revocada",
+  "license": {
+    "id": "uuid",
+    "status": "revoked"
+  }
+}
+```
+
+### POST /licenses/admin/types
+Crear nuevo tipo de licencia.
+
+**Request:**
+```json
+{
+  "name": "Mensual",
+  "code": "monthly",
+  "durationDays": 30,
+  "durationHours": 0,
+  "price": 9.99,
+  "description": "Acceso completo por 30 días"
+}
+```
+
+**Response (201):**
+```json
+{
+  "id": "uuid",
+  "name": "Mensual",
+  "code": "monthly",
+  "durationDays": 30,
+  "durationHours": 0,
+  "price": 9.99,
+  "isActive": true
+}
+```
+
+### PUT /licenses/admin/types/:id
+Actualizar tipo de licencia existente.
+
+**Request:**
+```json
+{
+  "name": "Mensual Premium",
+  "durationDays": 30,
+  "durationHours": 0,
+  "price": 14.99,
+  "promoPrice": 9.99,
+  "promoEndsAt": "2025-01-31T23:59:59Z",
+  "description": "Acceso premium por 30 días",
+  "isActive": true
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "name": "Mensual Premium",
+  "price": 14.99,
+  "promoPrice": 9.99,
+  "promoEndsAt": "2025-01-31T23:59:59Z",
+  "isActive": true
+}
+```
+
+---
+
+## Admin - Usuarios
+
+### PUT /licenses/admin/user/:id
+Actualizar datos de usuario.
+
+**Request:**
+```json
+{
+  "name": "Nuevo Nombre",
+  "email": "nuevo@email.com"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "uuid",
+    "name": "Nuevo Nombre",
+    "email": "nuevo@email.com"
+  }
+}
+```
+
+### PUT /licenses/admin/user/:id/password
+Cambiar contraseña de usuario.
+
+**Request:**
+```json
+{
+  "password": "nuevaContraseña123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Contraseña actualizada"
+}
+```
+
+### PUT /licenses/admin/user/:id/admin
+Cambiar rol de administrador.
+
+**Request:**
+```json
+{
+  "isAdmin": true
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Usuario es ahora admin"
+}
+```
+
+### DELETE /licenses/admin/user/:id
+Eliminar usuario y todos sus datos (cascade).
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Usuario eliminado"
+}
+```
+
+---
+
+## Admin - Proyectos
+
+### GET /licenses/admin/project/:id
+Obtener detalle de proyecto con fotos, informes y KMLs.
+
+**Response (200):**
+```json
+{
+  "project": {
+    "id": "uuid",
+    "name": "Proyecto A",
+    "description": "...",
+    "createdAt": "2024-12-10T10:00:00Z",
+    "user": {
+      "id": "uuid",
+      "email": "usuario@ejemplo.com",
+      "name": "Nombre"
+    },
+    "photos": [...],
+    "reports": [...],
+    "kmlFiles": [...]
+  }
+}
+```
+
+### DELETE /licenses/admin/project/:id
+Eliminar proyecto y todos sus datos.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Proyecto eliminado"
+}
+```
+
+---
+
+## Admin - Informes y KML (sin verificación de propiedad)
+
+### GET /reports/admin/:id
+Obtener informe sin verificar propiedad (solo admin).
+
+**Response (200):**
+```json
+{
+  "report": {
+    "id": "uuid",
+    "projectId": "uuid",
+    "name": "Informe PDD",
+    "htmlContent": "<!DOCTYPE html>...",
+    "fileUrl": null,
+    "createdAt": "2024-12-25T10:00:00Z",
+    "updatedAt": "2024-12-25T10:00:00Z"
+  }
+}
+```
+
+### GET /reports/kml/admin/:id
+Obtener KML sin verificar propiedad (solo admin).
+
+**Response (200):**
+```json
+{
+  "kml": {
+    "id": "uuid",
+    "projectId": "uuid",
+    "name": "Mapa KML",
+    "kmlContent": "<?xml version=\"1.0\"?>...",
+    "fileUrl": null,
+    "createdAt": "2024-12-25T10:00:00Z",
+    "updatedAt": "2024-12-25T10:00:00Z"
+  }
+}
+```
+
+---
+
+## Notas de Implementación
+
+### Sesión Única
+Al hacer login, se eliminan automáticamente todos los refresh tokens anteriores del usuario. Esto garantiza que solo puede haber una sesión activa por usuario.
+
+**Archivo:** `backend/src/services/auth.service.ts` (líneas 111-115)
+
+### Licencias de Un Solo Uso
+Una licencia solo puede ser activada una vez. Si ya tiene un `userId` asignado, no permite reactivación por otro usuario.
+
+**Archivo:** `backend/src/services/license.service.ts` (líneas 56-66)
+
+### Tiempo de Licencia
+El backend envía `daysRemaining`, `hoursRemaining` y `minutesRemaining`. El frontend muestra:
+- Menos de 1 hora: "X minutos restantes"
+- Menos de 24 horas: "X horas restantes"
+- 24+ horas: "X días restantes"
+
+**Archivos:**
+- Backend: `backend/src/routes/license.routes.ts` (líneas 39-56)
+- Frontend: `frontend/src/app/services/license.service.ts` (líneas 181-206)
