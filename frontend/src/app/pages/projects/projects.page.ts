@@ -132,6 +132,19 @@ export class ProjectsPage implements OnInit {
           }
         }
 
+        // 3. Eliminar proyectos locales que tienen serverId pero ya no existen en el servidor
+        const projectsToRemove: string[] = [];
+        for (const lp of localProjects) {
+          if (lp.serverId && !serverById.has(lp.serverId)) {
+            projectsToRemove.push(lp.id);
+            console.log('Proyecto eliminado del servidor, quitando local:', lp.name);
+          }
+        }
+        if (projectsToRemove.length > 0) {
+          localProjects = localProjects.filter(p => !projectsToRemove.includes(p.id));
+          hasChanges = true;
+        }
+
         // Guardar si hubo cambios
         if (hasChanges) {
           await this.storageService.setProjects(localProjects);

@@ -198,17 +198,20 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
           let markersUpdated = false;
           for (const marker of this.project.markers) {
             if (marker.serverPhotoIds && marker.serverPhotoIds.length > 0) {
-              const resolvedPhotoIds: string[] = [];
+              // Mantener photoIds existentes y añadir los resueltos sin duplicados
+              const existingPhotoIds = new Set(marker.photoIds || []);
+
               for (const serverPhotoId of marker.serverPhotoIds) {
                 const localPhoto = localByServerId.get(serverPhotoId);
-                if (localPhoto) {
-                  resolvedPhotoIds.push(localPhoto.id);
+                if (localPhoto && !existingPhotoIds.has(localPhoto.id)) {
+                  existingPhotoIds.add(localPhoto.id);
+                  markersUpdated = true;
                 }
               }
-              // Actualizar photoIds locales
-              if (resolvedPhotoIds.length > 0) {
-                marker.photoIds = resolvedPhotoIds;
-                markersUpdated = true;
+
+              // Actualizar photoIds solo si hubo cambios
+              if (markersUpdated) {
+                marker.photoIds = Array.from(existingPhotoIds);
               }
             }
           }

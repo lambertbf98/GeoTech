@@ -2,11 +2,12 @@ import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController, AlertController, Platform } from '@ionic/angular';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Subscription } from 'rxjs';
+import { Subscription, firstValueFrom } from 'rxjs';
 import { StorageService } from '../../services/storage.service';
 import { KmlService } from '../../services/kml.service';
 import { ReportService } from '../../services/report.service';
 import { ClaudeService } from '../../services/claude.service';
+import { ApiService } from '../../services/api.service';
 import { Project, Photo, ProjectReport, ProjectKml } from '../../models';
 import * as L from 'leaflet';
 
@@ -45,6 +46,7 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
     private kmlService: KmlService,
     private reportService: ReportService,
     private claudeService: ClaudeService,
+    private apiService: ApiService,
     private sanitizer: DomSanitizer,
     private navCtrl: NavController,
     private alertCtrl: AlertController,
@@ -103,6 +105,120 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
     if (this.project) {
       const allPhotos = await this.storageService.getPhotos();
       this.photos = allPhotos.filter(p => p.projectId === projectId);
+
+      // Sincronizar contenido y fotos desde la nube si hay serverId
+      if (this.project.serverId) {
+        await this.syncProjectContent();
+        await this.syncPhotosFromCloud();
+      }
+    }
+  }
+
+  // Sincronizar contenido del proyecto desde el servidor
+  private async syncProjectContent() {
+    if (!this.project?.serverId) return;
+
+    try {
+      const response: any = await firstValueFrom(
+        this.apiService.get(`/projects/${this.project.serverId}`)
+      );
+
+      if (response?.project) {
+        const serverProject = response.project;
+        const serverContent = serverProject.content || {};
+        const serverUpdated = new Date(serverProject.updatedAt || 0).getTime();
+        const localUpdated = new Date(this.project.updatedAt || 0).getTime();
+
+        // Si el servidor es más reciente, actualizar contenido local
+        if (serverUpdated > localUpdated) {
+          if (serverContent.zones) this.project.zones = serverContent.zones;
+          if (serverContent.paths) this.project.paths = serverContent.paths;
+          if (serverContent.markers) this.project.markers = serverContent.markers;
+          if (serverContent.coordinates) this.project.coordinates = serverContent.coordinates;
+          this.project.updatedAt = new Date(serverProject.updatedAt);
+          await this.storageService.saveProject(this.project);
+          console.log('Contenido del proyecto actualizado desde servidor');
+        }
+      }
+    } catch (e: any) {
+      console.log('Error sincronizando contenido:', e?.message);
+    }
+  }
+
+  // Sincronizar fotos desde el servidor
+  private async syncPhotosFromCloud() {
+    if (!this.project?.serverId) return;
+
+    try {
+      const response: any = await firstValueFrom(
+        this.apiService.getPhotosByProject(this.project.serverId)
+      );
+
+      if (response?.photos && Array.isArray(response.photos)) {
+        const serverPhotos = response.photos;
+        console.log('Fotos en servidor:', serverPhotos.length);
+
+        // Crear mapa de fotos locales por serverId
+        const localByServerId = new Map<string, Photo>();
+        this.photos.forEach(p => {
+          if (p.serverId) localByServerId.set(p.serverId, p);
+        });
+
+        let hasNewPhotos = false;
+
+        // Descargar fotos del servidor que no están localmente
+        for (const sp of serverPhotos) {
+          if (!localByServerId.has(sp.id)) {
+            const newPhoto: Photo = {
+              id: `photo_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+              serverId: sp.id,
+              projectId: this.project.id,
+              imageUrl: sp.imageUrl,
+              thumbnailUrl: sp.thumbnailUrl,
+              latitude: parseFloat(sp.latitude) || 0,
+              longitude: parseFloat(sp.longitude) || 0,
+              altitude: sp.altitude ? parseFloat(sp.altitude) : undefined,
+              notes: sp.notes,
+              aiDescription: sp.aiDescription,
+              timestamp: sp.createdAt,
+              synced: true
+            };
+
+            await this.storageService.savePhoto(newPhoto);
+            this.photos.push(newPhoto);
+            localByServerId.set(sp.id, newPhoto);
+            hasNewPhotos = true;
+            console.log('Foto descargada del servidor:', sp.id);
+          }
+        }
+
+        // Resolver serverPhotoIds a photoIds locales en los marcadores
+        if (this.project.markers && hasNewPhotos) {
+          let markersUpdated = false;
+          for (const marker of this.project.markers) {
+            if (marker.serverPhotoIds && marker.serverPhotoIds.length > 0) {
+              const existingPhotoIds = new Set(marker.photoIds || []);
+
+              for (const serverPhotoId of marker.serverPhotoIds) {
+                const localPhoto = localByServerId.get(serverPhotoId);
+                if (localPhoto && !existingPhotoIds.has(localPhoto.id)) {
+                  existingPhotoIds.add(localPhoto.id);
+                  markersUpdated = true;
+                }
+              }
+
+              if (markersUpdated) {
+                marker.photoIds = Array.from(existingPhotoIds);
+              }
+            }
+          }
+          if (markersUpdated) {
+            await this.storageService.saveProject(this.project);
+          }
+        }
+      }
+    } catch (e: any) {
+      console.log('Error sincronizando fotos:', e?.message);
     }
   }
 
