@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import { tap, map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
@@ -43,6 +43,18 @@ export class LicenseService {
 
   constructor(private http: HttpClient) {}
 
+  // Obtener headers con token de autorización
+  private getAuthHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token');
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    return headers;
+  }
+
   // Verificar estado de licencia del usuario
   async checkLicenseStatus(): Promise<LicenseStatus> {
     // No hacer petición si no hay token guardado
@@ -55,7 +67,9 @@ export class LicenseService {
 
     try {
       const status = await firstValueFrom(
-        this.http.get<LicenseStatus>(`${this.apiUrl}/licenses/status`)
+        this.http.get<LicenseStatus>(`${this.apiUrl}/licenses/status`, {
+          headers: this.getAuthHeaders()
+        })
       );
       this.licenseStatusSubject.next(status);
       return status;
@@ -85,7 +99,8 @@ export class LicenseService {
     const result = await firstValueFrom(
       this.http.post<{ success: boolean; message: string; license?: any }>(
         `${this.apiUrl}/licenses/activate`,
-        { licenseKey }
+        { licenseKey },
+        { headers: this.getAuthHeaders() }
       )
     );
 
@@ -94,7 +109,7 @@ export class LicenseService {
     return result;
   }
 
-  // Obtener tipos de licencia disponibles
+  // Obtener tipos de licencia disponibles (público, no requiere auth)
   async getLicenseTypes(): Promise<LicenseType[]> {
     return firstValueFrom(
       this.http.get<LicenseType[]>(`${this.apiUrl}/licenses/types`)
@@ -106,7 +121,8 @@ export class LicenseService {
     return firstValueFrom(
       this.http.post<{ orderId: string; approvalUrl: string }>(
         `${this.apiUrl}/payments/create-order`,
-        { licenseTypeId }
+        { licenseTypeId },
+        { headers: this.getAuthHeaders() }
       )
     );
   }
@@ -124,7 +140,11 @@ export class LicenseService {
   // Capturar pago (llamado despues de volver de PayPal)
   async capturePayment(orderId: string): Promise<any> {
     const result = await firstValueFrom(
-      this.http.post<any>(`${this.apiUrl}/payments/capture`, { orderId })
+      this.http.post<any>(
+        `${this.apiUrl}/payments/capture`,
+        { orderId },
+        { headers: this.getAuthHeaders() }
+      )
     );
 
     // Actualizar estado de licencia
@@ -135,7 +155,9 @@ export class LicenseService {
   // Obtener historial de pagos
   async getPaymentHistory(): Promise<any[]> {
     return firstValueFrom(
-      this.http.get<any[]>(`${this.apiUrl}/payments/history`)
+      this.http.get<any[]>(`${this.apiUrl}/payments/history`, {
+        headers: this.getAuthHeaders()
+      })
     );
   }
 
