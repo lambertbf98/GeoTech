@@ -54,7 +54,8 @@ export const errorHandler = (
   return res.status(500).json({
     error: {
       code: 'INTERNAL_ERROR',
-      message: 'Error interno del servidor'
+      message: 'Error interno del servidor',
+      details: err.message // Mostrar detalles para debug
     }
   });
 };

@@ -159,12 +159,20 @@ export class LicenseService {
     name?: string;
     durationDays?: number;
     price?: number;
+    promoPrice?: number | null;
+    promoEndsAt?: Date | string | null;
     description?: string;
     isActive?: boolean;
   }) {
+    // Convertir promoEndsAt a Date si es string
+    const updateData: any = { ...data };
+    if (data.promoEndsAt && typeof data.promoEndsAt === 'string') {
+      updateData.promoEndsAt = new Date(data.promoEndsAt);
+    }
+
     return prisma.licenseType.update({
       where: { id },
-      data
+      data: updateData
     });
   }
 

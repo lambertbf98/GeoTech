@@ -33,6 +33,8 @@ model LicenseType {
   code            String    @unique // "daily", "monthly", "quarterly", "yearly"
   durationDays    Int       @map("duration_days") // 1, 30, 90, 365
   price           Decimal   @db.Decimal(10, 2) // Precio en EUR
+  promoPrice      Decimal?  @db.Decimal(10, 2) @map("promo_price") // Precio promocional
+  promoEndsAt     DateTime? @map("promo_ends_at") // Fecha fin de promocion
   description     String?
   isActive        Boolean   @default(true) @map("is_active")
   createdAt       DateTime  @default(now()) @map("created_at")

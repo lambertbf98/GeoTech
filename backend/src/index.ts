@@ -73,10 +73,16 @@ if (fs.existsSync(frontendPath)) {
 
   // SPA fallback - serve index.html for all non-API routes
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/') || req.path.startsWith('/admin')) {
       return next();
     }
-    res.sendFile(path.join(frontendPath, 'index.html'));
+    const indexPath = path.join(frontendPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      // Si no existe index.html, redirigir a admin o mostrar mensaje
+      res.redirect('/admin');
+    }
   });
 }
 

@@ -409,6 +409,42 @@
     </div>
   </div>
 
+  <!-- Edit Type Modal -->
+  <div id="editTypeModal" class="modal">
+    <div class="modal-content">
+      <h2>Editar Tipo de Licencia</h2>
+      <input type="hidden" id="editTypeId">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="editTypeName">
+      </div>
+      <div class="form-group">
+        <label>Duracion (dias)</label>
+        <input type="number" id="editTypeDuration">
+      </div>
+      <div class="form-group">
+        <label>Precio Normal (EUR)</label>
+        <input type="number" step="0.01" id="editTypePrice">
+      </div>
+      <div class="form-group">
+        <label>Precio Promocion (EUR) - dejar vacio si no hay promo</label>
+        <input type="number" step="0.01" id="editTypePromoPrice" placeholder="Opcional">
+      </div>
+      <div class="form-group">
+        <label>Promocion hasta (fecha)</label>
+        <input type="date" id="editTypePromoEnds">
+      </div>
+      <div class="form-group">
+        <label>Descripcion</label>
+        <input type="text" id="editTypeDescription">
+      </div>
+      <div class="modal-btns">
+        <button class="cancel-btn" onclick="closeModal('editTypeModal')">Cancelar</button>
+        <button class="submit-btn" onclick="updateLicenseType()">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_URL = window.location.origin + '/api';
     let token = localStorage.getItem('adminToken');
@@ -575,28 +611,72 @@
       try {
         const types = await apiCall('/licenses/types');
         const tbody = document.getElementById('typesTable');
-        tbody.innerHTML = types.map(t => `
+        tbody.innerHTML = types.map(t => {
+          const hasPromo = t.promoPrice && t.promoEndsAt && new Date(t.promoEndsAt) > new Date();
+          const promoText = hasPromo ? `<br><span style="color:#10b981;font-size:12px;">Promo: ${t.promoPrice} EUR (hasta ${new Date(t.promoEndsAt).toLocaleDateString()})</span>` : '';
+          return `
           <tr>
             <td>${t.name}</td>
             <td><code>${t.code}</code></td>
             <td>${t.durationDays} dias</td>
-            <td>${t.price} EUR</td>
+            <td>${t.price} EUR${promoText}</td>
             <td><span class="badge ${t.isActive ? 'active' : 'expired'}">${t.isActive ? 'Activo' : 'Inactivo'}</span></td>
             <td>
+              <button class="action-btn" onclick='editLicenseType(${JSON.stringify(t)})'>Editar</button>
               <button class="action-btn" onclick="toggleLicenseType('${t.id}', ${!t.isActive})">
                 ${t.isActive ? 'Desactivar' : 'Activar'}
               </button>
             </td>
           </tr>
-        `).join('');
+        `}).join('');
 
         // Update type select for license creation
         const select = document.getElementById('licenseTypeSelect');
-        select.innerHTML = types.filter(t => t.isActive).map(t =>
-          `<option value="${t.id}">${t.name} - ${t.price} EUR</option>`
-        ).join('');
+        select.innerHTML = types.filter(t => t.isActive).map(t => {
+          const hasPromo = t.promoPrice && t.promoEndsAt && new Date(t.promoEndsAt) > new Date();
+          const displayPrice = hasPromo ? t.promoPrice : t.price;
+          return `<option value="${t.id}">${t.name} - ${displayPrice} EUR${hasPromo ? ' (PROMO)' : ''}</option>`;
+        }).join('');
       } catch (err) {
         console.error('Error loading license types:', err);
+      }
+    }
+
+    function editLicenseType(type) {
+      document.getElementById('editTypeId').value = type.id;
+      document.getElementById('editTypeName').value = type.name;
+      document.getElementById('editTypeDuration').value = type.durationDays;
+      document.getElementById('editTypePrice').value = type.price;
+      document.getElementById('editTypePromoPrice').value = type.promoPrice || '';
+      document.getElementById('editTypePromoEnds').value = type.promoEndsAt ? type.promoEndsAt.split('T')[0] : '';
+      document.getElementById('editTypeDescription').value = type.description || '';
+      document.getElementById('editTypeModal').classList.add('show');
+    }
+
+    async function updateLicenseType() {
+      const id = document.getElementById('editTypeId').value;
+      const promoPrice = document.getElementById('editTypePromoPrice').value;
+      const promoEnds = document.getElementById('editTypePromoEnds').value;
+
+      const data = {
+        name: document.getElementById('editTypeName').value,
+        durationDays: parseInt(document.getElementById('editTypeDuration').value),
+        price: parseFloat(document.getElementById('editTypePrice').value),
+        promoPrice: promoPrice ? parseFloat(promoPrice) : null,
+        promoEndsAt: promoEnds ? new Date(promoEnds).toISOString() : null,
+        description: document.getElementById('editTypeDescription').value
+      };
+
+      try {
+        await apiCall(`/licenses/admin/types/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(data)
+        });
+        closeModal('editTypeModal');
+        loadLicenseTypes();
+        alert('Tipo de licencia actualizado correctamente');
+      } catch (err) {
+        alert('Error: ' + err.message);
       }
     }
 
