@@ -39,15 +39,59 @@ export class ProjectsPage implements OnInit {
   async loadProjects() {
     this.isLoading = true;
     // Siempre cargar primero del almacenamiento local
-    this.projects = await this.storageService.getProjects();
+    let localProjects = await this.storageService.getProjects();
 
-    // Verificar conexión sin sobrescribir datos locales
+    // Verificar conexión y sincronizar con el servidor
     try {
       await firstValueFrom(this.apiService.get<any>("/health"));
       this.isOnline = true;
+
+      // Cargar proyectos del servidor
+      try {
+        const response: any = await firstValueFrom(this.apiService.get<any>("/projects"));
+        const serverProjects = response?.projects || [];
+
+        if (serverProjects.length > 0) {
+          // Crear mapa de proyectos locales por serverId
+          const localByServerId = new Map<string, Project>();
+          localProjects.forEach(p => {
+            if (p.serverId) localByServerId.set(p.serverId, p);
+          });
+
+          // Agregar proyectos del servidor que no están localmente
+          for (const sp of serverProjects) {
+            if (!localByServerId.has(sp.id)) {
+              // Proyecto existe en servidor pero no localmente
+              const newLocal: Project = {
+                id: 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                serverId: sp.id,
+                name: sp.name,
+                description: sp.description || '',
+                location: sp.location || '',
+                photoCount: sp.photoCount || 0,
+                createdAt: new Date(sp.createdAt),
+                updatedAt: new Date(sp.updatedAt || sp.createdAt),
+                synced: true
+              };
+              localProjects.push(newLocal);
+              console.log('Proyecto descargado del servidor:', sp.name);
+            }
+          }
+
+          // Guardar proyectos actualizados
+          await this.storageService.setProjects(localProjects);
+        }
+
+        // Sincronizar proyectos pendientes
+        await this.syncService.syncPending();
+      } catch (e: any) {
+        console.log('Error loading server projects:', e?.message || e);
+      }
     } catch (error) {
       this.isOnline = false;
     }
+
+    this.projects = localProjects;
     this.isLoading = false;
   }
 
@@ -106,8 +150,9 @@ export class ProjectsPage implements OnInit {
 
   private async saveProject(data: any) {
     try {
+      const localId = "proj_" + Date.now();
       const newProject: Project = {
-        id: "proj_" + Date.now(),
+        id: localId,
         name: data.name.trim(),
         description: data.description || '',
         location: data.location || '',
@@ -119,15 +164,25 @@ export class ProjectsPage implements OnInit {
 
       if (this.isOnline) {
         try {
-          const response = await firstValueFrom(this.apiService.post<Project>("/projects", newProject));
-          if (response) {
-            // Mantener la ubicación local si el API no la devuelve
-            newProject.id = response.id || newProject.id;
+          const response: any = await firstValueFrom(this.apiService.post<any>("/projects", {
+            name: newProject.name,
+            description: newProject.description,
+            location: newProject.location
+          }));
+          if (response && response.project) {
+            // Guardar el serverId para sincronización
+            newProject.serverId = response.project.id;
             newProject.synced = true;
+            console.log('Proyecto creado en servidor con ID:', response.project.id);
           }
-        } catch (e) {
-          console.log('API error, saving locally:', e);
+        } catch (e: any) {
+          console.log('API error, saving locally:', e?.message || e);
+          // Encolar para sincronización posterior
+          await this.syncService.queueForSync('CREATE', 'project', localId, newProject);
         }
+      } else {
+        // Si está offline, encolar para sincronización
+        await this.syncService.queueForSync('CREATE', 'project', localId, newProject);
       }
 
       this.projects.unshift(newProject);

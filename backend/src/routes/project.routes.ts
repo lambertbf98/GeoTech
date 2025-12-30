@@ -47,8 +47,8 @@ router.post(
     }
 
     try {
-      const { name, description } = req.body;
-      const project = await projectService.create(req.userId!, name, description);
+      const { name, description, location } = req.body;
+      const project = await projectService.create(req.userId!, name, description, location);
       res.status(201).json({ project });
     } catch (error) {
       next(error);
@@ -59,8 +59,8 @@ router.post(
 // PUT /api/projects/:id
 router.put('/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { name, description } = req.body;
-    const project = await projectService.update(req.userId!, req.params.id, { name, description });
+    const { name, description, location } = req.body;
+    const project = await projectService.update(req.userId!, req.params.id, { name, description, location });
     res.json({ project });
   } catch (error) {
     next(error);
