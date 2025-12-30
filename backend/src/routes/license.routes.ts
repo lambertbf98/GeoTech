@@ -244,6 +244,39 @@ router.get(
   }
 );
 
+// PUT /api/licenses/admin/user/:id - Actualizar datos de usuario
+router.put(
+  '/admin/user/:id',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const { name, email } = req.body;
+      const user = await licenseService.updateUser(id, { name, email });
+      res.json({ success: true, user });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /api/licenses/admin/project/:id - Obtener detalle de proyecto con fotos
+router.get(
+  '/admin/project/:id',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const project = await licenseService.getProjectDetail(id);
+      res.json({ project });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // PUT /api/licenses/admin/user/:id/password - Cambiar contrasena de usuario
 router.put(
   '/admin/user/:id/password',

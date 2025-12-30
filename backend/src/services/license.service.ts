@@ -319,6 +319,9 @@ export class LicenseService {
             }
           },
           orderBy: { createdAt: 'desc' }
+        },
+        _count: {
+          select: { projects: true }
         }
       }
     });
@@ -328,6 +331,52 @@ export class LicenseService {
     }
 
     return user;
+  }
+
+  // ADMIN: Obtener proyecto con fotos
+  async getProjectDetail(projectId: string) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        user: { select: { id: true, email: true, name: true } },
+        photos: {
+          orderBy: { createdAt: 'desc' }
+        },
+        reports: {
+          orderBy: { createdAt: 'desc' }
+        },
+        kmlFiles: {
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+
+    if (!project) {
+      throw new Error('Proyecto no encontrado');
+    }
+
+    return project;
+  }
+
+  // ADMIN: Actualizar datos de usuario (nombre, email)
+  async updateUser(userId: string, data: { name?: string; email?: string }) {
+    // Verificar si el email ya existe (si se esta cambiando)
+    if (data.email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email: data.email,
+          NOT: { id: userId }
+        }
+      });
+      if (existingUser) {
+        throw new Error('El email ya esta en uso por otro usuario');
+      }
+    }
+
+    return prisma.user.update({
+      where: { id: userId },
+      data
+    });
   }
 
   // ADMIN: Cambiar contrasena de usuario
