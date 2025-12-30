@@ -6,10 +6,9 @@ import bcrypt from 'bcryptjs';
 const router = Router();
 const prisma = new PrismaClient();
 
-// Emails de administradores
+// Email del administrador (solo uno)
 const ADMIN_EMAILS = [
-  'gfmemorieswork@gmail.com',
-  'lambertborrego1998@gmail.com'
+  'gfmemorieswork@gmail.com'
 ];
 
 // GET /api/setup/init - Inicializar sistema de licencias (solo funciona una vez)
@@ -152,6 +151,32 @@ router.get('/force-admin/:email', async (req: Request, res: Response) => {
       success: true,
       message: `Usuario ${email} ahora es administrador`,
       user: { email, isAdmin: true }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/setup/remove-admin/:email - Quitar admin de un email
+router.get('/remove-admin/:email', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.params;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    await prisma.user.update({
+      where: { email },
+      data: { isAdmin: false }
+    });
+
+    res.json({
+      success: true,
+      message: `Usuario ${email} ya no es administrador`,
+      user: { email, isAdmin: false }
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
