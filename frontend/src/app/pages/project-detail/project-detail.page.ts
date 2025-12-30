@@ -598,13 +598,22 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
       const kmlDoc = parser.parseFromString(kmlContent, 'text/xml');
       const bounds = L.latLngBounds([]);
 
+      // Inyectar estilos para los popups con fotos
+      this.injectKmlPopupStyles();
+
       // Procesar Placemarks
       const placemarks = kmlDoc.getElementsByTagName('Placemark');
 
       for (let i = 0; i < placemarks.length; i++) {
         const placemark = placemarks[i];
         const name = placemark.getElementsByTagName('name')[0]?.textContent || 'Sin nombre';
-        const description = placemark.getElementsByTagName('description')[0]?.textContent || '';
+        // Obtener descripción - puede estar en CDATA
+        let description = '';
+        const descEl = placemark.getElementsByTagName('description')[0];
+        if (descEl) {
+          // textContent extrae el contenido incluyendo CDATA
+          description = descEl.textContent || '';
+        }
 
         // Procesar puntos
         const points = placemark.getElementsByTagName('Point');
@@ -616,14 +625,14 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
               const marker = L.marker([lat, lng]).addTo(this.kmlMap!);
               // Create rich popup with scrollable content for photos
               const popupContent = `
-                <div style="max-width:350px;max-height:400px;overflow-y:auto;">
-                  <h3 style="margin:0 0 8px 0;font-size:16px;">${name}</h3>
-                  ${description}
+                <div class="kml-popup-content">
+                  <h3 class="kml-popup-title">${this.escapeHtml(name)}</h3>
+                  <div class="kml-popup-description">${description}</div>
                 </div>
               `;
               marker.bindPopup(popupContent, {
-                maxWidth: 400,
-                maxHeight: 450,
+                maxWidth: 450,
+                maxHeight: 500,
                 className: 'kml-rich-popup'
               });
               bounds.extend([lat, lng]);
@@ -643,7 +652,7 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
 
             if (latLngs.length > 0) {
               const polyline = L.polyline(latLngs, { color: '#3b82f6', weight: 4 }).addTo(this.kmlMap!);
-              polyline.bindPopup(`<strong>${name}</strong><br>${description}`);
+              polyline.bindPopup(`<strong>${this.escapeHtml(name)}</strong><br>${description}`);
               latLngs.forEach(ll => bounds.extend(ll));
             }
           }
@@ -662,7 +671,7 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
 
             if (latLngs.length > 0) {
               const polygon = L.polygon(latLngs, { color: '#10b981', fillOpacity: 0.3 }).addTo(this.kmlMap!);
-              polygon.bindPopup(`<strong>${name}</strong><br>${description}`);
+              polygon.bindPopup(`<strong>${this.escapeHtml(name)}</strong><br>${description}`);
               latLngs.forEach(ll => bounds.extend(ll));
             }
           }
@@ -676,6 +685,74 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error parsing KML:', error);
     }
+  }
+
+  private injectKmlPopupStyles() {
+    // Solo inyectar si no existe ya
+    if (document.getElementById('kml-popup-styles')) return;
+
+    const style = document.createElement('style');
+    style.id = 'kml-popup-styles';
+    style.textContent = `
+      .kml-rich-popup .leaflet-popup-content-wrapper {
+        background: #1e293b;
+        color: #f1f5f9;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      }
+      .kml-rich-popup .leaflet-popup-tip {
+        background: #1e293b;
+      }
+      .kml-rich-popup .leaflet-popup-close-button {
+        color: #94a3b8;
+      }
+      .kml-popup-content {
+        max-width: 420px;
+        max-height: 450px;
+        overflow-y: auto;
+        padding: 4px;
+      }
+      .kml-popup-title {
+        margin: 0 0 12px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #3b82f6;
+        border-bottom: 1px solid #334155;
+        padding-bottom: 8px;
+      }
+      .kml-popup-description {
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .kml-popup-description img {
+        max-width: 100%;
+        max-height: 250px;
+        border-radius: 8px;
+        margin: 8px 0;
+        display: block;
+        object-fit: contain;
+      }
+      .kml-popup-description p {
+        margin: 8px 0;
+      }
+      .kml-popup-description hr {
+        border: none;
+        border-top: 1px solid #334155;
+        margin: 12px 0;
+      }
+      .kml-popup-description h4 {
+        color: #94a3b8;
+        font-size: 14px;
+        margin: 12px 0 8px 0;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   downloadKml(kml: ProjectKml) {

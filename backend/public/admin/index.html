@@ -21,6 +21,7 @@
     .logo-icon {
       width: 40px;
       height: 40px;
+      color: #3b82f6;
       filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
       animation: pulse-glow 2s ease-in-out infinite;
     }
@@ -35,6 +36,7 @@
       height: 80px;
       margin: 0 auto 16px;
       display: block;
+      color: #3b82f6;
       filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.7));
       animation: pulse-glow 2s ease-in-out infinite;
     }
@@ -542,8 +544,13 @@
   <!-- Login Screen -->
   <div id="loginScreen" class="login-container">
     <div class="login-box">
-      <!-- GeoTech Logo -->
-      <img src="logo.png" alt="GeoTech" class="login-logo">
+      <!-- GeoTech Logo - Earth outline icon matching frontend -->
+      <svg class="login-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
+        <path d="M256 48C141.13 48 48 141.13 48 256s93.13 208 208 208 208-93.13 208-208S370.87 48 256 48z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/>
+        <path d="M256 48c-58.07 0-112.67 93.13-112.67 208S197.93 464 256 464s112.67-93.13 112.67-208S314.07 48 256 48z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/>
+        <path d="M117.33 117.33c38.24 27.15 86.38 43.34 138.67 43.34s100.43-16.19 138.67-43.34M394.67 394.67c-38.24-27.15-86.38-43.34-138.67-43.34s-100.43 16.19-138.67 43.34" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/>
+        <path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M256 48v416M464 256H48"/>
+      </svg>
       <h1 class="login-title">GeoTech Admin</h1>
       <p class="login-subtitle">Panel de administracion</p>
       <div id="loginError" class="error-msg hidden"></div>
@@ -565,7 +572,12 @@
   <div id="adminPanel" class="hidden">
     <header class="header">
       <div class="logo-container">
-        <img src="logo.png" alt="GeoTech" class="logo-icon">
+        <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
+          <path d="M256 48C141.13 48 48 141.13 48 256s93.13 208 208 208 208-93.13 208-208S370.87 48 256 48z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/>
+          <path d="M256 48c-58.07 0-112.67 93.13-112.67 208S197.93 464 256 464s112.67-93.13 112.67-208S314.07 48 256 48z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/>
+          <path d="M117.33 117.33c38.24 27.15 86.38 43.34 138.67 43.34s100.43-16.19 138.67-43.34M394.67 394.67c-38.24-27.15-86.38-43.34-138.67-43.34s-100.43 16.19-138.67 43.34" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/>
+          <path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M256 48v416M464 256H48"/>
+        </svg>
         <h1>GeoTech Admin</h1>
       </div>
       <div class="header-user">
