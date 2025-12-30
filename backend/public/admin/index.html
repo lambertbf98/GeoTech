@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>GeoTech Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* GeoTech Logo Animation */
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      color: #3b82f6;
+      filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)); }
+      50% { filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.9)); }
+    }
+
+    .login-logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      display: block;
+      color: #3b82f6;
+      filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.7));
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --bg-input: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border: #475569;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-card);
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .btn-logout {
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      background: var(--bg-card);
+      padding: 8px;
+      gap: 4px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-tab {
+      flex: 1;
+      min-width: 80px;
+      padding: 12px 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .nav-tab.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .nav-tab:hover:not(.active) {
+      background: var(--bg-input);
+    }
+
+    /* Main Content */
+    .main {
+      padding: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    @media (min-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Table / List */
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .list-item {
+      background: var(--bg-input);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    @media (min-width: 768px) {
+      .list-item {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .list-item-main {
+      flex: 1;
+    }
+
+    .list-item-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+
+    .list-item-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .list-item-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: opacity 0.2s;
+    }
+
+    .btn:active { opacity: 0.8; }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-secondary { background: var(--bg-input); color: var(--text); }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-success { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .badge-warning { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+    .badge-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    .badge-info { background: rgba(59, 130, 246, 0.2); color: var(--primary); }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .form-select {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    /* Login */
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-box {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 24px;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 1rem;
+      margin-top: 8px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 200;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-body {
+      padding: 16px;
+    }
+
+    .modal-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .pagination button {
+      padding: 8px 12px;
+      background: var(--bg-input);
+      border: none;
+      border-radius: 6px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    .pagination button.active {
+      background: var(--primary);
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Error */
+    .error-msg {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      margin-bottom: 16px;
+    }
+
+    .success-msg {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--success);
+      color: var(--success);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      margin-bottom: 16px;
+    }
+
+    /* Hide elements */
+    .hidden { display: none !important; }
+
+    /* User detail */
+    .user-detail-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .detail-value {
+      font-weight: 500;
+      text-align: right;
+      word-break: break-all;
+    }
+
+    /* Photo grid */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    @media (min-width: 768px) {
+      .photo-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .photo-thumb {
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 8px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-container">
+    <div class="login-box">
+      <!-- GeoTech Logo - Earth outline icon matching frontend -->
+      <svg class="login-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
+        <path d="M256 48C141.13 48 48 141.13 48 256s93.13 208 208 208 208-93.13 208-208S370.87 48 256 48z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/>
+        <path d="M256 48c-58.07 0-112.67 93.13-112.67 208S197.93 464 256 464s112.67-93.13 112.67-208S314.07 48 256 48z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/>
+        <path d="M117.33 117.33c38.24 27.15 86.38 43.34 138.67 43.34s100.43-16.19 138.67-43.34M394.67 394.67c-38.24-27.15-86.38-43.34-138.67-43.34s-100.43 16.19-138.67 43.34" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/>
+        <path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M256 48v416M464 256H48"/>
+      </svg>
+      <h1 class="login-title">GeoTech Admin</h1>
+      <p class="login-subtitle">Panel de administracion</p>
+      <div id="loginError" class="error-msg hidden"></div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="loginEmail" class="form-input" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contrasena</label>
+          <input type="password" id="loginPassword" class="form-input" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary login-btn">Iniciar Sesion</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="adminPanel" class="hidden">
+    <header class="header">
+      <div class="logo-container">
+        <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
+          <path d="M256 48C141.13 48 48 141.13 48 256s93.13 208 208 208 208-93.13 208-208S370.87 48 256 48z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/>
+          <path d="M256 48c-58.07 0-112.67 93.13-112.67 208S197.93 464 256 464s112.67-93.13 112.67-208S314.07 48 256 48z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/>
+          <path d="M117.33 117.33c38.24 27.15 86.38 43.34 138.67 43.34s100.43-16.19 138.67-43.34M394.67 394.67c-38.24-27.15-86.38-43.34-138.67-43.34s-100.43 16.19-138.67 43.34" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/>
+          <path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M256 48v416M464 256H48"/>
+        </svg>
+        <h1>GeoTech Admin</h1>
+      </div>
+      <div class="header-user">
+        <span id="userEmail"></span>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+      </div>
+    </header>
+
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
+      <button class="nav-tab" data-tab="users">Usuarios</button>
+      <button class="nav-tab" data-tab="licenses">Licencias</button>
+      <button class="nav-tab" data-tab="types">Tipos</button>
+    </nav>
+
+    <main class="main">
+      <!-- Dashboard -->
+      <section id="dashboard" class="section active">
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="stat-value" id="statUsers">-</div>
+            <div class="stat-label">Usuarios</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statLicenses">-</div>
+            <div class="stat-label">Licencias Activas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statProjects">-</div>
+            <div class="stat-label">Proyectos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statRevenue">-</div>
+            <div class="stat-label">Ingresos (EUR)</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Actividad Reciente</h3>
+          <div id="recentActivity" class="list">
+            <div class="loading"><div class="spinner"></div>Cargando...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Users -->
+      <section id="users" class="section">
+        <div class="card">
+          <h3 class="card-title">Usuarios Registrados</h3>
+          <div id="usersList" class="list">
+            <div class="loading"><div class="spinner"></div>Cargando...</div>
+          </div>
+          <div id="usersPagination" class="pagination"></div>
+        </div>
+      </section>
+
+      <!-- Licenses -->
+      <section id="licenses" class="section">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 class="card-title" style="margin: 0;">Licencias</h3>
+            <button class="btn btn-primary" onclick="showCreateLicenseModal()">+ Nueva</button>
+          </div>
+          <div id="licensesList" class="list">
+            <div class="loading"><div class="spinner"></div>Cargando...</div>
+          </div>
+          <div id="licensesPagination" class="pagination"></div>
+        </div>
+      </section>
+
+      <!-- License Types -->
+      <section id="types" class="section">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 class="card-title" style="margin: 0;">Tipos de Licencia</h3>
+            <button class="btn btn-primary" onclick="showCreateTypeModal()">+ Nuevo</button>
+          </div>
+          <div id="typesList" class="list">
+            <div class="loading"><div class="spinner"></div>Cargando...</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal: User Detail -->
+  <div id="userModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Detalle de Usuario</h3>
+        <button class="modal-close" onclick="closeModal('userModal')">&times;</button>
+      </div>
+      <div class="modal-body" id="userModalBody">
+        <div class="loading"><div class="spinner"></div>Cargando...</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('userModal')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create License -->
+  <div id="createLicenseModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Crear Licencia</h3>
+        <button class="modal-close" onclick="closeModal('createLicenseModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="createLicenseError" class="error-msg hidden"></div>
+        <div class="form-group">
+          <label class="form-label">Tipo de Licencia</label>
+          <select id="licenseTypeSelect" class="form-select"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Usuario (opcional - dejar vacio para generar clave)</label>
+          <select id="licenseUserSelect" class="form-select">
+            <option value="">Sin asignar (generar clave)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('createLicenseModal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="createLicense()">Crear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create License Type -->
+  <div id="createTypeModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Crear Tipo de Licencia</h3>
+        <button class="modal-close" onclick="closeModal('createTypeModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="createTypeError" class="error-msg hidden"></div>
+        <div class="form-group">
+          <label class="form-label">Nombre</label>
+          <input type="text" id="typeName" class="form-input" placeholder="Ej: Mensual">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Codigo</label>
+          <input type="text" id="typeCode" class="form-input" placeholder="Ej: monthly">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duracion (dias)</label>
+          <input type="number" id="typeDays" class="form-input" placeholder="30" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio (EUR)</label>
+          <input type="number" id="typePrice" class="form-input" placeholder="9.99" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripcion</label>
+          <input type="text" id="typeDesc" class="form-input" placeholder="Descripcion opcional">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('createTypeModal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="createLicenseType()">Crear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Change Password -->
+  <div id="passwordModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Cambiar Contrasena</h3>
+        <button class="modal-close" onclick="closeModal('passwordModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="passwordError" class="error-msg hidden"></div>
+        <div id="passwordSuccess" class="success-msg hidden"></div>
+        <input type="hidden" id="passwordUserId">
+        <div class="form-group">
+          <label class="form-label">Nueva Contrasena</label>
+          <input type="password" id="newPassword" class="form-input" placeholder="Minimo 6 caracteres">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('passwordModal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="changePassword()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin + '/api';
+    let token = localStorage.getItem('admin_token');
+    let currentUser = null;
+    let usersPage = 1;
+    let licensesPage = 1;
+    let licenseTypes = [];
+    let allUsers = [];
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      if (token) {
+        checkAuth();
+      }
+
+      // Tab navigation
+      document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const tabId = tab.dataset.tab;
+          document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById(tabId).classList.add('active');
+
+          // Load data on tab switch
+          if (tabId === 'users') loadUsers();
+          if (tabId === 'licenses') loadLicenses();
+          if (tabId === 'types') loadTypes();
+        });
+      });
+
+      // Login form
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await login();
+      });
+    });
+
+    async function api(endpoint, options = {}) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(API_BASE + endpoint, { ...options, headers });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error?.message || data.message || 'Error');
+      }
+      return data;
+    }
+
+    async function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const errorEl = document.getElementById('loginError');
+
+      try {
+        errorEl.classList.add('hidden');
+        const data = await api('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password })
+        });
+
+        if (!data.user?.isAdmin) {
+          throw new Error('No tienes permisos de administrador');
+        }
+
+        token = data.token;
+        currentUser = data.user;
+        localStorage.setItem('admin_token', token);
+        showAdminPanel();
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    async function checkAuth() {
+      try {
+        const data = await api('/auth/me');
+        if (!data.user?.isAdmin) {
+          throw new Error('No admin');
+        }
+        currentUser = data.user;
+        showAdminPanel();
+      } catch (err) {
+        logout();
+      }
+    }
+
+    function showAdminPanel() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('adminPanel').classList.remove('hidden');
+      document.getElementById('userEmail').textContent = currentUser?.email || '';
+      loadDashboard();
+    }
+
+    function logout() {
+      token = null;
+      currentUser = null;
+      localStorage.removeItem('admin_token');
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('adminPanel').classList.add('hidden');
+    }
+
+    // Dashboard
+    async function loadDashboard() {
+      try {
+        const stats = await api('/licenses/admin/stats');
+        document.getElementById('statUsers').textContent = stats.totalUsers || 0;
+        document.getElementById('statLicenses').textContent = stats.activeLicenses || 0;
+        document.getElementById('statProjects').textContent = stats.totalProjects || 0;
+        document.getElementById('statRevenue').textContent = (stats.totalRevenue || 0).toFixed(2);
+
+        // Recent users
+        const usersData = await api('/licenses/admin/users?limit=5');
+        const container = document.getElementById('recentActivity');
+        if (usersData.users?.length) {
+          container.innerHTML = usersData.users.map(u => `
+            <div class="list-item">
+              <div class="list-item-main">
+                <div class="list-item-title">${u.email}</div>
+                <div class="list-item-sub">${u.name || 'Sin nombre'} - ${formatDate(u.createdAt)}</div>
+              </div>
+              <span class="badge ${u.hasActiveLicense ? 'badge-success' : 'badge-warning'}">
+                ${u.hasActiveLicense ? 'Con licencia' : 'Sin licencia'}
+              </span>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No hay usuarios</p>';
+        }
+      } catch (err) {
+        console.error('Dashboard error:', err);
+      }
+    }
+
+    // Users
+    async function loadUsers(page = 1) {
+      usersPage = page;
+      const container = document.getElementById('usersList');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+
+      try {
+        const data = await api(`/licenses/admin/users?page=${page}&limit=10`);
+        allUsers = data.users || [];
+
+        if (allUsers.length) {
+          container.innerHTML = allUsers.map(u => `
+            <div class="list-item">
+              <div class="list-item-main">
+                <div class="list-item-title">${u.email}</div>
+                <div class="list-item-sub">
+                  ${u.name || 'Sin nombre'}
+                  ${u.isAdmin ? '<span class="badge badge-info">Admin</span>' : ''}
+                  <span class="badge ${u.hasActiveLicense ? 'badge-success' : 'badge-warning'}">
+                    ${u.hasActiveLicense ? 'Licenciado' : 'Sin licencia'}
+                  </span>
+                </div>
+              </div>
+              <div class="list-item-actions">
+                <button class="btn btn-secondary" onclick="showUserDetail('${u.id}')">Ver</button>
+                <button class="btn btn-warning" onclick="showPasswordModal('${u.id}')">Pass</button>
+                ${!u.isAdmin ? `<button class="btn btn-danger" onclick="deleteUser('${u.id}')">Eliminar</button>` : ''}
+              </div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No hay usuarios</p>';
+        }
+
+        renderPagination('usersPagination', data.page, data.totalPages, loadUsers);
+      } catch (err) {
+        container.innerHTML = `<p class="error-msg">${err.message}</p>`;
+      }
+    }
+
+    async function showUserDetail(userId) {
+      const modal = document.getElementById('userModal');
+      const body = document.getElementById('userModalBody');
+      modal.classList.add('active');
+      body.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+
+      try {
+        const data = await api(`/licenses/admin/user/${userId}`);
+        const u = data.user;
+
+        let projectsHtml = '';
+        if (u.projects?.length) {
+          projectsHtml = `
+            <h4 style="margin: 16px 0 8px;">Proyectos (${u.projects.length})</h4>
+            <div class="list">
+              ${u.projects.map(p => `
+                <div class="list-item">
+                  <div class="list-item-main">
+                    <div class="list-item-title">${p.name}</div>
+                    <div class="list-item-sub">${p.location || ''} - ${p._count?.photos || 0} fotos</div>
+                  </div>
+                  <button class="btn btn-danger btn-sm" onclick="deleteProject('${p.id}')">Eliminar</button>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        body.innerHTML = `
+          <div class="user-detail-grid">
+            <div class="detail-row">
+              <span class="detail-label">Email</span>
+              <span class="detail-value">${u.email}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Nombre</span>
+              <span class="detail-value">${u.name || '-'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Admin</span>
+              <span class="detail-value">${u.isAdmin ? 'Si' : 'No'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Registrado</span>
+              <span class="detail-value">${formatDate(u.createdAt)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Proyectos</span>
+              <span class="detail-value">${u.projects?.length || 0}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Licencias</span>
+              <span class="detail-value">${u.licenses?.length || 0}</span>
+            </div>
+          </div>
+          ${projectsHtml}
+        `;
+      } catch (err) {
+        body.innerHTML = `<p class="error-msg">${err.message}</p>`;
+      }
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm('¿Seguro que quieres eliminar este usuario y todos sus datos?')) return;
+
+      try {
+        await api(`/licenses/admin/user/${userId}`, { method: 'DELETE' });
+        loadUsers(usersPage);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function deleteProject(projectId) {
+      if (!confirm('¿Eliminar este proyecto?')) return;
+
+      try {
+        await api(`/licenses/admin/project/${projectId}`, { method: 'DELETE' });
+        closeModal('userModal');
+        alert('Proyecto eliminado');
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Licenses
+    async function loadLicenses(page = 1) {
+      licensesPage = page;
+      const container = document.getElementById('licensesList');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+
+      try {
+        const data = await api(`/licenses/admin/all?page=${page}&limit=10`);
+        const licenses = data.licenses || [];
+
+        if (licenses.length) {
+          container.innerHTML = licenses.map(l => `
+            <div class="list-item">
+              <div class="list-item-main">
+                <div class="list-item-title">${l.licenseKey}</div>
+                <div class="list-item-sub">
+                  ${l.licenseType?.name || 'Sin tipo'} - ${l.user?.email || 'Sin asignar'}
+                  <br>Expira: ${formatDate(l.expiresAt)}
+                </div>
+              </div>
+              <div class="list-item-actions">
+                <span class="badge ${l.status === 'ACTIVE' ? 'badge-success' : l.status === 'EXPIRED' ? 'badge-danger' : 'badge-warning'}">
+                  ${l.status}
+                </span>
+                ${l.status === 'ACTIVE' ? `<button class="btn btn-danger" onclick="revokeLicense('${l.id}')">Revocar</button>` : ''}
+              </div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No hay licencias</p>';
+        }
+
+        renderPagination('licensesPagination', data.page, data.totalPages, loadLicenses);
+      } catch (err) {
+        container.innerHTML = `<p class="error-msg">${err.message}</p>`;
+      }
+    }
+
+    async function showCreateLicenseModal() {
+      const modal = document.getElementById('createLicenseModal');
+      modal.classList.add('active');
+
+      // Load license types
+      try {
+        licenseTypes = await api('/licenses/types');
+        const select = document.getElementById('licenseTypeSelect');
+        select.innerHTML = licenseTypes.map(t =>
+          `<option value="${t.id}">${t.name} - ${t.price} EUR (${t.durationDays} dias)</option>`
+        ).join('');
+
+        // Load users
+        const userData = await api('/licenses/admin/users?limit=100');
+        const userSelect = document.getElementById('licenseUserSelect');
+        userSelect.innerHTML = '<option value="">Sin asignar (generar clave)</option>' +
+          (userData.users || []).map(u =>
+            `<option value="${u.id}">${u.email}</option>`
+          ).join('');
+      } catch (err) {
+        console.error('Error loading data:', err);
+      }
+    }
+
+    async function createLicense() {
+      const typeId = document.getElementById('licenseTypeSelect').value;
+      const userId = document.getElementById('licenseUserSelect').value;
+      const errorEl = document.getElementById('createLicenseError');
+
+      try {
+        errorEl.classList.add('hidden');
+        await api('/licenses/admin/create', {
+          method: 'POST',
+          body: JSON.stringify({ licenseTypeId: typeId, userId: userId || undefined })
+        });
+        closeModal('createLicenseModal');
+        loadLicenses();
+        alert('Licencia creada');
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    async function revokeLicense(licenseId) {
+      if (!confirm('¿Revocar esta licencia?')) return;
+
+      try {
+        await api(`/licenses/admin/revoke/${licenseId}`, { method: 'POST' });
+        loadLicenses(licensesPage);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // License Types
+    async function loadTypes() {
+      const container = document.getElementById('typesList');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+
+      try {
+        const types = await api('/licenses/types');
+
+        if (types.length) {
+          container.innerHTML = types.map(t => `
+            <div class="list-item">
+              <div class="list-item-main">
+                <div class="list-item-title">${t.name} (${t.code})</div>
+                <div class="list-item-sub">
+                  ${t.price} EUR - ${t.durationDays} dias
+                  ${t.description ? `<br>${t.description}` : ''}
+                </div>
+              </div>
+              <span class="badge badge-info">${t.durationDays}d</span>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No hay tipos de licencia</p>';
+        }
+      } catch (err) {
+        container.innerHTML = `<p class="error-msg">${err.message}</p>`;
+      }
+    }
+
+    function showCreateTypeModal() {
+      document.getElementById('createTypeModal').classList.add('active');
+    }
+
+    async function createLicenseType() {
+      const name = document.getElementById('typeName').value;
+      const code = document.getElementById('typeCode').value;
+      const days = document.getElementById('typeDays').value;
+      const price = document.getElementById('typePrice').value;
+      const desc = document.getElementById('typeDesc').value;
+      const errorEl = document.getElementById('createTypeError');
+
+      try {
+        errorEl.classList.add('hidden');
+        await api('/licenses/admin/types', {
+          method: 'POST',
+          body: JSON.stringify({
+            name,
+            code,
+            durationDays: parseInt(days),
+            price: parseFloat(price),
+            description: desc
+          })
+        });
+        closeModal('createTypeModal');
+        loadTypes();
+        alert('Tipo creado');
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    // Password
+    function showPasswordModal(userId) {
+      document.getElementById('passwordUserId').value = userId;
+      document.getElementById('newPassword').value = '';
+      document.getElementById('passwordError').classList.add('hidden');
+      document.getElementById('passwordSuccess').classList.add('hidden');
+      document.getElementById('passwordModal').classList.add('active');
+    }
+
+    async function changePassword() {
+      const userId = document.getElementById('passwordUserId').value;
+      const password = document.getElementById('newPassword').value;
+      const errorEl = document.getElementById('passwordError');
+      const successEl = document.getElementById('passwordSuccess');
+
+      try {
+        errorEl.classList.add('hidden');
+        await api(`/licenses/admin/user/${userId}/password`, {
+          method: 'PUT',
+          body: JSON.stringify({ password })
+        });
+        successEl.textContent = 'Contrasena actualizada';
+        successEl.classList.remove('hidden');
+        setTimeout(() => closeModal('passwordModal'), 1500);
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    // Utilities
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function renderPagination(containerId, currentPage, totalPages, loadFn) {
+      const container = document.getElementById(containerId);
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+      html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="${loadFn.name}(${currentPage - 1})">Anterior</button>`;
+
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+          html += `<button class="${i === currentPage ? 'active' : ''}" onclick="${loadFn.name}(${i})">${i}</button>`;
+        } else if (i === currentPage - 2 || i === currentPage + 2) {
+          html += '<span style="color: var(--text-muted);">...</span>';
+        }
+      }
+
+      html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="${loadFn.name}(${currentPage + 1})">Siguiente</button>`;
+      container.innerHTML = html;
+    }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
