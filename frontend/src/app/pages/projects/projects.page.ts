@@ -90,6 +90,8 @@ export class ProjectsPage implements OnInit {
         // 2. Descargar proyectos del servidor que NO existen localmente
         for (const sp of serverProjects) {
           if (!localByServerId.has(sp.id)) {
+            // Extraer contenido del servidor si existe
+            const content = sp.content || {};
             const newLocal: Project = {
               id: 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
               serverId: sp.id,
@@ -97,13 +99,36 @@ export class ProjectsPage implements OnInit {
               description: sp.description || '',
               location: sp.location || '',
               photoCount: sp.photoCount || 0,
+              zones: content.zones || [],
+              paths: content.paths || [],
+              markers: content.markers || [],
+              coordinates: content.coordinates,
               createdAt: new Date(sp.createdAt),
               updatedAt: new Date(sp.updatedAt || sp.createdAt),
               synced: true
             };
             localProjects.push(newLocal);
             hasChanges = true;
-            console.log('Proyecto descargado del servidor:', sp.name);
+            console.log('Proyecto descargado del servidor:', sp.name, 'con', newLocal.markers?.length || 0, 'marcadores');
+          } else {
+            // Si existe localmente, actualizar contenido del servidor
+            const localProj = localByServerId.get(sp.id);
+            if (localProj && sp.content) {
+              const serverContent = sp.content;
+              const serverUpdated = new Date(sp.updatedAt || 0).getTime();
+              const localUpdated = new Date(localProj.updatedAt || 0).getTime();
+
+              // Si el servidor es más reciente, actualizar contenido local
+              if (serverUpdated > localUpdated) {
+                localProj.zones = serverContent.zones || localProj.zones;
+                localProj.paths = serverContent.paths || localProj.paths;
+                localProj.markers = serverContent.markers || localProj.markers;
+                localProj.coordinates = serverContent.coordinates || localProj.coordinates;
+                localProj.updatedAt = new Date(sp.updatedAt);
+                hasChanges = true;
+                console.log('Contenido actualizado desde servidor:', localProj.name);
+              }
+            }
           }
         }
 
@@ -262,8 +287,28 @@ export class ProjectsPage implements OnInit {
   }
 
   async deleteProject(project: Project) {
+    // Eliminar del servidor si tiene serverId
+    if (project.serverId && this.isOnline) {
+      try {
+        await firstValueFrom(this.apiService.delete(`/projects/${project.serverId}`));
+        console.log('Proyecto eliminado del servidor:', project.serverId);
+      } catch (e: any) {
+        console.log('Error eliminando del servidor:', e?.message);
+        // Continuar con eliminación local aunque falle el servidor
+      }
+    }
+
+    // Eliminar localmente
     this.projects = this.projects.filter(p => p.id !== project.id);
-    await this.storageService.setProjects(this.projects);
+    await this.storageService.deleteProject(project.id);
+
+    const toast = await this.toastCtrl.create({
+      message: 'Proyecto eliminado',
+      duration: 2000,
+      position: 'top',
+      color: 'success'
+    });
+    await toast.present();
   }
 
   async forceSync() {

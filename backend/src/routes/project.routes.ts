@@ -59,9 +59,21 @@ router.post(
 // PUT /api/projects/:id
 router.put('/:id', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { name, description, location } = req.body;
-    const project = await projectService.update(req.userId!, req.params.id, { name, description, location });
+    const { name, description, location, content } = req.body;
+    const project = await projectService.update(req.userId!, req.params.id, { name, description, location, content });
     res.json({ project });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /api/projects/:id/content - Sincronizar solo contenido (zonas, paths, markers)
+router.put('/:id/content', async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { zones, paths, markers, coordinates } = req.body;
+    const content = { zones, paths, markers, coordinates };
+    const project = await projectService.update(req.userId!, req.params.id, { content });
+    res.json({ success: true, project });
   } catch (error) {
     next(error);
   }

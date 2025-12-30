@@ -90,7 +90,34 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   ionViewDidEnter() {
-    setTimeout(() => this.initMap(), 300);
+    setTimeout(() => this.initMapWithLocation(), 300);
+  }
+
+  private async initMapWithLocation() {
+    // Si el proyecto tiene contenido (marcadores, zonas, etc.), usar esos bounds
+    const hasContent = (this.project?.markers?.length || 0) > 0 ||
+                       (this.project?.zones?.length || 0) > 0 ||
+                       (this.project?.paths?.length || 0) > 0 ||
+                       this.photos.length > 0;
+
+    if (hasContent) {
+      // Inicializar con contenido existente
+      this.initMap();
+    } else {
+      // Si no hay contenido, obtener ubicación actual primero
+      try {
+        const pos = await this.gpsService.getCurrentPosition();
+        // Guardar coordenadas en el proyecto
+        if (this.project && !this.project.coordinates) {
+          this.project.coordinates = { lat: pos.latitude, lng: pos.longitude };
+          await this.saveProject();
+        }
+        this.initMap(pos.latitude, pos.longitude);
+      } catch (e) {
+        console.log('No se pudo obtener ubicación, usando default');
+        this.initMap();
+      }
+    }
   }
 
   async loadProject(projectId: string) {
@@ -144,15 +171,15 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
     }
   }
 
-  private initMap() {
+  private initMap(initialLat?: number, initialLng?: number) {
     if (this.map || !this.project) return;
 
     const container = document.getElementById('editorMap');
     if (!container) return;
 
-    // Default to project coordinates or Spain center
-    const lat = this.project.coordinates?.lat || 40.416775;
-    const lng = this.project.coordinates?.lng || -3.703790;
+    // Usar coordenadas proporcionadas, o del proyecto, o por defecto España
+    const lat = initialLat || this.project.coordinates?.lat || 40.416775;
+    const lng = initialLng || this.project.coordinates?.lng || -3.703790;
 
     // Fix Leaflet icons
     delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -2030,6 +2057,30 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
     if (!this.project) return;
     this.project.updatedAt = new Date();
     await this.storageService.saveProject(this.project);
+
+    // Sincronizar con servidor si hay conexión y tiene serverId
+    if (this.project.serverId) {
+      this.syncProjectContent();
+    }
+  }
+
+  private async syncProjectContent() {
+    if (!this.project?.serverId) return;
+
+    try {
+      const content = {
+        zones: this.project.zones || [],
+        paths: this.project.paths || [],
+        markers: this.project.markers || [],
+        coordinates: this.project.coordinates
+      };
+
+      await firstValueFrom(this.apiService.put(`/projects/${this.project.serverId}/content`, content));
+      console.log('Contenido sincronizado con servidor');
+    } catch (e: any) {
+      console.log('Error sincronizando contenido:', e?.message);
+      // No mostrar error al usuario, la sincronización es secundaria
+    }
   }
 
   goBack() {

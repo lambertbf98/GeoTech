@@ -21,6 +21,7 @@ export class ProjectService {
       name: p.name,
       description: p.description,
       location: p.location,
+      content: p.content,
       photoCount: p._count.photos,
       createdAt: p.createdAt,
       updatedAt: p.updatedAt
@@ -57,7 +58,7 @@ export class ProjectService {
     return project;
   }
 
-  async update(userId: string, projectId: string, data: { name?: string; description?: string; location?: string }) {
+  async update(userId: string, projectId: string, data: { name?: string; description?: string; location?: string; content?: any }) {
     // Verificar que el proyecto pertenece al usuario
     const existing = await prisma.project.findFirst({
       where: { id: projectId, userId }
