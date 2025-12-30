@@ -423,33 +423,51 @@
     async function login() {
       const email = document.getElementById('loginEmail').value;
       const password = document.getElementById('loginPassword').value;
+      const errorEl = document.getElementById('loginError');
+      errorEl.style.display = 'none';
 
       try {
+        console.log('Intentando login...');
         const res = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
 
+        console.log('Login response status:', res.status);
         const data = await res.json();
+        console.log('Login data:', data);
 
-        if (!res.ok) throw new Error(data.error?.message || 'Error');
+        if (!res.ok) {
+          throw new Error(data.error?.message || 'Error en login');
+        }
+
+        if (!data.token) {
+          throw new Error('No se recibio token del servidor');
+        }
 
         // Verify admin
+        console.log('Verificando permisos de admin...');
         const userRes = await fetch(`${API_URL}/licenses/admin/stats`, {
           headers: { 'Authorization': `Bearer ${data.token}` }
         });
 
+        console.log('Admin check status:', userRes.status);
+
         if (!userRes.ok) {
-          throw new Error('No tienes permisos de administrador');
+          const errData = await userRes.json().catch(() => ({}));
+          console.log('Admin error:', errData);
+          throw new Error(errData.error?.message || 'No tienes permisos de administrador');
         }
 
         localStorage.setItem('adminToken', data.token);
         token = data.token;
+        console.log('Login exitoso!');
         showDashboard();
       } catch (err) {
-        document.getElementById('loginError').textContent = err.message;
-        document.getElementById('loginError').style.display = 'block';
+        console.error('Login error:', err);
+        errorEl.textContent = err.message || 'Error desconocido';
+        errorEl.style.display = 'block';
       }
     }
 
