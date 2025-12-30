@@ -397,6 +397,7 @@
         <button class="tab-btn active" onclick="showPanel('licenses')">Licencias</button>
         <button class="tab-btn" onclick="showPanel('users')">Usuarios</button>
         <button class="tab-btn" onclick="showPanel('types')">Tipos de Licencia</button>
+        <button class="tab-btn" onclick="showPanel('payments')">Pagos</button>
       </div>
 
       <!-- Licenses Panel -->
@@ -467,6 +468,62 @@
             </thead>
             <tbody id="typesTable"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Payments Panel -->
+      <div id="paymentsPanel" class="panel">
+        <!-- Payment Stats -->
+        <div class="stats-grid" style="margin-bottom: 20px;">
+          <div class="stat-card green">
+            <h3>Completados</h3>
+            <div class="value" id="statPayCompleted">0</div>
+            <p style="color:#94a3b8;font-size:12px;margin-top:4px;"><span id="statPayCompletedAmount">0.00</span> EUR</p>
+          </div>
+          <div class="stat-card orange">
+            <h3>Pendientes</h3>
+            <div class="value" id="statPayPending">0</div>
+            <p style="color:#94a3b8;font-size:12px;margin-top:4px;"><span id="statPayPendingAmount">0.00</span> EUR</p>
+          </div>
+          <div class="stat-card" style="--card-color: #ef4444;">
+            <h3>Fallidos</h3>
+            <div class="value" style="color:#ef4444;" id="statPayFailed">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Reembolsados</h3>
+            <div class="value" id="statPayRefunded">0</div>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <div class="table-header">
+            <h2>Historial de Pagos</h2>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <select id="paymentStatusFilter" onchange="loadPayments(1)" style="padding:8px 12px;background:rgba(15,23,42,0.8);border:1px solid rgba(100,116,139,0.3);border-radius:8px;color:#e2e8f0;">
+                <option value="all">Todos los estados</option>
+                <option value="completed">Completados</option>
+                <option value="pending">Pendientes</option>
+                <option value="failed">Fallidos</option>
+                <option value="refunded">Reembolsados</option>
+                <option value="cancelled">Cancelados</option>
+              </select>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>Tipo Licencia</th>
+                <th>Monto</th>
+                <th>PayPal Order</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="paymentsTable"></tbody>
+          </table>
+          <div class="pagination" id="paymentsPagination"></div>
         </div>
       </div>
     </div>
@@ -1262,6 +1319,7 @@
       if (panel === 'users') loadUsers();
       if (panel === 'licenses') loadLicenses();
       if (panel === 'types') loadLicenseTypes();
+      if (panel === 'payments') loadPayments();
     }
 
     function showCreateLicenseModal() {
@@ -1350,6 +1408,190 @@
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text);
       alert('Clave copiada al portapapeles');
+    }
+
+    // ==================== PAGOS ====================
+    let currentPaymentPage = 1;
+
+    async function loadPayments(page = 1) {
+      currentPaymentPage = page;
+      const status = document.getElementById('paymentStatusFilter')?.value || 'all';
+
+      try {
+        const data = await apiCall(`/payments/admin/all?page=${page}&limit=10&status=${status}`);
+
+        // Actualizar stats de pagos
+        if (data.stats) {
+          document.getElementById('statPayCompleted').textContent = data.stats.completed.count;
+          document.getElementById('statPayCompletedAmount').textContent = Number(data.stats.completed.amount || 0).toFixed(2);
+          document.getElementById('statPayPending').textContent = data.stats.pending.count;
+          document.getElementById('statPayPendingAmount').textContent = Number(data.stats.pending.amount || 0).toFixed(2);
+          document.getElementById('statPayFailed').textContent = data.stats.failed.count;
+          document.getElementById('statPayRefunded').textContent = data.stats.refunded.count;
+        }
+
+        const tbody = document.getElementById('paymentsTable');
+
+        if (!data.payments || data.payments.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:40px;">No hay pagos registrados</td></tr>';
+          document.getElementById('paymentsPagination').innerHTML = '';
+          return;
+        }
+
+        tbody.innerHTML = data.payments.map(p => {
+          const statusBadge = getPaymentStatusBadge(p.status);
+          const canCapture = p.status === 'pending' && p.paypalOrderId;
+
+          return `
+          <tr>
+            <td>${formatDateTime(p.createdAt)}</td>
+            <td>
+              ${p.user?.email || 'N/A'}
+              <br><small style="color:#888;">${p.user?.name || ''}</small>
+            </td>
+            <td>${p.licenseType?.name || 'N/A'}</td>
+            <td style="font-weight:600;">${Number(p.amount || 0).toFixed(2)} ${p.currency || 'EUR'}</td>
+            <td>
+              <code style="font-size:11px;color:#94a3b8;">${p.paypalOrderId || 'N/A'}</code>
+              ${p.paypalOrderId ? `<button class="copy-btn" onclick="copyToClipboard('${p.paypalOrderId}')" title="Copiar">📋</button>` : ''}
+            </td>
+            <td>${statusBadge}</td>
+            <td>
+              ${canCapture ? `<button class="action-btn success" onclick="capturePayment('${p.paypalOrderId}')">Capturar</button>` : ''}
+              ${p.status === 'pending' ? `<button class="action-btn danger" onclick="markPaymentFailed('${p.id}')">Marcar fallido</button>` : ''}
+              <button class="action-btn" onclick="viewPaymentDetail('${p.id}')">Ver</button>
+            </td>
+          </tr>
+        `}).join('');
+
+        renderPagination('paymentsPagination', page, Math.ceil(data.total / 10), loadPayments);
+      } catch (err) {
+        console.error('Error loading payments:', err);
+        document.getElementById('paymentsTable').innerHTML =
+          '<tr><td colspan="7" style="text-align:center;color:#ef4444;padding:40px;">Error al cargar pagos: ' + err.message + '</td></tr>';
+      }
+    }
+
+    function getPaymentStatusBadge(status) {
+      const badges = {
+        'completed': '<span class="badge active">Completado</span>',
+        'pending': '<span class="badge pending">Pendiente</span>',
+        'failed': '<span class="badge expired">Fallido</span>',
+        'refunded': '<span class="badge revoked">Reembolsado</span>',
+        'cancelled': '<span class="badge revoked">Cancelado</span>'
+      };
+      return badges[status] || `<span class="badge">${status}</span>`;
+    }
+
+    async function capturePayment(orderId) {
+      if (!confirm('¿Intentar capturar este pago de PayPal? Esto activara la licencia si el pago fue aprobado.')) return;
+
+      try {
+        const result = await apiCall(`/payments/admin/capture/${orderId}`, { method: 'POST' });
+        alert('Pago capturado correctamente. Licencia activada.');
+        loadPayments(currentPaymentPage);
+        loadStats(); // Actualizar ingresos totales
+      } catch (err) {
+        alert('Error al capturar pago: ' + err.message);
+      }
+    }
+
+    async function markPaymentFailed(paymentId) {
+      if (!confirm('¿Marcar este pago como fallido?')) return;
+
+      try {
+        await apiCall(`/payments/admin/${paymentId}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'failed' })
+        });
+        alert('Pago marcado como fallido');
+        loadPayments(currentPaymentPage);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function viewPaymentDetail(paymentId) {
+      try {
+        const data = await apiCall(`/payments/admin/${paymentId}`);
+        const p = data.payment;
+
+        const content = `
+          <div class="user-detail-section">
+            <h3>Informacion del Pago</h3>
+            <div class="detail-row">
+              <span class="detail-label">ID</span>
+              <span class="detail-value" style="font-family:monospace;font-size:12px;">${p.id}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Estado</span>
+              <span class="detail-value">${getPaymentStatusBadge(p.status)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Monto</span>
+              <span class="detail-value" style="font-weight:700;color:#10b981;">${Number(p.amount || 0).toFixed(2)} ${p.currency || 'EUR'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Fecha</span>
+              <span class="detail-value">${formatDateTime(p.createdAt)}</span>
+            </div>
+          </div>
+
+          <div class="user-detail-section">
+            <h3>Usuario</h3>
+            <div class="detail-row">
+              <span class="detail-label">Email</span>
+              <span class="detail-value">${p.user?.email || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Nombre</span>
+              <span class="detail-value">${p.user?.name || 'N/A'}</span>
+            </div>
+          </div>
+
+          <div class="user-detail-section">
+            <h3>PayPal</h3>
+            <div class="detail-row">
+              <span class="detail-label">Order ID</span>
+              <span class="detail-value" style="font-family:monospace;">${p.paypalOrderId || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Payer ID</span>
+              <span class="detail-value" style="font-family:monospace;">${p.paypalPayerId || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Licencia Generada</span>
+              <span class="detail-value" style="font-family:monospace;">${p.licenseKeyGenerated || 'N/A'}</span>
+            </div>
+          </div>
+
+          <div class="user-detail-section">
+            <h3>Tipo de Licencia</h3>
+            <div class="detail-row">
+              <span class="detail-label">Nombre</span>
+              <span class="detail-value">${p.licenseType?.name || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Precio</span>
+              <span class="detail-value">${p.licenseType?.price || 'N/A'} EUR</span>
+            </div>
+          </div>
+
+          ${p.status === 'pending' && p.paypalOrderId ? `
+          <div style="margin-top:16px;">
+            <button class="action-btn success" onclick="capturePayment('${p.paypalOrderId}'); closeModal('paymentDetailModal');">Capturar Pago</button>
+            <button class="action-btn danger" onclick="markPaymentFailed('${p.id}'); closeModal('paymentDetailModal');">Marcar como Fallido</button>
+          </div>
+          ` : ''}
+        `;
+
+        // Usar el modal de usuario existente reutilizando su estructura
+        document.getElementById('userDetailContent').innerHTML = content;
+        document.querySelector('#userDetailModal h2').textContent = 'Detalles del Pago';
+        document.getElementById('userDetailModal').classList.add('show');
+      } catch (err) {
+        alert('Error al cargar detalles: ' + err.message);
+      }
     }
 
     // Keyboard shortcuts

@@ -3,7 +3,11 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import { paypalService } from '../services/paypal.service';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { requireAdmin } from '../middleware/admin';
 import { config } from '../config';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const router = Router();
 
@@ -151,6 +155,138 @@ router.post(
     } catch (error: any) {
       console.error('Error retrying capture:', error?.message || error);
       res.status(400).json({ error: error?.message || 'Error al capturar pago' });
+    }
+  }
+);
+
+// ==================== RUTAS DE ADMIN ====================
+
+// GET /api/payments/admin/all - Obtener todos los pagos (admin)
+router.get(
+  '/admin/all',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const status = req.query.status as string;
+      const skip = (page - 1) * limit;
+
+      const where: any = {};
+      if (status && status !== 'all') {
+        where.status = status;
+      }
+
+      const [payments, total] = await Promise.all([
+        prisma.payment.findMany({
+          where,
+          skip,
+          take: limit,
+          include: {
+            user: { select: { id: true, email: true, name: true } },
+            licenseType: { select: { id: true, name: true, price: true } }
+          },
+          orderBy: { createdAt: 'desc' }
+        }),
+        prisma.payment.count({ where })
+      ]);
+
+      // Calcular totales por estado
+      const [totalCompleted, totalPending, totalFailed, totalRefunded] = await Promise.all([
+        prisma.payment.aggregate({ where: { status: 'completed' }, _sum: { amount: true }, _count: true }),
+        prisma.payment.aggregate({ where: { status: 'pending' }, _sum: { amount: true }, _count: true }),
+        prisma.payment.aggregate({ where: { status: 'failed' }, _sum: { amount: true }, _count: true }),
+        prisma.payment.aggregate({ where: { status: 'refunded' }, _sum: { amount: true }, _count: true })
+      ]);
+
+      res.json({
+        payments,
+        total,
+        page,
+        limit,
+        stats: {
+          completed: { count: totalCompleted._count, amount: totalCompleted._sum.amount || 0 },
+          pending: { count: totalPending._count, amount: totalPending._sum.amount || 0 },
+          failed: { count: totalFailed._count, amount: totalFailed._sum.amount || 0 },
+          refunded: { count: totalRefunded._count, amount: totalRefunded._sum.amount || 0 }
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /api/payments/admin/capture/:orderId - Capturar pago pendiente (admin)
+router.post(
+  '/admin/capture/:orderId',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { orderId } = req.params;
+      console.log('Admin capturing payment for order:', orderId);
+
+      const result = await paypalService.captureOrder(orderId);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error capturing payment:', error?.message || error);
+      res.status(400).json({ error: error?.message || 'Error al capturar pago' });
+    }
+  }
+);
+
+// PUT /api/payments/admin/:id/status - Actualizar estado de pago manualmente (admin)
+router.put(
+  '/admin/:id/status',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!['pending', 'completed', 'failed', 'refunded', 'cancelled'].includes(status)) {
+        return res.status(400).json({ error: 'Estado no valido' });
+      }
+
+      const payment = await prisma.payment.update({
+        where: { id },
+        data: { status }
+      });
+
+      res.json({ success: true, payment });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /api/payments/admin/:id - Obtener detalle de pago (admin)
+router.get(
+  '/admin/:id',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+
+      const payment = await prisma.payment.findUnique({
+        where: { id },
+        include: {
+          user: { select: { id: true, email: true, name: true } },
+          licenseType: true
+        }
+      });
+
+      if (!payment) {
+        return res.status(404).json({ error: 'Pago no encontrado' });
+      }
+
+      res.json({ payment });
+    } catch (error) {
+      next(error);
     }
   }
 );
