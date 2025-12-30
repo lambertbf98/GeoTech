@@ -15,6 +15,7 @@ import { AuthService } from '../services/auth.service';
 export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
   private refreshTokenSubject: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
+  private refreshFailed = false; // Evitar múltiples intentos fallidos
 
   constructor(
     private authService: AuthService,
@@ -33,6 +34,11 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    // Si ya falló el refresh anteriormente, no intentar de nuevo
+    if (this.refreshFailed) {
+      return throwError(() => new Error('Sesión expirada'));
+    }
+
     // Si ya estamos refrescando, esperar
     if (this.isRefreshing) {
       return this.refreshTokenSubject.pipe(
@@ -51,15 +57,18 @@ export class AuthInterceptor implements HttpInterceptor {
     return from(this.authService.refreshToken()).pipe(
       switchMap(response => {
         if (response && response.token) {
+          this.refreshFailed = false; // Reset si tuvo éxito
           this.refreshTokenSubject.next(response.token);
           return next.handle(this.addTokenToRequest(request, response.token));
         }
         // Si no hay refresh token, ir al login
+        this.refreshFailed = true;
         this.goToLogin();
         return throwError(() => new Error('Sesión expirada'));
       }),
       catchError(err => {
-        // Si falla el refresh, ir al login
+        // Si falla el refresh, ir al login (solo una vez)
+        this.refreshFailed = true;
         this.goToLogin();
         return throwError(() => err);
       }),

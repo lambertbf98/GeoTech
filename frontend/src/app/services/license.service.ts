@@ -59,8 +59,11 @@ export class LicenseService {
       );
       this.licenseStatusSubject.next(status);
       return status;
-    } catch (error) {
-      console.error('Error checking license status:', error);
+    } catch (error: any) {
+      // No mostrar error 401 en consola - es manejado por el interceptor
+      if (error?.status !== 401) {
+        console.error('Error checking license status:', error);
+      }
       const noLicense = { hasValidLicense: false, license: null };
       this.licenseStatusSubject.next(noLicense);
       return noLicense;

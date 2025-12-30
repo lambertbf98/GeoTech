@@ -44,8 +44,8 @@ export class TabsPage implements OnInit, OnDestroy {
     // Verificar licencia al iniciar
     await this.checkLicense();
 
-    // Verificar licencia cada 30 segundos
-    this.refreshInterval = interval(30000).subscribe(() => {
+    // Verificar licencia cada 60 segundos (reducido para evitar demasiadas peticiones)
+    this.refreshInterval = interval(60000).subscribe(() => {
       this.checkLicense();
     });
 
