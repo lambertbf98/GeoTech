@@ -53,7 +53,7 @@ router.get('/init', async (req: Request, res: Response) => {
           results.push(`Usuario ${adminEmail} ya es administrador`);
         }
       } else {
-        const passwordHash = await bcrypt.hash('Admin123!', 10);
+        const passwordHash = await bcrypt.hash('Admin123', 10);
         await prisma.user.create({
           data: {
             email: adminEmail,
@@ -63,7 +63,7 @@ router.get('/init', async (req: Request, res: Response) => {
           }
         });
         results.push(`Usuario admin creado: ${adminEmail}`);
-        results.push(`Password temporal: Admin123! (CAMBIALA EN /admin)`);
+        results.push(`Password temporal: Admin123 (CAMBIALA EN /admin)`);
       }
     }
 
