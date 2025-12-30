@@ -1970,32 +1970,31 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       const token = localStorage.getItem('token');
       const projectId = this.project.serverId || this.project.id;
 
+      let reportId = `report_${Date.now()}`;
+      let savedToCloud = false;
+
       if (token) {
         try {
           console.log('Guardando informe en la nube:', reportName);
-          await firstValueFrom(this.apiService.createReport(
+          const response: any = await firstValueFrom(this.apiService.createReport(
             projectId,
             reportName,
             this.reportPreviewRawHtml
           ));
           console.log('Informe guardado en la nube');
-
-          const alert = await this.alertCtrl.create({
-            header: 'Informe guardado',
-            message: `El informe "${reportName}" se ha guardado correctamente.`,
-            buttons: ['OK']
-          });
-          await alert.present();
-          this.closeReportPreview();
-          return;
+          // Usar el ID del servidor si está disponible
+          if (response?.report?.id) {
+            reportId = response.report.id;
+          }
+          savedToCloud = true;
         } catch (cloudError: any) {
-          console.warn('Error guardando en la nube, intentando local:', cloudError);
+          console.warn('Error guardando en la nube, guardando solo localmente:', cloudError);
         }
       }
 
-      // Guardar localmente con imágenes (IndexedDB tiene espacio suficiente)
+      // Siempre guardar localmente con el contenido completo
       const report = {
-        id: `report_${Date.now()}`,
+        id: reportId,
         name: reportName,
         htmlContent: this.reportPreviewRawHtml,
         createdAt: now.toISOString()
@@ -2005,7 +2004,7 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       this.project.reports.push(report);
       await this.saveProject();
 
-      console.log('Informe guardado localmente. Total informes:', this.project.reports.length);
+      console.log('Informe guardado localmente. Total informes:', this.project.reports.length, 'Cloud:', savedToCloud);
 
       const alert = await this.alertCtrl.create({
         header: 'Informe guardado',
@@ -2103,30 +2102,30 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       const token = localStorage.getItem('token');
       const projectId = this.project.serverId || this.project.id;
 
+      let kmlId = `kml_${Date.now()}`;
+      let savedToCloud = false;
+
       if (token) {
         try {
-          await firstValueFrom(this.apiService.createKml(
+          const response: any = await firstValueFrom(this.apiService.createKml(
             projectId,
             kmlName,
             kmlContent
           ));
           console.log('KML guardado en la nube');
-
-          const alert = await this.alertCtrl.create({
-            header: 'Archivo KML guardado',
-            message: `El archivo "${kmlName}.kml" se ha guardado correctamente.`,
-            buttons: ['OK']
-          });
-          await alert.present();
-          return;
+          // Usar el ID del servidor si está disponible
+          if (response?.kml?.id) {
+            kmlId = response.kml.id;
+          }
+          savedToCloud = true;
         } catch (cloudError: any) {
-          console.warn('Error guardando KML en la nube, intentando local:', cloudError);
+          console.warn('Error guardando KML en la nube, guardando solo localmente:', cloudError);
         }
       }
 
-      // Fallback a almacenamiento local
+      // Siempre guardar localmente con el contenido completo
       const kml = {
-        id: `kml_${Date.now()}`,
+        id: kmlId,
         name: kmlName,
         kmlContent,
         createdAt: now.toISOString()
@@ -2136,7 +2135,7 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       this.project.kmls.push(kml);
       await this.saveProject();
 
-      console.log('KML guardado localmente. Total KMLs:', this.project.kmls.length);
+      console.log('KML guardado localmente. Total KMLs:', this.project.kmls.length, 'Cloud:', savedToCloud);
 
       const alert = await this.alertCtrl.create({
         header: 'Archivo KML guardado',
