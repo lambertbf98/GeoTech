@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -90,7 +91,14 @@ export class LicenseService {
 
     const licenseKey = generateLicenseKey();
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + licenseType.durationDays * 24 * 60 * 60 * 1000);
+    // Calcular expiracion: si hay horas, usar horas; si no, usar dias
+    let durationMs: number;
+    if (licenseType.durationHours && licenseType.durationHours > 0) {
+      durationMs = licenseType.durationHours * 60 * 60 * 1000; // horas a ms
+    } else {
+      durationMs = (licenseType.durationDays || 1) * 24 * 60 * 60 * 1000; // dias a ms
+    }
+    const expiresAt = new Date(now.getTime() + durationMs);
 
     const license = await prisma.license.create({
       data: {
@@ -139,7 +147,8 @@ export class LicenseService {
   async createLicenseType(data: {
     name: string;
     code: string;
-    durationDays: number;
+    durationDays?: number;
+    durationHours?: number;
     price: number;
     description?: string;
   }) {
@@ -147,7 +156,8 @@ export class LicenseService {
       data: {
         name: data.name,
         code: data.code,
-        durationDays: data.durationDays,
+        durationDays: data.durationDays || 0,
+        durationHours: data.durationHours || 0,
         price: data.price,
         description: data.description
       }
@@ -158,6 +168,7 @@ export class LicenseService {
   async updateLicenseType(id: string, data: {
     name?: string;
     durationDays?: number;
+    durationHours?: number;
     price?: number;
     promoPrice?: number | null;
     promoEndsAt?: Date | string | null;
@@ -281,6 +292,67 @@ export class LicenseService {
     ]);
 
     return { users, total, page, limit };
+  }
+
+  // ADMIN: Obtener detalle de usuario con proyectos
+  async getUserDetail(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isAdmin: true,
+        createdAt: true,
+        licenses: {
+          include: { licenseType: true },
+          orderBy: { createdAt: 'desc' }
+        },
+        projects: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            createdAt: true,
+            _count: {
+              select: { photos: true }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    return user;
+  }
+
+  // ADMIN: Cambiar contrasena de usuario
+  async updateUserPassword(userId: string, newPassword: string) {
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash }
+    });
+  }
+
+  // ADMIN: Cambiar rol de admin
+  async updateUserAdmin(userId: string, isAdmin: boolean) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isAdmin }
+    });
+  }
+
+  // ADMIN: Eliminar usuario y todos sus datos
+  async deleteUser(userId: string) {
+    // Prisma cascade delete eliminara proyectos, fotos, licencias, etc.
+    await prisma.user.delete({
+      where: { id: userId }
+    });
   }
 }
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GeoTech Admin - Panel de Licencias</title>
+  <title>GeoTech Admin - Panel de Administracion</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -55,7 +55,7 @@
     .login-card h1 { text-align: center; margin-bottom: 32px; color: #00d4ff; }
     .form-group { margin-bottom: 20px; }
     .form-group label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 14px; }
-    .form-group input {
+    .form-group input, .form-group select {
       width: 100%;
       padding: 12px 16px;
       background: rgba(15, 23, 42, 0.8);
@@ -64,7 +64,9 @@
       color: #e2e8f0;
       font-size: 16px;
     }
-    .form-group input:focus { outline: none; border-color: #00d4ff; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: #00d4ff; }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
     .login-btn {
       width: 100%;
       padding: 14px;
@@ -107,6 +109,7 @@
       margin-bottom: 24px;
       border-bottom: 1px solid rgba(100, 116, 139, 0.3);
       padding-bottom: 16px;
+      flex-wrap: wrap;
     }
     .tab-btn {
       background: transparent;
@@ -136,6 +139,8 @@
       align-items: center;
       padding: 16px 20px;
       border-bottom: 1px solid rgba(100, 116, 139, 0.3);
+      flex-wrap: wrap;
+      gap: 10px;
     }
     .table-header h2 { font-size: 18px; }
     .add-btn {
@@ -163,6 +168,7 @@
     .badge.pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
     .badge.expired { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
     .badge.revoked { background: rgba(100, 116, 139, 0.2); color: #64748b; }
+    .badge.admin { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
     .action-btn {
       background: rgba(100, 116, 139, 0.2);
       border: none;
@@ -171,11 +177,14 @@
       border-radius: 6px;
       cursor: pointer;
       font-size: 12px;
-      margin-right: 8px;
+      margin-right: 4px;
+      margin-bottom: 4px;
     }
     .action-btn:hover { background: rgba(100, 116, 139, 0.4); }
     .action-btn.danger { color: #ef4444; }
     .action-btn.danger:hover { background: rgba(239, 68, 68, 0.2); }
+    .action-btn.primary { color: #00d4ff; }
+    .action-btn.primary:hover { background: rgba(0, 212, 255, 0.2); }
 
     /* Modal */
     .modal {
@@ -189,6 +198,8 @@
       justify-content: center;
       align-items: center;
       z-index: 1000;
+      overflow-y: auto;
+      padding: 20px;
     }
     .modal.show { display: flex; }
     .modal-content {
@@ -197,13 +208,17 @@
       border-radius: 16px;
       padding: 32px;
       width: 100%;
-      max-width: 500px;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
+    .modal-content.large { max-width: 900px; }
     .modal-content h2 { margin-bottom: 24px; }
     .modal-btns { display: flex; gap: 12px; margin-top: 24px; }
     .modal-btns button { flex: 1; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
     .cancel-btn { background: transparent; border: 1px solid rgba(100, 116, 139, 0.3); color: #94a3b8; }
     .submit-btn { background: #00d4ff; border: none; color: #0f172a; }
+    .submit-btn.danger { background: #ef4444; color: white; }
 
     /* Pagination */
     .pagination {
@@ -230,6 +245,42 @@
       padding: 4px;
     }
     .license-key { font-family: monospace; font-size: 12px; }
+
+    /* User Detail */
+    .user-detail-section {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .user-detail-section h3 {
+      font-size: 14px;
+      color: #00d4ff;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { color: #94a3b8; }
+    .detail-value { color: #e2e8f0; font-weight: 500; }
+
+    /* Project cards */
+    .project-card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+    .project-card h4 { color: #00d4ff; margin-bottom: 4px; }
+    .project-card p { color: #94a3b8; font-size: 12px; }
+
+    .info-text { color: #94a3b8; font-size: 12px; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -320,9 +371,11 @@
               <tr>
                 <th>Nombre</th>
                 <th>Email</th>
+                <th>Rol</th>
                 <th>Licencia</th>
                 <th>Proyectos</th>
                 <th>Registro</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody id="usersTable"></tbody>
@@ -362,12 +415,11 @@
       <h2>Crear Nueva Licencia</h2>
       <div class="form-group">
         <label>Tipo de Licencia</label>
-        <select id="licenseTypeSelect" style="width:100%;padding:12px;background:#0f172a;border:1px solid rgba(100,116,139,0.3);border-radius:8px;color:#e2e8f0;">
-        </select>
+        <select id="licenseTypeSelect"></select>
       </div>
       <div class="form-group">
         <label>Usuario (opcional - dejar vacio para clave sin asignar)</label>
-        <select id="licenseUserSelect" style="width:100%;padding:12px;background:#0f172a;border:1px solid rgba(100,116,139,0.3);border-radius:8px;color:#e2e8f0;">
+        <select id="licenseUserSelect">
           <option value="">Sin asignar</option>
         </select>
       </div>
@@ -384,16 +436,23 @@
       <h2>Crear Tipo de Licencia</h2>
       <div class="form-group">
         <label>Nombre</label>
-        <input type="text" id="typeName" placeholder="Ej: Mensual">
+        <input type="text" id="typeName" placeholder="Ej: Mensual, Por Horas">
       </div>
       <div class="form-group">
-        <label>Codigo</label>
-        <input type="text" id="typeCode" placeholder="Ej: monthly">
+        <label>Codigo (unico)</label>
+        <input type="text" id="typeCode" placeholder="Ej: monthly, hourly-2h">
       </div>
-      <div class="form-group">
-        <label>Duracion (dias)</label>
-        <input type="number" id="typeDuration" placeholder="30">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Duracion en Horas (0 si usa dias)</label>
+          <input type="number" id="typeHours" placeholder="0" value="0">
+        </div>
+        <div class="form-group">
+          <label>Duracion en Dias (0 si usa horas)</label>
+          <input type="number" id="typeDays" placeholder="30" value="0">
+        </div>
       </div>
+      <p class="info-text">Si pones horas > 0, se usaran las horas. Si horas = 0, se usaran los dias.</p>
       <div class="form-group">
         <label>Precio (EUR)</label>
         <input type="number" step="0.01" id="typePrice" placeholder="9.99">
@@ -418,17 +477,26 @@
         <label>Nombre</label>
         <input type="text" id="editTypeName">
       </div>
-      <div class="form-group">
-        <label>Duracion (dias)</label>
-        <input type="number" id="editTypeDuration">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Duracion en Horas (0 si usa dias)</label>
+          <input type="number" id="editTypeHours" value="0">
+        </div>
+        <div class="form-group">
+          <label>Duracion en Dias (0 si usa horas)</label>
+          <input type="number" id="editTypeDays">
+        </div>
       </div>
-      <div class="form-group">
-        <label>Precio Normal (EUR)</label>
-        <input type="number" step="0.01" id="editTypePrice">
-      </div>
-      <div class="form-group">
-        <label>Precio Promocion (EUR) - dejar vacio si no hay promo</label>
-        <input type="number" step="0.01" id="editTypePromoPrice" placeholder="Opcional">
+      <p class="info-text">Si pones horas > 0, se usaran las horas. Si horas = 0, se usaran los dias.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Precio Normal (EUR)</label>
+          <input type="number" step="0.01" id="editTypePrice">
+        </div>
+        <div class="form-group">
+          <label>Precio Promo (EUR)</label>
+          <input type="number" step="0.01" id="editTypePromoPrice" placeholder="Opcional">
+        </div>
       </div>
       <div class="form-group">
         <label>Promocion hasta (fecha)</label>
@@ -441,6 +509,54 @@
       <div class="modal-btns">
         <button class="cancel-btn" onclick="closeModal('editTypeModal')">Cancelar</button>
         <button class="submit-btn" onclick="updateLicenseType()">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Detail Modal -->
+  <div id="userDetailModal" class="modal">
+    <div class="modal-content large">
+      <h2>Detalles del Usuario</h2>
+      <div id="userDetailContent"></div>
+      <div class="modal-btns">
+        <button class="cancel-btn" onclick="closeModal('userDetailModal')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div id="resetPasswordModal" class="modal">
+    <div class="modal-content">
+      <h2>Cambiar Contrasena</h2>
+      <input type="hidden" id="resetPasswordUserId">
+      <p style="margin-bottom:16px;color:#94a3b8;">Usuario: <span id="resetPasswordEmail" style="color:#00d4ff;"></span></p>
+      <div class="form-group">
+        <label>Nueva Contrasena</label>
+        <input type="text" id="newPassword" placeholder="Minimo 6 caracteres">
+      </div>
+      <p class="info-text">Las contrasenas estan hasheadas y no se pueden ver. Solo puedes cambiarlas.</p>
+      <div class="modal-btns">
+        <button class="cancel-btn" onclick="closeModal('resetPasswordModal')">Cancelar</button>
+        <button class="submit-btn" onclick="resetPassword()">Cambiar Contrasena</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete User Confirm Modal -->
+  <div id="deleteUserModal" class="modal">
+    <div class="modal-content">
+      <h2>Eliminar Usuario</h2>
+      <input type="hidden" id="deleteUserId">
+      <p style="color:#ef4444;margin-bottom:16px;">Esta accion eliminara permanentemente al usuario y todos sus datos:</p>
+      <ul style="color:#94a3b8;margin-left:20px;margin-bottom:16px;">
+        <li>Proyectos y fotos</li>
+        <li>Licencias</li>
+        <li>Pagos registrados</li>
+      </ul>
+      <p style="margin-bottom:16px;">Usuario: <span id="deleteUserEmail" style="color:#00d4ff;"></span></p>
+      <div class="modal-btns">
+        <button class="cancel-btn" onclick="closeModal('deleteUserModal')">Cancelar</button>
+        <button class="submit-btn danger" onclick="deleteUser()">Eliminar Usuario</button>
       </div>
     </div>
   </div>
@@ -463,16 +579,13 @@
       errorEl.style.display = 'none';
 
       try {
-        console.log('Intentando login...');
         const res = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
 
-        console.log('Login response status:', res.status);
         const data = await res.json();
-        console.log('Login data:', data);
 
         if (!res.ok) {
           throw new Error(data.error?.message || 'Error en login');
@@ -483,25 +596,19 @@
         }
 
         // Verify admin
-        console.log('Verificando permisos de admin...');
         const userRes = await fetch(`${API_URL}/licenses/admin/stats`, {
           headers: { 'Authorization': `Bearer ${data.token}` }
         });
 
-        console.log('Admin check status:', userRes.status);
-
         if (!userRes.ok) {
           const errData = await userRes.json().catch(() => ({}));
-          console.log('Admin error:', errData);
           throw new Error(errData.error?.message || 'No tienes permisos de administrador');
         }
 
         localStorage.setItem('adminToken', data.token);
         token = data.token;
-        console.log('Login exitoso!');
         showDashboard();
       } catch (err) {
-        console.error('Login error:', err);
         errorEl.textContent = err.message || 'Error desconocido';
         errorEl.style.display = 'block';
       }
@@ -535,7 +642,11 @@
         logout();
         throw new Error('Session expired');
       }
-      return res.json();
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error?.message || 'Error en la peticion');
+      }
+      return data;
     }
 
     async function loadStats() {
@@ -544,7 +655,7 @@
         document.getElementById('statUsers').textContent = stats.totalUsers;
         document.getElementById('statActive').textContent = stats.activeLicenses;
         document.getElementById('statExpired').textContent = stats.expiredLicenses;
-        document.getElementById('statRevenue').textContent = stats.totalRevenue.toFixed(2) + ' EUR';
+        document.getElementById('statRevenue').textContent = (Number(stats.totalRevenue) || 0).toFixed(2) + ' EUR';
       } catch (err) {
         console.error('Error loading stats:', err);
       }
@@ -564,7 +675,7 @@
             <td>${l.user?.email || '<em>Sin asignar</em>'}</td>
             <td>${l.licenseType.name}</td>
             <td><span class="badge ${l.status}">${l.status}</span></td>
-            <td>${new Date(l.expiresAt).toLocaleDateString()}</td>
+            <td>${formatDateTime(l.expiresAt)}</td>
             <td>
               ${l.status === 'active' ? `<button class="action-btn danger" onclick="revokeLicense('${l.id}')">Revocar</button>` : ''}
             </td>
@@ -586,13 +697,19 @@
           <tr>
             <td>${u.name}</td>
             <td>${u.email}</td>
+            <td>${u.isAdmin ? '<span class="badge admin">Admin</span>' : '<span class="badge">Usuario</span>'}</td>
             <td>
-              ${u.licenses.length > 0
+              ${u.licenses && u.licenses.length > 0
                 ? `<span class="badge active">${u.licenses[0].licenseType.name}</span>`
                 : '<span class="badge expired">Sin licencia</span>'}
             </td>
-            <td>${u._count.projects}</td>
+            <td>${u._count?.projects || 0}</td>
             <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+            <td>
+              <button class="action-btn primary" onclick="viewUserDetail('${u.id}')">Ver</button>
+              <button class="action-btn" onclick="showResetPasswordModal('${u.id}', '${u.email}')">Password</button>
+              <button class="action-btn danger" onclick="showDeleteUserModal('${u.id}', '${u.email}')">Eliminar</button>
+            </td>
           </tr>
         `).join('');
 
@@ -614,15 +731,24 @@
         tbody.innerHTML = types.map(t => {
           const hasPromo = t.promoPrice && t.promoEndsAt && new Date(t.promoEndsAt) > new Date();
           const promoText = hasPromo ? `<br><span style="color:#10b981;font-size:12px;">Promo: ${t.promoPrice} EUR (hasta ${new Date(t.promoEndsAt).toLocaleDateString()})</span>` : '';
+
+          // Show duration correctly
+          let durationText = '';
+          if (t.durationHours && t.durationHours > 0) {
+            durationText = `${t.durationHours} horas`;
+          } else {
+            durationText = `${t.durationDays || 0} dias`;
+          }
+
           return `
           <tr>
             <td>${t.name}</td>
             <td><code>${t.code}</code></td>
-            <td>${t.durationDays} dias</td>
+            <td>${durationText}</td>
             <td>${t.price} EUR${promoText}</td>
             <td><span class="badge ${t.isActive ? 'active' : 'expired'}">${t.isActive ? 'Activo' : 'Inactivo'}</span></td>
             <td>
-              <button class="action-btn" onclick='editLicenseType(${JSON.stringify(t)})'>Editar</button>
+              <button class="action-btn" onclick='editLicenseType(${JSON.stringify(t).replace(/'/g, "\\'")})'>Editar</button>
               <button class="action-btn" onclick="toggleLicenseType('${t.id}', ${!t.isActive})">
                 ${t.isActive ? 'Desactivar' : 'Activar'}
               </button>
@@ -635,7 +761,8 @@
         select.innerHTML = types.filter(t => t.isActive).map(t => {
           const hasPromo = t.promoPrice && t.promoEndsAt && new Date(t.promoEndsAt) > new Date();
           const displayPrice = hasPromo ? t.promoPrice : t.price;
-          return `<option value="${t.id}">${t.name} - ${displayPrice} EUR${hasPromo ? ' (PROMO)' : ''}</option>`;
+          let durationText = t.durationHours > 0 ? `${t.durationHours}h` : `${t.durationDays}d`;
+          return `<option value="${t.id}">${t.name} (${durationText}) - ${displayPrice} EUR${hasPromo ? ' PROMO' : ''}</option>`;
         }).join('');
       } catch (err) {
         console.error('Error loading license types:', err);
@@ -645,7 +772,8 @@
     function editLicenseType(type) {
       document.getElementById('editTypeId').value = type.id;
       document.getElementById('editTypeName').value = type.name;
-      document.getElementById('editTypeDuration').value = type.durationDays;
+      document.getElementById('editTypeHours').value = type.durationHours || 0;
+      document.getElementById('editTypeDays').value = type.durationDays || 0;
       document.getElementById('editTypePrice').value = type.price;
       document.getElementById('editTypePromoPrice').value = type.promoPrice || '';
       document.getElementById('editTypePromoEnds').value = type.promoEndsAt ? type.promoEndsAt.split('T')[0] : '';
@@ -660,7 +788,8 @@
 
       const data = {
         name: document.getElementById('editTypeName').value,
-        durationDays: parseInt(document.getElementById('editTypeDuration').value),
+        durationHours: parseInt(document.getElementById('editTypeHours').value) || 0,
+        durationDays: parseInt(document.getElementById('editTypeDays').value) || 0,
         price: parseFloat(document.getElementById('editTypePrice').value),
         promoPrice: promoPrice ? parseFloat(promoPrice) : null,
         promoEndsAt: promoEnds ? new Date(promoEnds).toISOString() : null,
@@ -678,6 +807,162 @@
       } catch (err) {
         alert('Error: ' + err.message);
       }
+    }
+
+    async function viewUserDetail(userId) {
+      try {
+        const data = await apiCall(`/licenses/admin/user/${userId}`);
+        const u = data.user;
+
+        let projectsHtml = '';
+        if (u.projects && u.projects.length > 0) {
+          projectsHtml = u.projects.map(p => `
+            <div class="project-card">
+              <h4>${p.name}</h4>
+              <p>${p.description || 'Sin descripcion'}</p>
+              <p>Fotos: ${p._count?.photos || 0} | Creado: ${new Date(p.createdAt).toLocaleDateString()}</p>
+            </div>
+          `).join('');
+        } else {
+          projectsHtml = '<p style="color:#94a3b8;">No tiene proyectos</p>';
+        }
+
+        let licensesHtml = '';
+        if (u.licenses && u.licenses.length > 0) {
+          licensesHtml = u.licenses.map(l => `
+            <div class="detail-row">
+              <span class="detail-label">${l.licenseType.name}</span>
+              <span class="detail-value">
+                <span class="badge ${l.status}">${l.status}</span>
+                Expira: ${formatDateTime(l.expiresAt)}
+              </span>
+            </div>
+          `).join('');
+        } else {
+          licensesHtml = '<p style="color:#94a3b8;">No tiene licencias</p>';
+        }
+
+        document.getElementById('userDetailContent').innerHTML = `
+          <div class="user-detail-section">
+            <h3>Informacion Basica</h3>
+            <div class="detail-row">
+              <span class="detail-label">ID</span>
+              <span class="detail-value" style="font-family:monospace;font-size:12px;">${u.id}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Nombre</span>
+              <span class="detail-value">${u.name}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Email</span>
+              <span class="detail-value">${u.email}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Rol</span>
+              <span class="detail-value">${u.isAdmin ? '<span class="badge admin">Administrador</span>' : 'Usuario'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Registrado</span>
+              <span class="detail-value">${formatDateTime(u.createdAt)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Contrasena</span>
+              <span class="detail-value" style="color:#94a3b8;">(Hasheada - no visible)</span>
+            </div>
+          </div>
+
+          <div class="user-detail-section">
+            <h3>Licencias (${u.licenses?.length || 0})</h3>
+            ${licensesHtml}
+          </div>
+
+          <div class="user-detail-section">
+            <h3>Proyectos (${u.projects?.length || 0})</h3>
+            ${projectsHtml}
+          </div>
+
+          <div style="margin-top:16px;">
+            <button class="action-btn" onclick="showResetPasswordModal('${u.id}', '${u.email}')">Cambiar Contrasena</button>
+            <button class="action-btn ${u.isAdmin ? 'danger' : 'primary'}" onclick="toggleAdmin('${u.id}', ${!u.isAdmin})">
+              ${u.isAdmin ? 'Quitar Admin' : 'Hacer Admin'}
+            </button>
+          </div>
+        `;
+
+        document.getElementById('userDetailModal').classList.add('show');
+      } catch (err) {
+        alert('Error cargando usuario: ' + err.message);
+      }
+    }
+
+    function showResetPasswordModal(userId, email) {
+      document.getElementById('resetPasswordUserId').value = userId;
+      document.getElementById('resetPasswordEmail').textContent = email;
+      document.getElementById('newPassword').value = '';
+      document.getElementById('resetPasswordModal').classList.add('show');
+    }
+
+    async function resetPassword() {
+      const userId = document.getElementById('resetPasswordUserId').value;
+      const newPassword = document.getElementById('newPassword').value;
+
+      if (newPassword.length < 6) {
+        alert('La contrasena debe tener al menos 6 caracteres');
+        return;
+      }
+
+      try {
+        await apiCall(`/licenses/admin/user/${userId}/password`, {
+          method: 'PUT',
+          body: JSON.stringify({ password: newPassword })
+        });
+        closeModal('resetPasswordModal');
+        alert('Contrasena actualizada correctamente');
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function showDeleteUserModal(userId, email) {
+      document.getElementById('deleteUserId').value = userId;
+      document.getElementById('deleteUserEmail').textContent = email;
+      document.getElementById('deleteUserModal').classList.add('show');
+    }
+
+    async function deleteUser() {
+      const userId = document.getElementById('deleteUserId').value;
+
+      try {
+        await apiCall(`/licenses/admin/user/${userId}`, {
+          method: 'DELETE'
+        });
+        closeModal('deleteUserModal');
+        closeModal('userDetailModal');
+        loadUsers();
+        loadStats();
+        alert('Usuario eliminado correctamente');
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function toggleAdmin(userId, makeAdmin) {
+      try {
+        await apiCall(`/licenses/admin/user/${userId}/admin`, {
+          method: 'PUT',
+          body: JSON.stringify({ isAdmin: makeAdmin })
+        });
+        closeModal('userDetailModal');
+        loadUsers();
+        alert(makeAdmin ? 'Usuario ahora es administrador' : 'Permisos de admin removidos');
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function formatDateTime(dateStr) {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }
 
     function renderPagination(containerId, current, total, callback) {
@@ -703,11 +988,17 @@
     }
 
     function showCreateLicenseModal() {
-      loadUsers(); // Refresh user list
+      loadUsers();
       document.getElementById('createLicenseModal').classList.add('show');
     }
 
     function showCreateTypeModal() {
+      document.getElementById('typeName').value = '';
+      document.getElementById('typeCode').value = '';
+      document.getElementById('typeHours').value = '0';
+      document.getElementById('typeDays').value = '0';
+      document.getElementById('typePrice').value = '';
+      document.getElementById('typeDescription').value = '';
       document.getElementById('createTypeModal').classList.add('show');
     }
 
@@ -737,7 +1028,8 @@
       const data = {
         name: document.getElementById('typeName').value,
         code: document.getElementById('typeCode').value,
-        durationDays: parseInt(document.getElementById('typeDuration').value),
+        durationHours: parseInt(document.getElementById('typeHours').value) || 0,
+        durationDays: parseInt(document.getElementById('typeDays').value) || 0,
         price: parseFloat(document.getElementById('typePrice').value),
         description: document.getElementById('typeDescription').value
       };

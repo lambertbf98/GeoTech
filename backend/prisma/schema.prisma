@@ -29,9 +29,10 @@ model User {
 // Tipos de licencia disponibles (configurables por admin)
 model LicenseType {
   id              String    @id @default(uuid())
-  name            String    // "Diaria", "Mensual", "Trimestral", "Anual"
-  code            String    @unique // "daily", "monthly", "quarterly", "yearly"
-  durationDays    Int       @map("duration_days") // 1, 30, 90, 365
+  name            String    // "Por Horas", "Diaria", "Mensual", etc.
+  code            String    @unique // "hourly", "daily", "monthly", etc.
+  durationDays    Int       @default(0) @map("duration_days") // Dias de duracion
+  durationHours   Int       @default(0) @map("duration_hours") // Horas de duracion (tiene prioridad sobre dias)
   price           Decimal   @db.Decimal(10, 2) // Precio en EUR
   promoPrice      Decimal?  @db.Decimal(10, 2) @map("promo_price") // Precio promocional
   promoEndsAt     DateTime? @map("promo_ends_at") // Fecha fin de promocion

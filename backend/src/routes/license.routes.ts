@@ -153,12 +153,18 @@ router.post(
   [
     body('name').notEmpty().withMessage('El nombre es requerido'),
     body('code').notEmpty().withMessage('El codigo es requerido'),
-    body('durationDays').isInt({ min: 1 }).withMessage('La duracion debe ser al menos 1 dia'),
     body('price').isFloat({ min: 0 }).withMessage('El precio debe ser un numero positivo')
   ],
   validate,
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+      // Validar que tenga al menos horas o dias
+      const { durationHours, durationDays } = req.body;
+      if ((!durationHours || durationHours <= 0) && (!durationDays || durationDays <= 0)) {
+        return res.status(400).json({
+          error: { code: 'VALIDATION_ERROR', message: 'Debe especificar duracion en horas o dias' }
+        });
+      }
       const licenseType = await licenseService.createLicenseType(req.body);
       res.status(201).json(licenseType);
     } catch (error) {
@@ -214,6 +220,84 @@ router.post(
       const { id } = req.params;
       const license = await licenseService.revokeLicense(id);
       res.json({ success: true, message: 'Licencia revocada', license });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// ==================== RUTAS DE GESTION DE USUARIOS ====================
+
+// GET /api/licenses/admin/user/:id - Obtener detalle de usuario
+router.get(
+  '/admin/user/:id',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const user = await licenseService.getUserDetail(id);
+      res.json({ user });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// PUT /api/licenses/admin/user/:id/password - Cambiar contrasena de usuario
+router.put(
+  '/admin/user/:id/password',
+  authenticate,
+  requireAdmin,
+  [
+    body('password').isLength({ min: 6 }).withMessage('La contrasena debe tener al menos 6 caracteres')
+  ],
+  validate,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const { password } = req.body;
+      await licenseService.updateUserPassword(id, password);
+      res.json({ success: true, message: 'Contrasena actualizada' });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// PUT /api/licenses/admin/user/:id/admin - Cambiar rol de admin
+router.put(
+  '/admin/user/:id/admin',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const { isAdmin } = req.body;
+      await licenseService.updateUserAdmin(id, isAdmin);
+      res.json({ success: true, message: isAdmin ? 'Usuario es ahora admin' : 'Admin removido' });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// DELETE /api/licenses/admin/user/:id - Eliminar usuario
+router.delete(
+  '/admin/user/:id',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      // No permitir eliminar al usuario actual
+      if (id === req.userId) {
+        return res.status(400).json({
+          error: { code: 'CANNOT_DELETE_SELF', message: 'No puedes eliminarte a ti mismo' }
+        });
+      }
+      await licenseService.deleteUser(id);
+      res.json({ success: true, message: 'Usuario eliminado' });
     } catch (error) {
       next(error);
     }
