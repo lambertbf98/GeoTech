@@ -7,26 +7,7 @@
 
   <base href="/">
 
-  <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self' data: blob: https: capacitor: ionic:;
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:;
-    style-src 'self' 'unsafe-inline' https:;
-    img-src 'self' data: blob: https: http:;
-    font-src 'self' data: https:;
-    connect-src 'self' https: wss: data: blob:;
-    worker-src 'self' blob: https:;
-    child-src 'self' blob:;
-    frame-src 'self' https:;
-    media-src 'self' blob: data:;
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-    frame-ancestors 'self';
-  ">
-  <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
-  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <!-- Security headers are set via HTTP headers in the server -->
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <meta name="color-scheme" content="light dark">
@@ -45,6 +26,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="assets/icon/favicon-16x16.png">
 
   <!-- iOS PWA -->
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="GeoTech">

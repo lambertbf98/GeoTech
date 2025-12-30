@@ -38,6 +38,31 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: false
 }));
+
+// Security headers middleware
+app.use((req, res, next) => {
+  // CSP - Content Security Policy
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self' data: blob: https: capacitor: ionic:; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:; " +
+    "style-src 'self' 'unsafe-inline' https:; " +
+    "img-src 'self' data: blob: https: http:; " +
+    "font-src 'self' data: https:; " +
+    "connect-src 'self' https: wss: data: blob:; " +
+    "worker-src 'self' blob: https:; " +
+    "child-src 'self' blob:; " +
+    "frame-src 'self' https:; " +
+    "media-src 'self' blob: data:; " +
+    "object-src 'none'; " +
+    "base-uri 'self'; " +
+    "form-action 'self'; " +
+    "frame-ancestors 'self'"
+  );
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
