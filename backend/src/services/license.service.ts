@@ -140,7 +140,9 @@ export class LicenseService {
       prisma.license.count()
     ]);
 
-    return { licenses, total, page, limit };
+    const totalPages = Math.ceil(total / limit);
+
+    return { licenses, total, page, limit, totalPages };
   }
 
   // ADMIN: Crear tipo de licencia
@@ -204,8 +206,7 @@ export class LicenseService {
       totalLicenses,
       activeLicenses,
       expiredLicenses,
-      totalRevenue,
-      recentPayments
+      totalProjects
     ] = await Promise.all([
       prisma.user.count(),
       prisma.license.count(),
@@ -220,28 +221,28 @@ export class LicenseService {
           ]
         }
       }),
-      prisma.payment.aggregate({
+      prisma.project.count()
+    ]);
+
+    // Intentar obtener ingresos (puede no existir Payment model)
+    let totalRevenue = 0;
+    try {
+      const revenue = await prisma.payment.aggregate({
         where: { status: 'completed' },
         _sum: { amount: true }
-      }),
-      prisma.payment.findMany({
-        where: { status: 'completed' },
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: { select: { email: true, name: true } },
-          licenseType: { select: { name: true } }
-        }
-      })
-    ]);
+      });
+      totalRevenue = revenue._sum.amount || 0;
+    } catch (e) {
+      // Payment table may not exist
+    }
 
     return {
       totalUsers,
       totalLicenses,
       activeLicenses,
       expiredLicenses,
-      totalRevenue: totalRevenue._sum.amount || 0,
-      recentPayments
+      totalProjects,
+      totalRevenue
     };
   }
 
@@ -263,7 +264,7 @@ export class LicenseService {
     const skip = (page - 1) * limit;
     const now = new Date();
 
-    const [users, total] = await Promise.all([
+    const [rawUsers, total] = await Promise.all([
       prisma.user.findMany({
         skip,
         take: limit,
@@ -291,7 +292,15 @@ export class LicenseService {
       prisma.user.count()
     ]);
 
-    return { users, total, page, limit };
+    // Agregar hasActiveLicense a cada usuario
+    const users = rawUsers.map(u => ({
+      ...u,
+      hasActiveLicense: u.licenses && u.licenses.length > 0
+    }));
+
+    const totalPages = Math.ceil(total / limit);
+
+    return { users, total, page, limit, totalPages };
   }
 
   // ADMIN: Obtener detalle de usuario con proyectos
