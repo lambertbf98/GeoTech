@@ -753,6 +753,58 @@
     </div>
   </div>
 
+  <!-- Modal: Edit License Type -->
+  <div id="editTypeModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Editar Tipo de Licencia</h3>
+        <button class="modal-close" onclick="closeModal('editTypeModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="editTypeError" class="error-msg hidden"></div>
+        <div id="editTypeSuccess" class="success-msg hidden"></div>
+        <input type="hidden" id="editTypeId">
+        <div class="form-group">
+          <label class="form-label">Nombre</label>
+          <input type="text" id="editTypeName" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duracion (dias)</label>
+          <input type="number" id="editTypeDays" class="form-input" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duracion (horas)</label>
+          <input type="number" id="editTypeHours" class="form-input" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio (EUR)</label>
+          <input type="number" id="editTypePrice" class="form-input" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio Promo (EUR) - opcional</label>
+          <input type="number" id="editTypePromoPrice" class="form-input" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fin Promo (fecha) - opcional</label>
+          <input type="datetime-local" id="editTypePromoEnds" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripcion</label>
+          <input type="text" id="editTypeDesc" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <input type="checkbox" id="editTypeActive" checked> Activo
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('editTypeModal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="updateLicenseType()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Change Password -->
   <div id="passwordModal" class="modal-overlay">
     <div class="modal">
@@ -1205,7 +1257,7 @@
 
     async function downloadReport(reportId, name) {
       try {
-        const data = await api(`/reports/${reportId}`);
+        const data = await api(`/reports/admin/${reportId}`);
         if (data.report?.htmlContent) {
           const blob = new Blob([data.report.htmlContent], { type: 'text/html' });
           const url = URL.createObjectURL(blob);
@@ -1224,7 +1276,7 @@
 
     async function downloadKml(kmlId, name) {
       try {
-        const data = await api(`/reports/kml/${kmlId}`);
+        const data = await api(`/reports/kml/admin/${kmlId}`);
         if (data.kml?.kmlContent) {
           const blob = new Blob([data.kml.kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
           const url = URL.createObjectURL(blob);
@@ -1244,7 +1296,7 @@
     // ========== VIEWERS ==========
     async function viewReport(reportId, name) {
       try {
-        const data = await api(`/reports/${reportId}`);
+        const data = await api(`/reports/admin/${reportId}`);
         if (data.report?.htmlContent) {
           document.getElementById('reportViewerTitle').textContent = name;
           const iframe = document.getElementById('reportViewerFrame');
@@ -1259,7 +1311,7 @@
     let kmlMap = null;
     async function viewKml(kmlId, name) {
       try {
-        const data = await api(`/reports/kml/${kmlId}`);
+        const data = await api(`/reports/kml/admin/${kmlId}`);
         if (data.kml?.kmlContent) {
           document.getElementById('kmlViewerTitle').textContent = name;
           document.getElementById('kmlViewerModal').classList.add('active');
@@ -1381,7 +1433,12 @@
         const licenses = data.licenses || [];
 
         if (licenses.length) {
-          container.innerHTML = licenses.map(l => `
+          container.innerHTML = licenses.map(l => {
+            const status = (l.status || '').toLowerCase();
+            const isActive = status === 'active';
+            const isExpired = status === 'expired';
+            const isRevoked = status === 'revoked';
+            return `
             <div class="list-item">
               <div class="list-item-main">
                 <div class="list-item-title">${l.licenseKey}</div>
@@ -1391,13 +1448,13 @@
                 </div>
               </div>
               <div class="list-item-actions">
-                <span class="badge ${l.status === 'ACTIVE' ? 'badge-success' : l.status === 'EXPIRED' ? 'badge-danger' : 'badge-warning'}">
+                <span class="badge ${isActive ? 'badge-success' : isExpired || isRevoked ? 'badge-danger' : 'badge-warning'}">
                   ${l.status}
                 </span>
-                ${l.status === 'ACTIVE' ? `<button class="btn btn-danger" onclick="revokeLicense('${l.id}')">Revocar</button>` : ''}
+                ${isActive ? `<button class="btn btn-danger" onclick="revokeLicense('${l.id}')">Revocar</button>` : ''}
               </div>
             </div>
-          `).join('');
+          `}).join('');
         } else {
           container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No hay licencias</p>';
         }
@@ -1464,31 +1521,95 @@
     }
 
     // License Types
+    let allLicenseTypes = [];
     async function loadTypes() {
       const container = document.getElementById('typesList');
       container.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
 
       try {
         const types = await api('/licenses/types');
+        allLicenseTypes = types;
 
         if (types.length) {
-          container.innerHTML = types.map(t => `
+          container.innerHTML = types.map(t => {
+            const duration = t.durationHours && t.durationHours > 0
+              ? `${t.durationHours}h`
+              : `${t.durationDays || 0}d`;
+            const promoInfo = t.promoPrice ? ` (Promo: ${t.promoPrice} EUR)` : '';
+            return `
             <div class="list-item">
               <div class="list-item-main">
                 <div class="list-item-title">${t.name} (${t.code})</div>
                 <div class="list-item-sub">
-                  ${t.price} EUR - ${t.durationDays} dias
+                  ${t.price} EUR${promoInfo} - ${duration}
                   ${t.description ? `<br>${t.description}` : ''}
                 </div>
               </div>
-              <span class="badge badge-info">${t.durationDays}d</span>
+              <div class="list-item-actions">
+                <span class="badge ${t.isActive !== false ? 'badge-success' : 'badge-danger'}">${t.isActive !== false ? 'Activo' : 'Inactivo'}</span>
+                <button class="btn btn-primary" onclick="showEditTypeModal('${t.id}')">Editar</button>
+              </div>
             </div>
-          `).join('');
+          `}).join('');
         } else {
           container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No hay tipos de licencia</p>';
         }
       } catch (err) {
         container.innerHTML = `<p class="error-msg">${err.message}</p>`;
+      }
+    }
+
+    function showEditTypeModal(typeId) {
+      const type = allLicenseTypes.find(t => t.id === typeId);
+      if (!type) return;
+
+      document.getElementById('editTypeId').value = type.id;
+      document.getElementById('editTypeName').value = type.name || '';
+      document.getElementById('editTypeDays').value = type.durationDays || 0;
+      document.getElementById('editTypeHours').value = type.durationHours || 0;
+      document.getElementById('editTypePrice').value = type.price || 0;
+      document.getElementById('editTypePromoPrice').value = type.promoPrice || '';
+      document.getElementById('editTypePromoEnds').value = type.promoEndsAt
+        ? new Date(type.promoEndsAt).toISOString().slice(0, 16)
+        : '';
+      document.getElementById('editTypeDesc').value = type.description || '';
+      document.getElementById('editTypeActive').checked = type.isActive !== false;
+      document.getElementById('editTypeError').classList.add('hidden');
+      document.getElementById('editTypeSuccess').classList.add('hidden');
+      document.getElementById('editTypeModal').classList.add('active');
+    }
+
+    async function updateLicenseType() {
+      const id = document.getElementById('editTypeId').value;
+      const errorEl = document.getElementById('editTypeError');
+      const successEl = document.getElementById('editTypeSuccess');
+
+      const data = {
+        name: document.getElementById('editTypeName').value,
+        durationDays: parseInt(document.getElementById('editTypeDays').value) || 0,
+        durationHours: parseInt(document.getElementById('editTypeHours').value) || 0,
+        price: parseFloat(document.getElementById('editTypePrice').value) || 0,
+        promoPrice: document.getElementById('editTypePromoPrice').value
+          ? parseFloat(document.getElementById('editTypePromoPrice').value)
+          : null,
+        promoEndsAt: document.getElementById('editTypePromoEnds').value || null,
+        description: document.getElementById('editTypeDesc').value,
+        isActive: document.getElementById('editTypeActive').checked
+      };
+
+      try {
+        errorEl.classList.add('hidden');
+        await api(`/licenses/admin/types/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(data)
+        });
+        successEl.textContent = 'Tipo actualizado';
+        successEl.classList.remove('hidden');
+        loadTypes();
+        setTimeout(() => closeModal('editTypeModal'), 1500);
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
       }
     }
 

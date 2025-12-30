@@ -95,6 +95,27 @@ export class ReportService {
 
     await prisma.report.delete({ where: { id: reportId } });
   }
+
+  // ADMIN: Obtener informe sin verificar propiedad
+  async adminGetById(reportId: string) {
+    const report = await prisma.report.findUnique({
+      where: { id: reportId }
+    });
+
+    if (!report) {
+      throw new AppError('Informe no encontrado', 404, 'REPORT_NOT_FOUND');
+    }
+
+    return {
+      id: report.id,
+      projectId: report.projectId,
+      name: report.name,
+      htmlContent: report.htmlContent,
+      fileUrl: report.fileUrl,
+      createdAt: report.createdAt,
+      updatedAt: report.updatedAt
+    };
+  }
 }
 
 export class KmlService {
@@ -185,6 +206,27 @@ export class KmlService {
     }
 
     await prisma.kmlFile.delete({ where: { id: kmlId } });
+  }
+
+  // ADMIN: Obtener KML sin verificar propiedad
+  async adminGetById(kmlId: string) {
+    const kml = await prisma.kmlFile.findUnique({
+      where: { id: kmlId }
+    });
+
+    if (!kml) {
+      throw new AppError('Archivo KML no encontrado', 404, 'KML_NOT_FOUND');
+    }
+
+    return {
+      id: kml.id,
+      projectId: kml.projectId,
+      name: kml.name,
+      kmlContent: kml.kmlContent,
+      fileUrl: kml.fileUrl,
+      createdAt: kml.createdAt,
+      updatedAt: kml.updatedAt
+    };
   }
 }
 

@@ -2,6 +2,7 @@
 import { Router, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { requireAdmin } from '../middleware/admin';
 import { reportService, kmlService } from '../services/report.service';
 
 const router = Router();
@@ -126,6 +127,28 @@ router.delete('/kml/:id', async (req: AuthRequest, res: Response, next: NextFunc
   try {
     await kmlService.delete(req.userId!, req.params.id);
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ========== ADMIN ROUTES ==========
+
+// GET /api/reports/admin/:id - Admin: Obtener un informe sin verificar propiedad
+router.get('/admin/:id', requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const report = await reportService.adminGetById(req.params.id);
+    res.json({ report });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/reports/kml/admin/:id - Admin: Obtener un KML sin verificar propiedad
+router.get('/kml/admin/:id', requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const kml = await kmlService.adminGetById(req.params.id);
+    res.json({ kml });
   } catch (error) {
     next(error);
   }
