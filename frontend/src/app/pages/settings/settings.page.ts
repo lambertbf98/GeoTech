@@ -1,9 +1,11 @@
-import { Component, OnInit } from "@angular/core";
-import { Router } from "@angular/router";
-import { AlertController, ToastController } from "@ionic/angular";
+import { Component, OnInit, OnDestroy } from "@angular/core";
+import { Router, ActivatedRoute } from "@angular/router";
+import { AlertController, ToastController, LoadingController, ModalController } from "@ionic/angular";
+import { Subscription } from "rxjs";
 import { AuthService } from "../../services/auth.service";
 import { SyncService } from "../../services/sync.service";
 import { StorageService } from "../../services/storage.service";
+import { LicenseService, LicenseType, License, LicenseStatus } from "../../services/license.service";
 
 @Component({
   standalone: false,
@@ -11,7 +13,7 @@ import { StorageService } from "../../services/storage.service";
   templateUrl: "./settings.page.html",
   styleUrls: ["./settings.page.scss"],
 })
-export class SettingsPage implements OnInit {
+export class SettingsPage implements OnInit, OnDestroy {
   userName = "";
   userEmail = "";
   userPhoto = "";
@@ -19,22 +21,73 @@ export class SettingsPage implements OnInit {
   isOnline = true;
   appVersion = "1.0.0";
 
+  // License
+  hasLicense = false;
+  currentLicense: License | null = null;
+  licenseTypes: LicenseType[] = [];
+  loadingLicense = true;
+  private licenseSub: Subscription | null = null;
+
   constructor(
     private authService: AuthService,
     private syncService: SyncService,
     private storageService: StorageService,
+    private licenseService: LicenseService,
     private router: Router,
+    private route: ActivatedRoute,
     private alertCtrl: AlertController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private loadingCtrl: LoadingController
   ) {}
 
   async ngOnInit() {
     await this.loadUserData();
     this.pendingSync = await this.syncService.getPendingCount();
+
+    // Suscribirse a cambios de licencia
+    this.licenseSub = this.licenseService.licenseStatus$.subscribe(status => {
+      this.hasLicense = status.hasValidLicense;
+      this.currentLicense = status.license;
+      this.loadingLicense = false;
+    });
+
+    // Cargar estado de licencia y tipos disponibles
+    await this.loadLicenseData();
+
+    // Verificar si venimos de un pago
+    this.route.queryParams.subscribe(params => {
+      if (params['payment'] === 'success') {
+        this.showToast('Pago completado. Tu licencia ha sido activada.', 'success');
+        this.loadLicenseData();
+      } else if (params['payment'] === 'cancelled') {
+        this.showToast('Pago cancelado', 'warning');
+      } else if (params['payment'] === 'error') {
+        this.showToast('Error al procesar el pago', 'danger');
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.licenseSub) {
+      this.licenseSub.unsubscribe();
+    }
   }
 
   async ionViewWillEnter() {
     await this.loadUserData();
+    await this.loadLicenseData();
+  }
+
+  private async loadLicenseData() {
+    try {
+      this.loadingLicense = true;
+      await this.licenseService.checkLicenseStatus();
+      this.licenseTypes = await this.licenseService.getLicenseTypes();
+    } catch (error) {
+      console.error('Error loading license data:', error);
+    } finally {
+      this.loadingLicense = false;
+    }
   }
 
   private async loadUserData() {
@@ -217,5 +270,111 @@ export class SettingsPage implements OnInit {
   private async showToast(message: string, color: string) {
     const toast = await this.toastCtrl.create({ message, duration: 2500, position: "bottom", color });
     await toast.present();
+  }
+
+  // ==================== LICENCIAS ====================
+
+  async activateLicenseKey() {
+    const alert = await this.alertCtrl.create({
+      header: 'Activar licencia',
+      message: 'Introduce tu clave de licencia',
+      inputs: [
+        {
+          name: 'licenseKey',
+          type: 'text',
+          placeholder: 'XXXX-XXXX-XXXX-XXXX'
+        }
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Activar',
+          handler: async (data) => {
+            if (!data.licenseKey || !data.licenseKey.trim()) {
+              this.showToast('Introduce una clave de licencia', 'warning');
+              return false;
+            }
+
+            const loading = await this.loadingCtrl.create({
+              message: 'Activando licencia...'
+            });
+            await loading.present();
+
+            try {
+              const result = await this.licenseService.activateLicense(data.licenseKey.trim());
+              this.showToast(result.message, 'success');
+              await this.loadLicenseData();
+            } catch (error: any) {
+              this.showToast(error.error?.message || 'Error al activar licencia', 'danger');
+            } finally {
+              await loading.dismiss();
+            }
+            return true;
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async showLicenseOptions() {
+    if (this.licenseTypes.length === 0) {
+      this.showToast('No hay tipos de licencia disponibles', 'warning');
+      return;
+    }
+
+    const buttons = this.licenseTypes.map(type => ({
+      text: `${type.name} - ${this.formatPrice(type.price)}`,
+      handler: () => {
+        this.purchaseLicense(type);
+      }
+    }));
+
+    buttons.push({ text: 'Cancelar', handler: () => {} });
+
+    const alert = await this.alertCtrl.create({
+      header: 'Comprar licencia',
+      message: 'Selecciona el tipo de licencia que deseas adquirir',
+      buttons
+    });
+
+    await alert.present();
+  }
+
+  async purchaseLicense(licenseType: LicenseType) {
+    const alert = await this.alertCtrl.create({
+      header: 'Confirmar compra',
+      message: `Vas a comprar una licencia ${licenseType.name} por ${this.formatPrice(licenseType.price)}. Seras redirigido a PayPal para completar el pago.`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Continuar a PayPal',
+          handler: async () => {
+            const loading = await this.loadingCtrl.create({
+              message: 'Conectando con PayPal...'
+            });
+            await loading.present();
+
+            try {
+              await this.licenseService.purchaseLicense(licenseType.id);
+            } catch (error: any) {
+              this.showToast(error.error?.message || 'Error al iniciar pago', 'danger');
+            } finally {
+              await loading.dismiss();
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  formatPrice(price: number): string {
+    return this.licenseService.formatPrice(price);
+  }
+
+  formatDaysRemaining(days: number): string {
+    return this.licenseService.formatDaysRemaining(days);
   }
 }

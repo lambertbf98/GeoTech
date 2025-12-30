@@ -192,3 +192,42 @@ ion-toggle {
   --handle-background: var(--geotech-text-primary);
   --handle-background-checked: var(--geotech-bg-dark);
 }
+
+// License section styles
+.license-section {
+  .license-active {
+    --background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3) !important;
+
+    ion-icon[slot="start"] {
+      color: var(--geotech-accent-green) !important;
+    }
+
+    .license-key {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--geotech-text-muted);
+      margin-top: 4px;
+    }
+  }
+
+  .license-inactive {
+    --background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3) !important;
+
+    ion-icon[slot="start"] {
+      color: #f59e0b !important;
+    }
+  }
+
+  ion-spinner {
+    color: var(--geotech-accent-cyan);
+    margin-right: 16px;
+  }
+
+  ion-badge {
+    font-size: 11px;
+    padding: 4px 10px;
+    font-weight: 600;
+  }
+}

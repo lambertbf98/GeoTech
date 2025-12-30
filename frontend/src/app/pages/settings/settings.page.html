@@ -20,6 +20,57 @@
     </div>
   </div>
 
+  <!-- License section -->
+  <div class="section license-section">
+    <div class="section-header">Licencia</div>
+    <ion-list class="settings-list">
+      <!-- Estado de licencia -->
+      <ion-item *ngIf="loadingLicense">
+        <ion-spinner name="crescent" slot="start"></ion-spinner>
+        <ion-label>Verificando licencia...</ion-label>
+      </ion-item>
+
+      <!-- Con licencia activa -->
+      <ion-item *ngIf="!loadingLicense && hasLicense && currentLicense" class="license-active">
+        <ion-icon name="shield-checkmark" slot="start" color="success"></ion-icon>
+        <ion-label>
+          <h3>Licencia {{ currentLicense.type }}</h3>
+          <p>{{ formatDaysRemaining(currentLicense.daysRemaining) }}</p>
+          <p class="license-key">{{ currentLicense.licenseKey }}</p>
+        </ion-label>
+        <ion-badge slot="end" color="success">Activa</ion-badge>
+      </ion-item>
+
+      <!-- Sin licencia -->
+      <ion-item *ngIf="!loadingLicense && !hasLicense" class="license-inactive">
+        <ion-icon name="warning" slot="start" color="warning"></ion-icon>
+        <ion-label>
+          <h3>Sin licencia activa</h3>
+          <p>Activa o compra una licencia para usar todas las funciones</p>
+        </ion-label>
+      </ion-item>
+
+      <!-- Acciones -->
+      <ion-item button (click)="activateLicenseKey()" *ngIf="!loadingLicense">
+        <ion-icon name="key-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h3>Activar clave</h3>
+          <p>Introduce una clave de licencia</p>
+        </ion-label>
+        <ion-icon name="chevron-forward-outline" slot="end" class="chevron-icon"></ion-icon>
+      </ion-item>
+
+      <ion-item button (click)="showLicenseOptions()" *ngIf="!loadingLicense && licenseTypes.length > 0">
+        <ion-icon name="card-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h3>Comprar licencia</h3>
+          <p>Adquiere una licencia via PayPal</p>
+        </ion-label>
+        <ion-icon name="chevron-forward-outline" slot="end" class="chevron-icon"></ion-icon>
+      </ion-item>
+    </ion-list>
+  </div>
+
   <!-- Profile section -->
   <div class="section">
     <div class="section-header">Perfil</div>

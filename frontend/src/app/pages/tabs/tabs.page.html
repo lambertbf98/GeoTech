@@ -1,20 +1,15 @@
 <ion-tabs>
   <ion-tab-bar slot="bottom">
-    <ion-tab-button tab="projects">
+    <ion-tab-button tab="projects" (click)="onTabClick($event, 'projects')" [class.disabled-tab]="!hasLicense && licenseChecked">
       <ion-icon name="folder-outline"></ion-icon>
       <ion-label>Proyectos</ion-label>
+      <ion-icon *ngIf="!hasLicense && licenseChecked" name="lock-closed" class="lock-icon"></ion-icon>
     </ion-tab-button>
 
-    <!-- Comentado: funcionalidad integrada en editor de mapa
-    <ion-tab-button tab="camera">
-      <ion-icon name="add-circle-outline"></ion-icon>
-      <ion-label>Registro</ion-label>
-    </ion-tab-button>
-    -->
-
-    <ion-tab-button tab="catastro">
+    <ion-tab-button tab="catastro" (click)="onTabClick($event, 'catastro')" [class.disabled-tab]="!hasLicense && licenseChecked">
       <ion-icon name="globe-outline"></ion-icon>
       <ion-label>GeoVisor</ion-label>
+      <ion-icon *ngIf="!hasLicense && licenseChecked" name="lock-closed" class="lock-icon"></ion-icon>
     </ion-tab-button>
 
     <ion-tab-button tab="settings">

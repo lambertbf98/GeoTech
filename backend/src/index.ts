@@ -14,6 +14,8 @@ import claudeRoutes from './routes/claude.routes';
 import exportRoutes from './routes/export.routes';
 import syncRoutes from './routes/sync.routes';
 import reportRoutes from './routes/report.routes';
+import licenseRoutes from './routes/license.routes';
+import paymentRoutes from './routes/payment.routes';
 
 const app = express();
 
@@ -41,6 +43,10 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Servir archivos estaticos de uploads
 app.use('/uploads', express.static(uploadDir));
 
+// Servir panel de administracion
+const adminPath = path.join(__dirname, '..', 'public', 'admin');
+app.use('/admin', express.static(adminPath));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
@@ -50,6 +56,8 @@ app.use('/api/claude', claudeRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/licenses', licenseRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
