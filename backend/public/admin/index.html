@@ -776,6 +776,22 @@
     </div>
   </div>
 
+  <!-- Modal: Project Detail -->
+  <div id="projectModal" class="modal-overlay">
+    <div class="modal" style="max-width: 700px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Detalle de Proyecto</h3>
+        <button class="modal-close" onclick="closeModal('projectModal')">&times;</button>
+      </div>
+      <div class="modal-body" id="projectModalBody" style="max-height: 70vh; overflow-y: auto;">
+        <div class="loading"><div class="spinner"></div>Cargando...</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('projectModal')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_BASE = window.location.origin + '/api';
     let token = localStorage.getItem('admin_token');
@@ -972,9 +988,12 @@
                 <div class="list-item">
                   <div class="list-item-main">
                     <div class="list-item-title">${p.name}</div>
-                    <div class="list-item-sub">${p.location || ''} - ${p._count?.photos || 0} fotos</div>
+                    <div class="list-item-sub">${p.description || ''} - ${p._count?.photos || 0} fotos</div>
                   </div>
-                  <button class="btn btn-danger btn-sm" onclick="deleteProject('${p.id}')">Eliminar</button>
+                  <div class="list-item-actions">
+                    <button class="btn btn-primary" onclick="showProjectDetail('${p.id}')">Ver</button>
+                    <button class="btn btn-danger" onclick="deleteProject('${p.id}')">Eliminar</button>
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -1032,9 +1051,151 @@
       try {
         await api(`/licenses/admin/project/${projectId}`, { method: 'DELETE' });
         closeModal('userModal');
+        closeModal('projectModal');
         alert('Proyecto eliminado');
       } catch (err) {
         alert(err.message);
+      }
+    }
+
+    async function showProjectDetail(projectId) {
+      const modal = document.getElementById('projectModal');
+      const body = document.getElementById('projectModalBody');
+      modal.classList.add('active');
+      body.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+
+      try {
+        const data = await api(`/licenses/admin/project/${projectId}`);
+        const p = data.project;
+
+        // Fotos
+        let photosHtml = '<p style="color: var(--text-muted);">Sin fotos</p>';
+        if (p.photos?.length) {
+          photosHtml = `
+            <div class="photo-grid">
+              ${p.photos.map(photo => `
+                <img src="${photo.imageUrl || photo.thumbnailUrl}"
+                     alt="Foto"
+                     class="photo-thumb"
+                     onclick="window.open('${photo.imageUrl}', '_blank')"
+                     onerror="this.style.display='none'"
+                     style="cursor: pointer;">
+              `).join('')}
+            </div>
+          `;
+        }
+
+        // Reports (PDF/HTML)
+        let reportsHtml = '<p style="color: var(--text-muted);">Sin informes</p>';
+        if (p.reports?.length) {
+          reportsHtml = `
+            <div class="list">
+              ${p.reports.map(r => `
+                <div class="list-item">
+                  <div class="list-item-main">
+                    <div class="list-item-title">${r.name}</div>
+                    <div class="list-item-sub">${formatDate(r.createdAt)}</div>
+                  </div>
+                  <button class="btn btn-primary" onclick="downloadReport('${r.id}', '${r.name}')">Descargar</button>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        // KMLs
+        let kmlsHtml = '<p style="color: var(--text-muted);">Sin archivos KML</p>';
+        if (p.kmlFiles?.length) {
+          kmlsHtml = `
+            <div class="list">
+              ${p.kmlFiles.map(k => `
+                <div class="list-item">
+                  <div class="list-item-main">
+                    <div class="list-item-title">${k.name}</div>
+                    <div class="list-item-sub">${formatDate(k.createdAt)}</div>
+                  </div>
+                  <button class="btn btn-primary" onclick="downloadKml('${k.id}', '${k.name}')">Descargar</button>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        body.innerHTML = `
+          <div class="user-detail-grid">
+            <div class="detail-row">
+              <span class="detail-label">Nombre</span>
+              <span class="detail-value">${p.name}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Descripcion</span>
+              <span class="detail-value">${p.description || '-'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Usuario</span>
+              <span class="detail-value">${p.user?.email || '-'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Creado</span>
+              <span class="detail-value">${formatDate(p.createdAt)}</span>
+            </div>
+          </div>
+
+          <h4 style="margin: 20px 0 12px; color: var(--primary);">Fotos (${p.photos?.length || 0})</h4>
+          ${photosHtml}
+
+          <h4 style="margin: 20px 0 12px; color: var(--primary);">Informes (${p.reports?.length || 0})</h4>
+          ${reportsHtml}
+
+          <h4 style="margin: 20px 0 12px; color: var(--primary);">Archivos KML (${p.kmlFiles?.length || 0})</h4>
+          ${kmlsHtml}
+
+          <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <button class="btn btn-danger" onclick="deleteProject('${p.id}')" style="width: 100%;">
+              Eliminar Proyecto
+            </button>
+          </div>
+        `;
+      } catch (err) {
+        body.innerHTML = `<p class="error-msg">${err.message}</p>`;
+      }
+    }
+
+    async function downloadReport(reportId, name) {
+      try {
+        const data = await api(`/reports/${reportId}`);
+        if (data.report?.htmlContent) {
+          const blob = new Blob([data.report.htmlContent], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${name.replace(/\s+/g, '_')}.html`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      } catch (err) {
+        alert('Error descargando informe: ' + err.message);
+      }
+    }
+
+    async function downloadKml(kmlId, name) {
+      try {
+        const data = await api(`/kmls/${kmlId}`);
+        if (data.kml?.kmlContent) {
+          const blob = new Blob([data.kml.kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${name.replace(/\s+/g, '_')}.kml`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      } catch (err) {
+        alert('Error descargando KML: ' + err.message);
       }
     }
 

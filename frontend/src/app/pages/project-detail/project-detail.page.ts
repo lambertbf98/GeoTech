@@ -382,9 +382,13 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
   async deletePhoto() {
     if (!this.selectedPhoto || !this.project) return;
 
-    try {
-      const photoId = this.selectedPhoto.id;
+    const photoId = this.selectedPhoto.id;
+    const photoServerId = this.selectedPhoto.serverId;
 
+    // Cerrar viewer primero para evitar bloqueos
+    this.closePhotoViewer();
+
+    try {
       // 1. Eliminar foto del IndexedDB
       await this.storageService.deletePhoto(photoId);
 
@@ -392,16 +396,14 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
       if (this.project.markers && this.project.markers.length > 0) {
         let projectUpdated = false;
         for (const marker of this.project.markers) {
+          // Eliminar de photoIds
           if (marker.photoIds && marker.photoIds.includes(photoId)) {
             marker.photoIds = marker.photoIds.filter(id => id !== photoId);
-            // También eliminar de serverPhotoIds si existe
-            if (marker.serverPhotoIds) {
-              // Encontrar el índice correspondiente y eliminarlo
-              const idx = marker.photoIds.indexOf(photoId);
-              if (idx === -1) {
-                // El photoId ya fue eliminado, buscar por posición relativa
-              }
-            }
+            projectUpdated = true;
+          }
+          // También eliminar de serverPhotoIds si existe
+          if (photoServerId && marker.serverPhotoIds && marker.serverPhotoIds.includes(photoServerId)) {
+            marker.serverPhotoIds = marker.serverPhotoIds.filter(id => id !== photoServerId);
             projectUpdated = true;
           }
         }
@@ -415,7 +417,6 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
       // 4. Eliminar de la lista local de fotos
       this.photos = this.photos.filter(p => p.id !== photoId);
 
-      this.closePhotoViewer();
     } catch (error) {
       console.error('Error eliminando foto:', error);
     }
