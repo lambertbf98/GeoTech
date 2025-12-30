@@ -31,7 +31,9 @@ router.get(
   authenticate,
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+      console.log('Checking license for userId:', req.userId);
       const license = await licenseService.getActiveLicense(req.userId!);
+      console.log('License found:', license ? { id: license.id, status: license.status, userId: license.userId, expiresAt: license.expiresAt } : 'none');
       const hasLicense = !!license;
 
       res.json({
@@ -86,6 +88,49 @@ router.get(
     try {
       const types = await licenseService.getLicenseTypes();
       res.json(types);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /api/licenses/debug - Debug: ver todas las licencias del usuario (cualquier estado)
+router.get(
+  '/debug',
+  authenticate,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+
+      // Buscar todas las licencias del usuario
+      const allLicenses = await prisma.license.findMany({
+        where: { userId: req.userId },
+        include: { licenseType: true },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      // Buscar usuario actual
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { id: true, email: true, name: true }
+      });
+
+      res.json({
+        currentUserId: req.userId,
+        user,
+        now: new Date(),
+        licensesCount: allLicenses.length,
+        licenses: allLicenses.map((l: any) => ({
+          id: l.id,
+          licenseKey: l.licenseKey,
+          userId: l.userId,
+          status: l.status,
+          expiresAt: l.expiresAt,
+          expired: new Date() > new Date(l.expiresAt),
+          type: l.licenseType?.name
+        }))
+      });
     } catch (error) {
       next(error);
     }
