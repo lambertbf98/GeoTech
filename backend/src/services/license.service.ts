@@ -231,7 +231,7 @@ export class LicenseService {
         where: { status: 'completed' },
         _sum: { amount: true }
       });
-      totalRevenue = revenue._sum.amount || 0;
+      totalRevenue = revenue._sum.amount ? Number(revenue._sum.amount) : 0;
     } catch (e) {
       // Payment table may not exist
     }
