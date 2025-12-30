@@ -8,6 +8,7 @@ import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { SecurityInterceptor } from './interceptors/security.interceptor';
+import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { SecurityService } from './services/security.service';
 
 // Factory para inicializar seguridad al arrancar la app
@@ -28,6 +29,11 @@ export function initializeSecurity(securityService: SecurityService) {
     {
       provide: HTTP_INTERCEPTORS,
       useClass: SecurityInterceptor,
+      multi: true
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
       multi: true
     },
     {
