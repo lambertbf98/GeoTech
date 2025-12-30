@@ -16,6 +16,7 @@ import syncRoutes from './routes/sync.routes';
 import reportRoutes from './routes/report.routes';
 import licenseRoutes from './routes/license.routes';
 import paymentRoutes from './routes/payment.routes';
+import setupRoutes from './routes/setup.routes';
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use('/api/sync', syncRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/licenses', licenseRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/setup', setupRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,10 +1,16 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log('Seeding license types...');
+// Email del administrador - cambia esto por tu email
+const ADMIN_EMAIL = 'gfmemorieswork@gmail.com';
 
+async function main() {
+  console.log('=== GeoTech License System Setup ===\n');
+
+  // 1. Crear tipos de licencia
+  console.log('1. Creando tipos de licencia...');
   const licenseTypes = [
     {
       name: 'Diaria',
@@ -39,13 +45,43 @@ async function main() {
   for (const type of licenseTypes) {
     await prisma.licenseType.upsert({
       where: { code: type.code },
-      update: {},
+      update: { price: type.price, durationDays: type.durationDays },
       create: type
     });
-    console.log(`Created/updated license type: ${type.name}`);
+    console.log(`   - ${type.name}: ${type.price} EUR (${type.durationDays} dias)`);
   }
 
-  console.log('License types seeded successfully!');
+  // 2. Crear o actualizar usuario admin
+  console.log('\n2. Configurando usuario administrador...');
+  const existingUser = await prisma.user.findUnique({
+    where: { email: ADMIN_EMAIL }
+  });
+
+  if (existingUser) {
+    // Actualizar a admin si ya existe
+    await prisma.user.update({
+      where: { email: ADMIN_EMAIL },
+      data: { isAdmin: true }
+    });
+    console.log(`   Usuario ${ADMIN_EMAIL} actualizado como administrador`);
+  } else {
+    // Crear nuevo usuario admin
+    const passwordHash = await bcrypt.hash('Admin123!', 10);
+    await prisma.user.create({
+      data: {
+        email: ADMIN_EMAIL,
+        passwordHash,
+        name: 'Administrador',
+        isAdmin: true
+      }
+    });
+    console.log(`   Usuario admin creado: ${ADMIN_EMAIL}`);
+    console.log(`   Password temporal: Admin123! (CAMBIALA DESPUES)`);
+  }
+
+  console.log('\n=== Setup completado! ===');
+  console.log(`\nAccede al panel de admin en: /admin`);
+  console.log(`Email: ${ADMIN_EMAIL}`);
 }
 
 main()
