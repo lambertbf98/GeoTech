@@ -377,4 +377,8 @@ export class SettingsPage implements OnInit, OnDestroy {
   formatDaysRemaining(days: number): string {
     return this.licenseService.formatDaysRemaining(days);
   }
+
+  formatTimeRemaining(license: License): string {
+    return this.licenseService.formatTimeRemaining(license);
+  }
 }

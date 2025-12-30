@@ -36,16 +36,28 @@ router.get(
       console.log('License found:', license ? { id: license.id, status: license.status, userId: license.userId, expiresAt: license.expiresAt } : 'none');
       const hasLicense = !!license;
 
-      res.json({
-        hasValidLicense: hasLicense,
-        license: license ? {
+      let licenseData = null;
+      if (license) {
+        const msRemaining = new Date(license.expiresAt).getTime() - Date.now();
+        const hoursRemaining = Math.ceil(msRemaining / (1000 * 60 * 60));
+        const daysRemaining = Math.ceil(msRemaining / (1000 * 60 * 60 * 24));
+        const minutesRemaining = Math.ceil(msRemaining / (1000 * 60));
+
+        licenseData = {
           id: license.id,
           licenseKey: license.licenseKey,
           type: license.licenseType.name,
           status: license.status,
           expiresAt: license.expiresAt,
-          daysRemaining: Math.ceil((new Date(license.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-        } : null
+          daysRemaining,
+          hoursRemaining,
+          minutesRemaining
+        };
+      }
+
+      res.json({
+        hasValidLicense: hasLicense,
+        license: licenseData
       });
     } catch (error) {
       next(error);

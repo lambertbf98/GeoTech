@@ -22,6 +22,8 @@ export interface License {
   status: string;
   expiresAt: string;
   daysRemaining: number;
+  hoursRemaining: number;
+  minutesRemaining: number;
 }
 
 export interface LicenseStatus {
@@ -169,9 +171,36 @@ export class LicenseService {
     }).format(price);
   }
 
-  // Formatear dias restantes
+  // Formatear tiempo restante (usa el objeto license completo para más precisión)
   formatDaysRemaining(days: number): string {
     if (days <= 0) return 'Expirada';
+    if (days === 1) return '1 dia restante';
+    return `${days} dias restantes`;
+  }
+
+  // Formatear tiempo restante con horas y minutos
+  formatTimeRemaining(license: License): string {
+    if (!license) return 'Expirada';
+
+    const hours = license.hoursRemaining || 0;
+    const minutes = license.minutesRemaining || 0;
+    const days = license.daysRemaining || 0;
+
+    if (minutes <= 0) return 'Expirada';
+
+    // Menos de 1 hora: mostrar minutos
+    if (hours < 1) {
+      if (minutes === 1) return '1 minuto restante';
+      return `${minutes} minutos restantes`;
+    }
+
+    // Menos de 24 horas: mostrar horas
+    if (hours < 24) {
+      if (hours === 1) return '1 hora restante';
+      return `${hours} horas restantes`;
+    }
+
+    // Más de 24 horas: mostrar días
     if (days === 1) return '1 dia restante';
     return `${days} dias restantes`;
   }

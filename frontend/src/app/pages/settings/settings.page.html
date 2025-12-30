@@ -35,7 +35,7 @@
         <ion-icon name="shield-checkmark" slot="start" color="success"></ion-icon>
         <ion-label>
           <h3>Licencia {{ currentLicense.type }}</h3>
-          <p>{{ formatDaysRemaining(currentLicense.daysRemaining) }}</p>
+          <p>{{ formatTimeRemaining(currentLicense) }}</p>
           <p class="license-key">{{ currentLicense.licenseKey }}</p>
         </ion-label>
         <ion-badge slot="end" color="success">Activa</ion-badge>
