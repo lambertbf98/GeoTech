@@ -1,0 +1,16 @@
+The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.Understand this error
+geotech-production.up.railway.app/:28 X-Frame-Options may only be set via an HTTP header sent along with a document. It may not be set inside <meta>.Understand this error
+login:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">Understand this warning
+content.js:1 The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.
+(anonymous) @ content.js:1Understand this error
+2main.673596896fface2f.js:1 ERROR De: NG04002: 'auth/login'
+    at Ws.noMatchError (main.673596896fface2f.js:1:126112)
+    at main.673596896fface2f.js:1:126936
+    at main.673596896fface2f.js:1:647074
+    at E._error (main.673596896fface2f.js:1:411345)
+    at E.error (main.673596896fface2f.js:1:590729)
+    at E._error (main.673596896fface2f.js:1:590972)
+    at E.error (main.673596896fface2f.js:1:590729)
+    at E._error (main.673596896fface2f.js:1:590972)
+    at E.error (main.673596896fface2f.js:1:590729)
+    at E._error (main.673596896fface2f.js:1:590972)

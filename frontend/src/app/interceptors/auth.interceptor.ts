@@ -88,7 +88,7 @@ export class AuthInterceptor implements HttpInterceptor {
 
   private goToLogin(): void {
     this.authService.logout().then(() => {
-      this.router.navigate(['/auth/login']);
+      this.router.navigate(['/login']);
     });
   }
 }

@@ -18,7 +18,7 @@ export class LicenseGuard implements CanActivate {
   async canActivate(): Promise<boolean | UrlTree> {
     // Si no está autenticado, redirigir al login (no verificar licencia)
     if (!this.authService.isAuthenticated) {
-      return this.router.createUrlTree(['/auth/login']);
+      return this.router.createUrlTree(['/login']);
     }
 
     // Solo verificar licencia si está autenticado
