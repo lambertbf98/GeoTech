@@ -51,6 +51,13 @@ export class PayPalService {
 
     const accessToken = await this.getAccessToken();
 
+    // Log URLs para debug
+    console.log('PayPal return URLs:', {
+      return_url: `${config.app.backendUrl}/api/payments/success`,
+      cancel_url: `${config.app.backendUrl}/api/payments/cancel`,
+      backendUrl: config.app.backendUrl
+    });
+
     // Crear orden en PayPal
     const response = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
       method: 'POST',

@@ -65,18 +65,22 @@ router.get(
   '/success',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { token } = req.query; // PayPal envia el orderId como 'token'
+      const { token, PayerID } = req.query; // PayPal envia el orderId como 'token'
+
+      console.log('PayPal success callback:', { token, PayerID, query: req.query });
+      console.log('Redirecting to:', `${config.app.frontendUrl}/tabs/settings?payment=success`);
 
       if (token) {
         // Capturar el pago
-        await paypalService.captureOrder(token as string);
+        const result = await paypalService.captureOrder(token as string);
+        console.log('Payment captured successfully:', result);
       }
 
       // Redirigir a la app con exito
       res.redirect(`${config.app.frontendUrl}/tabs/settings?payment=success`);
-    } catch (error) {
-      console.error('Error en success callback:', error);
-      res.redirect(`${config.app.frontendUrl}/tabs/settings?payment=error`);
+    } catch (error: any) {
+      console.error('Error en success callback:', error?.message || error);
+      res.redirect(`${config.app.frontendUrl}/tabs/settings?payment=error&reason=${encodeURIComponent(error?.message || 'unknown')}`);
     }
   }
 );
@@ -125,6 +129,28 @@ router.get(
       res.json(payments);
     } catch (error) {
       next(error);
+    }
+  }
+);
+
+// POST /api/payments/retry-capture - Reintentar captura de pago pendiente
+router.post(
+  '/retry-capture',
+  authenticate,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { orderId } = req.body;
+
+      if (!orderId) {
+        return res.status(400).json({ error: 'orderId es requerido' });
+      }
+
+      console.log('Retrying capture for order:', orderId);
+      const result = await paypalService.captureOrder(orderId);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error retrying capture:', error?.message || error);
+      res.status(400).json({ error: error?.message || 'Error al capturar pago' });
     }
   }
 );
