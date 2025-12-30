@@ -108,6 +108,12 @@ export class AuthService {
   }
 
   private async generateTokens(userId: string) {
+    // SESIÓN ÚNICA: Eliminar todos los refresh tokens anteriores del usuario
+    // Esto cierra sesión en otros dispositivos
+    await prisma.refreshToken.deleteMany({
+      where: { userId }
+    });
+
     // JWT token
     const token = jwt.sign(
       { userId },

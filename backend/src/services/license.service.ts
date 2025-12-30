@@ -53,8 +53,16 @@ export class LicenseService {
       throw new Error('Clave de licencia no válida');
     }
 
-    if (license.userId && license.userId !== userId) {
-      throw new Error('Esta licencia ya está asignada a otro usuario');
+    // LICENCIA DE UN SOLO USO: Si ya fue activada (tiene userId), no se puede usar de nuevo
+    if (license.userId && license.userId.length > 0) {
+      if (license.userId === userId) {
+        // El mismo usuario intenta reactivar - verificar si sigue activa
+        if (license.status === 'active' && new Date() < license.expiresAt) {
+          throw new Error('Esta licencia ya está activa en tu cuenta');
+        }
+        throw new Error('Esta licencia ya fue utilizada');
+      }
+      throw new Error('Esta licencia ya fue utilizada por otro usuario');
     }
 
     if (license.status === 'revoked') {
@@ -65,7 +73,7 @@ export class LicenseService {
       throw new Error('Esta licencia ha expirado');
     }
 
-    // Activar la licencia para este usuario
+    // Activar la licencia para este usuario (solo se puede hacer una vez)
     const updatedLicense = await prisma.license.update({
       where: { id: license.id },
       data: {

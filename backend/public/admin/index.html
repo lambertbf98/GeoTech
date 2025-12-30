@@ -792,6 +792,42 @@
     </div>
   </div>
 
+  <!-- Modal: Report Viewer -->
+  <div id="reportViewerModal" class="modal-overlay">
+    <div class="modal" style="max-width: 900px; height: 90vh;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="reportViewerTitle">Informe</h3>
+        <button class="modal-close" onclick="closeModal('reportViewerModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="height: calc(100% - 120px); padding: 0;">
+        <iframe id="reportViewerFrame" style="width: 100%; height: 100%; border: none; background: white;"></iframe>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('reportViewerModal')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: KML Viewer -->
+  <div id="kmlViewerModal" class="modal-overlay">
+    <div class="modal" style="max-width: 900px; height: 90vh;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="kmlViewerTitle">Archivo KML</h3>
+        <button class="modal-close" onclick="closeKmlViewer()">&times;</button>
+      </div>
+      <div class="modal-body" style="height: calc(100% - 120px); padding: 0;">
+        <div id="kmlViewerMap" style="width: 100%; height: 100%;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeKmlViewer()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet CSS y JS para KML viewer -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <script>
     const API_BASE = window.location.origin + '/api';
     let token = localStorage.getItem('admin_token');
@@ -1096,7 +1132,10 @@
                     <div class="list-item-title">${r.name}</div>
                     <div class="list-item-sub">${formatDate(r.createdAt)}</div>
                   </div>
-                  <button class="btn btn-primary" onclick="downloadReport('${r.id}', '${r.name}')">Descargar</button>
+                  <div class="list-item-actions">
+                    <button class="btn btn-secondary" onclick="viewReport('${r.id}', '${r.name}')">Ver</button>
+                    <button class="btn btn-primary" onclick="downloadReport('${r.id}', '${r.name}')">Descargar</button>
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -1114,7 +1153,10 @@
                     <div class="list-item-title">${k.name}</div>
                     <div class="list-item-sub">${formatDate(k.createdAt)}</div>
                   </div>
-                  <button class="btn btn-primary" onclick="downloadKml('${k.id}', '${k.name}')">Descargar</button>
+                  <div class="list-item-actions">
+                    <button class="btn btn-secondary" onclick="viewKml('${k.id}', '${k.name}')">Ver</button>
+                    <button class="btn btn-primary" onclick="downloadKml('${k.id}', '${k.name}')">Descargar</button>
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -1182,7 +1224,7 @@
 
     async function downloadKml(kmlId, name) {
       try {
-        const data = await api(`/kmls/${kmlId}`);
+        const data = await api(`/reports/kml/${kmlId}`);
         if (data.kml?.kmlContent) {
           const blob = new Blob([data.kml.kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
           const url = URL.createObjectURL(blob);
@@ -1197,6 +1239,135 @@
       } catch (err) {
         alert('Error descargando KML: ' + err.message);
       }
+    }
+
+    // ========== VIEWERS ==========
+    async function viewReport(reportId, name) {
+      try {
+        const data = await api(`/reports/${reportId}`);
+        if (data.report?.htmlContent) {
+          document.getElementById('reportViewerTitle').textContent = name;
+          const iframe = document.getElementById('reportViewerFrame');
+          iframe.srcdoc = data.report.htmlContent;
+          document.getElementById('reportViewerModal').classList.add('active');
+        }
+      } catch (err) {
+        alert('Error cargando informe: ' + err.message);
+      }
+    }
+
+    let kmlMap = null;
+    async function viewKml(kmlId, name) {
+      try {
+        const data = await api(`/reports/kml/${kmlId}`);
+        if (data.kml?.kmlContent) {
+          document.getElementById('kmlViewerTitle').textContent = name;
+          document.getElementById('kmlViewerModal').classList.add('active');
+
+          // Inicializar mapa después de que el modal sea visible
+          setTimeout(() => {
+            if (kmlMap) {
+              kmlMap.remove();
+            }
+            kmlMap = L.map('kmlViewerMap').setView([40.4168, -3.7038], 6);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+              maxZoom: 19
+            }).addTo(kmlMap);
+
+            // Parsear y renderizar KML
+            renderKmlOnMap(data.kml.kmlContent);
+          }, 100);
+        }
+      } catch (err) {
+        alert('Error cargando KML: ' + err.message);
+      }
+    }
+
+    function closeKmlViewer() {
+      if (kmlMap) {
+        kmlMap.remove();
+        kmlMap = null;
+      }
+      closeModal('kmlViewerModal');
+    }
+
+    function renderKmlOnMap(kmlContent) {
+      if (!kmlMap) return;
+      try {
+        const parser = new DOMParser();
+        const kmlDoc = parser.parseFromString(kmlContent, 'text/xml');
+        const bounds = L.latLngBounds([]);
+
+        // Procesar Placemarks
+        const placemarks = kmlDoc.getElementsByTagName('Placemark');
+        for (let i = 0; i < placemarks.length; i++) {
+          const placemark = placemarks[i];
+          const name = placemark.getElementsByTagName('name')[0]?.textContent || 'Sin nombre';
+          let description = placemark.getElementsByTagName('description')[0]?.textContent || '';
+
+          // Procesar puntos
+          const points = placemark.getElementsByTagName('Point');
+          for (let j = 0; j < points.length; j++) {
+            const coords = points[j].getElementsByTagName('coordinates')[0]?.textContent?.trim();
+            if (coords) {
+              const [lng, lat] = coords.split(',').map(Number);
+              if (!isNaN(lat) && !isNaN(lng)) {
+                const marker = L.marker([lat, lng]).addTo(kmlMap);
+                marker.bindPopup(`<strong>${escapeHtml(name)}</strong><br>${description}`);
+                bounds.extend([lat, lng]);
+              }
+            }
+          }
+
+          // Procesar líneas
+          const lineStrings = placemark.getElementsByTagName('LineString');
+          for (let j = 0; j < lineStrings.length; j++) {
+            const coords = lineStrings[j].getElementsByTagName('coordinates')[0]?.textContent?.trim();
+            if (coords) {
+              const latLngs = coords.split(/\s+/).map(coord => {
+                const [lng, lat] = coord.split(',').map(Number);
+                return [lat, lng];
+              }).filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+              if (latLngs.length > 0) {
+                const polyline = L.polyline(latLngs, { color: '#3b82f6', weight: 4 }).addTo(kmlMap);
+                polyline.bindPopup(`<strong>${escapeHtml(name)}</strong>`);
+                latLngs.forEach(ll => bounds.extend(ll));
+              }
+            }
+          }
+
+          // Procesar polígonos
+          const polygons = placemark.getElementsByTagName('Polygon');
+          for (let j = 0; j < polygons.length; j++) {
+            const outerBoundary = polygons[j].getElementsByTagName('outerBoundaryIs')[0];
+            const coords = outerBoundary?.getElementsByTagName('coordinates')[0]?.textContent?.trim();
+            if (coords) {
+              const latLngs = coords.split(/\s+/).map(coord => {
+                const [lng, lat] = coord.split(',').map(Number);
+                return [lat, lng];
+              }).filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+              if (latLngs.length > 0) {
+                const polygon = L.polygon(latLngs, { color: '#10b981', fillOpacity: 0.3 }).addTo(kmlMap);
+                polygon.bindPopup(`<strong>${escapeHtml(name)}</strong>`);
+                latLngs.forEach(ll => bounds.extend(ll));
+              }
+            }
+          }
+        }
+
+        // Ajustar vista
+        if (bounds.isValid()) {
+          kmlMap.fitBounds(bounds, { padding: [20, 20] });
+        }
+      } catch (error) {
+        console.error('Error parsing KML:', error);
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
 
     // Licenses
