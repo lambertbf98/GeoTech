@@ -110,6 +110,7 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
       if (this.project.serverId) {
         await this.syncProjectContent();
         await this.syncPhotosFromCloud();
+        await this.syncDocumentsFromCloud();
       }
     }
   }
@@ -222,6 +223,75 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
     }
   }
 
+  // Sincronizar reports y KMLs desde el servidor
+  private async syncDocumentsFromCloud() {
+    if (!this.project?.serverId) return;
+
+    try {
+      // Sincronizar Reports
+      const reportsResponse: any = await firstValueFrom(
+        this.apiService.getReportsByProject(this.project.serverId)
+      );
+
+      if (reportsResponse?.reports && Array.isArray(reportsResponse.reports)) {
+        const serverReports = reportsResponse.reports;
+        const localReports = this.project.reports || [];
+        const localReportIds = new Set(localReports.map(r => r.id));
+
+        let hasNewReports = false;
+        for (const sr of serverReports) {
+          if (!localReportIds.has(sr.id)) {
+            localReports.push({
+              id: sr.id,
+              name: sr.name,
+              htmlContent: sr.htmlContent,
+              createdAt: sr.createdAt
+            });
+            hasNewReports = true;
+            console.log('Informe sincronizado desde servidor:', sr.name);
+          }
+        }
+
+        if (hasNewReports) {
+          this.project.reports = localReports;
+          await this.storageService.saveProject(this.project);
+        }
+      }
+
+      // Sincronizar KMLs
+      const kmlsResponse: any = await firstValueFrom(
+        this.apiService.getKmlsByProject(this.project.serverId)
+      );
+
+      if (kmlsResponse?.kmlFiles && Array.isArray(kmlsResponse.kmlFiles)) {
+        const serverKmls = kmlsResponse.kmlFiles;
+        const localKmls = this.project.kmls || [];
+        const localKmlIds = new Set(localKmls.map(k => k.id));
+
+        let hasNewKmls = false;
+        for (const sk of serverKmls) {
+          if (!localKmlIds.has(sk.id)) {
+            localKmls.push({
+              id: sk.id,
+              name: sk.name,
+              kmlContent: sk.kmlContent,
+              createdAt: sk.createdAt
+            });
+            hasNewKmls = true;
+            console.log('KML sincronizado desde servidor:', sk.name);
+          }
+        }
+
+        if (hasNewKmls) {
+          this.project.kmls = localKmls;
+          await this.storageService.saveProject(this.project);
+        }
+      }
+    } catch (e: any) {
+      console.log('Error sincronizando documentos:', e?.message);
+    }
+  }
+
   goBack() {
     this.navCtrl.navigateBack('/tabs/projects');
   }
@@ -233,10 +303,15 @@ export class ProjectDetailPage implements OnInit, OnDestroy {
   }
 
   formatDate(date: Date | string): string {
-    return new Date(date).toLocaleDateString('es-ES', {
+    const d = new Date(date);
+    return d.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: 'short',
       year: 'numeric'
+    }) + ' ' + d.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     });
   }
 
