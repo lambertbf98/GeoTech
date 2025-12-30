@@ -157,6 +157,32 @@ router.get('/force-admin/:email', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/setup/reset-password/:email/:newpass - Resetear contraseña
+router.get('/reset-password/:email/:newpass', async (req: Request, res: Response) => {
+  try {
+    const { email, newpass } = req.params;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const passwordHash = await bcrypt.hash(newpass, 10);
+    await prisma.user.update({
+      where: { email },
+      data: { passwordHash }
+    });
+
+    res.json({
+      success: true,
+      message: `Contraseña de ${email} actualizada`,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/setup/remove-admin/:email - Quitar admin de un email
 router.get('/remove-admin/:email', async (req: Request, res: Response) => {
   try {
