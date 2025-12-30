@@ -2,6 +2,7 @@ import { CatastroData } from './catastro.model';
 
 export interface Photo {
   id: string;
+  serverId?: string;  // ID en el servidor para sincronización
   projectId: string;
   localPath?: string;
   imagePath?: string;

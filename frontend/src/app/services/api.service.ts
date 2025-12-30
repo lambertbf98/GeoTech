@@ -104,4 +104,27 @@ export class ApiService {
   deleteKml(kmlId: string): Observable<any> {
     return this.delete(`/reports/kml/${kmlId}`);
   }
+
+  // ========== PHOTOS (Cloud) ==========
+
+  // Subir una foto a la nube
+  uploadPhoto(projectId: string, imageBase64: string, latitude?: number, longitude?: number, notes?: string): Observable<any> {
+    return this.post('/photos/upload', {
+      projectId,
+      imageBase64,
+      latitude,
+      longitude,
+      notes
+    });
+  }
+
+  // Obtener fotos de un proyecto desde la nube
+  getPhotosByProject(projectId: string): Observable<any> {
+    return this.get(`/photos/project/${projectId}`);
+  }
+
+  // Eliminar una foto de la nube
+  deleteCloudPhoto(photoId: string): Observable<any> {
+    return this.delete(`/photos/${photoId}`);
+  }
 }

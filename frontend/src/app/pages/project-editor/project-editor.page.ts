@@ -139,6 +139,67 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
     // Asignar números de orden a marcadores existentes que no los tienen
     await this.ensureMarkerOrders();
+
+    // Sincronizar fotos desde la nube si hay serverId
+    if (this.project.serverId) {
+      this.syncPhotosFromCloud();
+    }
+  }
+
+  // Descargar fotos del servidor que no están localmente
+  private async syncPhotosFromCloud() {
+    if (!this.project?.serverId) return;
+
+    try {
+      const response: any = await firstValueFrom(
+        this.apiService.getPhotosByProject(this.project.serverId)
+      );
+
+      if (response?.photos && Array.isArray(response.photos)) {
+        const serverPhotos = response.photos;
+        console.log('Fotos en servidor:', serverPhotos.length);
+
+        // Crear mapa de fotos locales por serverId
+        const localByServerId = new Map<string, Photo>();
+        this.photos.forEach(p => {
+          if (p.serverId) localByServerId.set(p.serverId, p);
+        });
+
+        let hasNewPhotos = false;
+
+        // Descargar fotos del servidor que no están localmente
+        for (const sp of serverPhotos) {
+          if (!localByServerId.has(sp.id)) {
+            const newPhoto: Photo = {
+              id: `photo_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+              serverId: sp.id,
+              projectId: this.project.id,
+              imageUrl: sp.imageUrl,
+              thumbnailUrl: sp.thumbnailUrl,
+              latitude: parseFloat(sp.latitude) || 0,
+              longitude: parseFloat(sp.longitude) || 0,
+              altitude: sp.altitude ? parseFloat(sp.altitude) : undefined,
+              notes: sp.notes,
+              aiDescription: sp.aiDescription,
+              timestamp: sp.createdAt,
+              synced: true
+            };
+
+            await this.storageService.savePhoto(newPhoto);
+            this.photos.push(newPhoto);
+            hasNewPhotos = true;
+            console.log('Foto descargada del servidor:', sp.id);
+          }
+        }
+
+        if (hasNewPhotos) {
+          this.renderProjectElements();
+          this.showToast('Fotos sincronizadas', 'success');
+        }
+      }
+    } catch (e: any) {
+      console.log('Error sincronizando fotos:', e?.message);
+    }
   }
 
   /**
@@ -665,9 +726,10 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       // Convertir archivo a base64
       const base64 = await this.fileToBase64(file);
       const base64Image = `data:image/jpeg;base64,${base64}`;
+      const localId = `photo_${Date.now()}`;
 
       const photo: Photo = {
-        id: `photo_${Date.now()}`,
+        id: localId,
         projectId: this.project.id,
         localPath: `web_${Date.now()}.jpeg`,
         imageUrl: base64Image,
@@ -678,6 +740,7 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
         notes: `Punto ${marker.order || '?'}: ${marker.name}`
       };
 
+      // Guardar localmente primero
       await this.storageService.savePhoto(photo);
       this.photos.push(photo);
 
@@ -691,16 +754,54 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
 
       await this.saveProject();
       this.renderProjectElements();
-      // Sin toast - el usuario ve el cambio visual en el marcador
+
+      // Subir a la nube en background si hay serverId del proyecto
+      if (this.project.serverId) {
+        this.uploadPhotoToCloud(photo, base64Image);
+      }
     } catch (error: any) {
       console.error('Error procesando foto:', error);
-      // Solo mostrar error si es crítico
       if (error?.message?.includes('cuota') || error?.message?.includes('quota')) {
         this.showToast('Sin espacio. Elimina fotos antiguas.', 'warning');
       }
     } finally {
       this.pendingPhotoMarkerId = null;
-      input.value = ''; // Reset para próximo uso
+      input.value = '';
+    }
+  }
+
+  // Subir foto a la nube (Cloudinary)
+  private async uploadPhotoToCloud(photo: Photo, base64Image: string) {
+    if (!this.project?.serverId) return;
+
+    try {
+      const response: any = await firstValueFrom(
+        this.apiService.uploadPhoto(
+          this.project.serverId,
+          base64Image,
+          photo.latitude,
+          photo.longitude,
+          photo.notes
+        )
+      );
+
+      if (response?.success && response?.photo) {
+        // Actualizar foto local con datos del servidor
+        photo.serverId = response.photo.id;
+        photo.imageUrl = response.photo.imageUrl;
+        photo.thumbnailUrl = response.photo.thumbnailUrl;
+        photo.synced = true;
+        await this.storageService.savePhoto(photo);
+
+        // Actualizar en el array local
+        const index = this.photos.findIndex(p => p.id === photo.id);
+        if (index >= 0) this.photos[index] = photo;
+
+        console.log('Foto subida a la nube:', response.photo.imageUrl);
+      }
+    } catch (e: any) {
+      console.log('Error subiendo foto a la nube:', e?.message);
+      // La foto sigue guardada localmente, se puede reintentar después
     }
   }
 
