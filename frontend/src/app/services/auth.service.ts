@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, from, switchMap } from 'rxjs';
 import { ApiService } from './api.service';
 import { User, LoginRequest, RegisterRequest, AuthResponse } from '../models';
 import { Preferences } from '@capacitor/preferences';
@@ -24,13 +24,13 @@ export class AuthService {
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.api.post<AuthResponse>('/auth/login', credentials).pipe(
-      tap(response => this.handleAuthResponse(response))
+      switchMap(response => from(this.handleAuthResponse(response).then(() => response)))
     );
   }
 
   register(data: RegisterRequest): Observable<AuthResponse> {
     return this.api.post<AuthResponse>('/auth/register', data).pipe(
-      tap(response => this.handleAuthResponse(response))
+      switchMap(response => from(this.handleAuthResponse(response).then(() => response)))
     );
   }
 
