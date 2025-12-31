@@ -4,6 +4,7 @@ import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import { tap, map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 
 export interface LicenseType {
   id: string;
@@ -134,15 +135,30 @@ export class LicenseService {
     const order = await this.createPaymentOrder(licenseTypeId);
 
     if (order.approvalUrl) {
-      // Escuchar cuando se cierra el navegador para recargar el estado de licencia
-      const browserListener = await Browser.addListener('browserFinished', async () => {
-        console.log('Browser closed, checking license status...');
-        await this.checkLicenseStatus();
-        browserListener.remove();
-      });
+      // Verificar si estamos en plataforma nativa o web/PWA
+      if (Capacitor.isNativePlatform()) {
+        // App nativa: usar Browser plugin
+        const browserListener = await Browser.addListener('browserFinished', async () => {
+          console.log('Browser closed, checking license status...');
+          await this.checkLicenseStatus();
+          browserListener.remove();
+        });
+        await Browser.open({ url: order.approvalUrl });
+      } else {
+        // PWA/Web: usar window.location para que iOS abra la app de PayPal
+        // Guardar estado para verificar al volver
+        localStorage.setItem('pending_payment', 'true');
+        window.location.href = order.approvalUrl;
+      }
+    }
+  }
 
-      // Abrir PayPal en navegador externo
-      await Browser.open({ url: order.approvalUrl });
+  // Verificar si hay un pago pendiente (llamar al volver a la app)
+  async checkPendingPayment(): Promise<void> {
+    const pending = localStorage.getItem('pending_payment');
+    if (pending) {
+      localStorage.removeItem('pending_payment');
+      await this.checkLicenseStatus();
     }
   }
 

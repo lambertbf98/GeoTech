@@ -75,6 +75,8 @@ export class SettingsPage implements OnInit, OnDestroy {
 
   async ionViewWillEnter() {
     await this.loadUserData();
+    // Verificar si hay un pago pendiente (al volver de PayPal en PWA)
+    await this.licenseService.checkPendingPayment();
     await this.loadLicenseData();
   }
 
