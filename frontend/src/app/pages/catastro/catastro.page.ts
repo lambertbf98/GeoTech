@@ -112,7 +112,7 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     if (this.cesiumViewer) { this.cesiumViewer.destroy(); this.cesiumViewer = null; }
   }
 
-  private initMap() {
+  private async initMap() {
     if (this.map) return;
     const container = document.getElementById('mainMap');
     if (!container) return;
@@ -124,8 +124,23 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
       shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
     });
 
-    const lat = parseFloat(this.latitude) || 40.416775;
-    const lon = parseFloat(this.longitude) || -3.703790;
+    // Obtener ubicación actual si no hay coordenadas establecidas
+    let lat = parseFloat(this.latitude) || 0;
+    let lon = parseFloat(this.longitude) || 0;
+
+    if (!lat || !lon) {
+      try {
+        const pos = await this.gpsService.getCurrentPosition();
+        lat = pos.latitude;
+        lon = pos.longitude;
+        this.latitude = lat.toFixed(6);
+        this.longitude = lon.toFixed(6);
+      } catch (e) {
+        // Si falla el GPS, usar Madrid como fallback
+        lat = 40.416775;
+        lon = -3.703790;
+      }
+    }
 
     this.map = L.map('mainMap', {
       zoomControl: false,
