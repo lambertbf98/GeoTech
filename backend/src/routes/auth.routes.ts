@@ -111,7 +111,7 @@ router.get(
           id: true,
           email: true,
           name: true,
-          role: true,
+          isAdmin: true,
           createdAt: true
         }
       });
