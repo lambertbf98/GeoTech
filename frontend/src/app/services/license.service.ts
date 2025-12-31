@@ -145,10 +145,18 @@ export class LicenseService {
         });
         await Browser.open({ url: order.approvalUrl });
       } else {
-        // PWA/Web: usar window.location para que iOS abra la app de PayPal
+        // PWA/Web: abrir en nueva ventana/pestaña para salir del contexto PWA
         // Guardar estado para verificar al volver
         localStorage.setItem('pending_payment', 'true');
-        window.location.href = order.approvalUrl;
+
+        // Crear un enlace temporal y hacer click para forzar apertura externa
+        const link = document.createElement('a');
+        link.href = order.approvalUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
     }
   }
