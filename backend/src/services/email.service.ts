@@ -37,28 +37,28 @@ export class EmailService {
   }
 
   /**
-   * Verifica la conexion con Resend
+   * Verifica si Resend esta configurado
    */
   async verifyConnection(): Promise<boolean> {
+    // Intentar reinicializar si no esta configurado (por si las env vars se cargaron despues)
     if (!this.resend) {
-      console.warn('Resend not initialized');
-      return false;
+      this.initializeResend();
     }
 
-    try {
-      // Resend no tiene un metodo verify, pero podemos verificar que la API key funciona
-      // intentando obtener los dominios (esto es una llamada ligera)
-      const { data, error } = await this.resend.domains.list();
-      if (error) {
-        console.error('❌ Resend connection failed:', error);
-        return false;
-      }
-      console.log('✅ Resend service connected');
-      return true;
-    } catch (error: any) {
-      console.error('❌ Resend connection failed:', error?.message || error);
+    if (!this.resend) {
+      console.warn('Resend not initialized - RESEND_API_KEY not set');
+      console.warn('Current RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'SET (length: ' + process.env.RESEND_API_KEY.length + ')' : 'NOT SET');
       return false;
     }
+    console.log('✅ Resend API key configured');
+    return true;
+  }
+
+  /**
+   * Verifica si esta inicializado
+   */
+  isConfigured(): boolean {
+    return this.resend !== null;
   }
 
   /**

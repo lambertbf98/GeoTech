@@ -172,27 +172,17 @@ router.post(
       const { emailService } = await import('../services/email.service');
       const { invoiceService } = await import('../services/invoice.service');
 
-      // Datos de prueba
-      const testData = {
-        user: { name: 'Test User', email: req.body.email || 'test@test.com' },
-        licenseType: { name: 'Test License', price: 9.99, durationDays: 30 },
-        licenseKey: 'TEST-XXXX-XXXX-XXXX',
-        transactionId: 'TEST-TRANSACTION-123'
-      };
+      // Verificar configuración de Resend
+      const resendConfigured = await emailService.verifyConnection();
 
-      // Generar factura de prueba
-      const invoiceData = invoiceService.createInvoiceData(testData);
-      const pdfBuffer = await invoiceService.generateInvoicePDF(invoiceData);
-
-      // Verificar conexión SMTP
-      const smtpConnected = await emailService.verifyConnection();
-
-      if (!smtpConnected) {
+      if (!resendConfigured) {
         return res.json({
           success: false,
-          message: 'Resend no conectado. Verifica la variable RESEND_API_KEY',
-          config: {
-            apiKey: process.env.RESEND_API_KEY ? '***configured***' : 'NOT SET'
+          message: 'Resend no configurado. Verifica la variable RESEND_API_KEY',
+          debug: {
+            apiKeySet: !!process.env.RESEND_API_KEY,
+            apiKeyLength: process.env.RESEND_API_KEY?.length || 0,
+            apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 8) || 'N/A'
           }
         });
       }
@@ -202,18 +192,31 @@ router.post(
       if (!targetEmail) {
         return res.json({
           success: true,
-          message: 'SMTP conectado correctamente. Envía un email con: { "email": "tu@email.com" }',
-          pdfGenerated: true,
-          pdfSize: pdfBuffer.length
+          message: 'Resend configurado. Envía un email con: { "email": "tu@email.com" }',
+          debug: {
+            apiKeySet: true,
+            apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 8)
+          }
         });
       }
+
+      // Generar factura de prueba
+      const testData = {
+        user: { name: 'Test User', email: targetEmail },
+        licenseType: { name: 'Test License', price: 9.99, durationDays: 30 },
+        licenseKey: 'TEST-XXXX-XXXX-XXXX',
+        transactionId: 'TEST-TRANSACTION-123'
+      };
+
+      const invoiceData = invoiceService.createInvoiceData(testData);
+      const pdfBuffer = await invoiceService.generateInvoicePDF(invoiceData);
 
       const sent = await emailService.sendLicensePurchaseEmail({
         to: targetEmail,
         customerName: 'Test User',
         licenseType: 'Test License',
         licenseKey: 'TEST-XXXX-XXXX-XXXX',
-        licenseDuration: '30 días',
+        licenseDuration: '30 dias',
         price: 9.99,
         transactionId: 'TEST-TRANSACTION-123',
         invoicePdf: pdfBuffer,
@@ -222,7 +225,7 @@ router.post(
 
       res.json({
         success: sent,
-        message: sent ? `Email enviado a ${targetEmail}` : 'Error enviando email',
+        message: sent ? `Email enviado a ${targetEmail}` : 'Error enviando email - revisa los logs del servidor',
         invoiceNumber: invoiceData.invoiceNumber
       });
     } catch (error: any) {
