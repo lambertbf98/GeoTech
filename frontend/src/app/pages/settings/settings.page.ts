@@ -335,7 +335,7 @@ export class SettingsPage implements OnInit, OnDestroy {
     buttons.push({ text: 'Cancelar', handler: () => {} });
 
     const alert = await this.alertCtrl.create({
-      header: 'Comprar licencia',
+      header: 'xomprar licencia',
       message: 'Selecciona el tipo de licencia que deseas adquirir',
       buttons
     });
