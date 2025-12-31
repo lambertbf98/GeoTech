@@ -363,7 +363,9 @@ export class SettingsPage implements OnInit, OnDestroy {
 
   private async preparePayPalPayment(licenseType: LicenseType) {
     const loading = await this.loadingCtrl.create({
-      message: 'Preparando pago...'
+      message: 'Preparando pago...',
+      spinner: 'crescent',
+      cssClass: 'custom-loading'
     });
     await loading.present();
 
@@ -376,23 +378,8 @@ export class SettingsPage implements OnInit, OnDestroy {
         // Guardar estado para verificar al volver
         localStorage.setItem('pending_payment', 'true');
 
-        // Mostrar alerta con enlace directo
-        const paypalAlert = await this.alertCtrl.create({
-          header: 'Abrir PayPal',
-          message: 'Pulsa el boton para ir a PayPal y completar el pago. Cuando termines, vuelve a la app.',
-          buttons: [
-            { text: 'Cancelar', role: 'cancel' },
-            {
-              text: 'Ir a PayPal',
-              handler: () => {
-                // Abrir directamente desde el tap del usuario
-                window.open(order.approvalUrl, '_blank');
-                return true;
-              }
-            }
-          ]
-        });
-        await paypalAlert.present();
+        // Abrir PayPal directamente en el navegador
+        window.location.href = order.approvalUrl;
       }
     } catch (error: any) {
       await loading.dismiss();
