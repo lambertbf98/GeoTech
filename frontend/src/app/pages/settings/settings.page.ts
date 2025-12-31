@@ -54,15 +54,15 @@ export class SettingsPage implements OnInit, OnDestroy {
     // Cargar estado de licencia y tipos disponibles
     await this.loadLicenseData();
 
-    // Verificar si venimos de un pago
+    // Verificar si venimos de un pago - solo recargar datos, sin mostrar toast
     this.route.queryParams.subscribe(params => {
       if (params['payment'] === 'success') {
-        this.showToast('Pago completado. Tu licencia ha sido activada.', 'success');
         this.loadLicenseData();
-      } else if (params['payment'] === 'cancelled') {
-        this.showToast('Pago cancelado', 'warning');
-      } else if (params['payment'] === 'error') {
-        this.showToast('Error al procesar el pago', 'danger');
+        // Limpiar query params de la URL
+        this.router.navigate([], { queryParams: {}, replaceUrl: true });
+      } else if (params['payment'] === 'cancelled' || params['payment'] === 'error') {
+        // Limpiar query params de la URL
+        this.router.navigate([], { queryParams: {}, replaceUrl: true });
       }
     });
   }

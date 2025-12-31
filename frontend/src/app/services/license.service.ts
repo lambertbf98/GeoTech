@@ -134,6 +134,13 @@ export class LicenseService {
     const order = await this.createPaymentOrder(licenseTypeId);
 
     if (order.approvalUrl) {
+      // Escuchar cuando se cierra el navegador para recargar el estado de licencia
+      const browserListener = await Browser.addListener('browserFinished', async () => {
+        console.log('Browser closed, checking license status...');
+        await this.checkLicenseStatus();
+        browserListener.remove();
+      });
+
       // Abrir PayPal en navegador externo
       await Browser.open({ url: order.approvalUrl });
     }

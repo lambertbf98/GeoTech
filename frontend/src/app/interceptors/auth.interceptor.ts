@@ -20,7 +20,15 @@ export class AuthInterceptor implements HttpInterceptor {
   constructor(
     private authService: AuthService,
     private router: Router
-  ) {}
+  ) {
+    // Resetear refreshFailed cuando el usuario inicia sesión
+    this.authService.currentUser$.subscribe(user => {
+      if (user) {
+        this.refreshFailed = false;
+        this.isRefreshing = false;
+      }
+    });
+  }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     return next.handle(request).pipe(
