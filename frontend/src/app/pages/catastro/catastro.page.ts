@@ -110,13 +110,33 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ionViewDidEnter() {
-    // Esperar a que el mapa esté listo y pedir ubicación
+    // Mostrar alerta para pedir ubicación (requerido en Safari iOS)
     setTimeout(() => {
       if (this.map && !this.hasRequestedLocation) {
         this.hasRequestedLocation = true;
-        this.locateMe();
+        this.showLocationPrompt();
       }
     }, 500);
+  }
+
+  private async showLocationPrompt() {
+    const alert = await this.alertCtrl.create({
+      header: 'Usar ubicacion actual',
+      message: '¿Deseas centrar el mapa en tu ubicacion actual?',
+      buttons: [
+        {
+          text: 'No',
+          role: 'cancel'
+        },
+        {
+          text: 'Si',
+          handler: () => {
+            this.locateMe();
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 
   ngOnDestroy() {
