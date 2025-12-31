@@ -3,7 +3,10 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import { authService } from '../services/auth.service';
 import { AppError } from '../middleware/errorHandler';
+import { authenticate, AuthRequest } from '../middleware/auth';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 const router = Router();
 
 // Validación helper
@@ -90,6 +93,34 @@ router.post(
       const { refreshToken } = req.body;
       await authService.logout(refreshToken);
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /api/auth/me - Obtener datos del usuario autenticado
+router.get(
+  '/me',
+  authenticate,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          createdAt: true
+        }
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      res.json({ user });
     } catch (error) {
       next(error);
     }
