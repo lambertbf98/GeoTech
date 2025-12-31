@@ -20,8 +20,8 @@ WORKDIR /app/frontend
 RUN npm ci
 RUN npm run build
 
-# Copy frontend build to backend public folder (Angular 17+ outputs to www/browser)
-RUN cp -r www/browser ../backend/public
+# Copy frontend build to backend public folder
+RUN rm -rf ../backend/public && cp -r www ../backend/public
 
 # Set working directory to backend
 WORKDIR /app/backend
