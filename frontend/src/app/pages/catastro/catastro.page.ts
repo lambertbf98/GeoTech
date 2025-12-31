@@ -106,11 +106,22 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
   ngAfterViewInit() {
     setTimeout(async () => {
       await this.initMap();
-      // Auto-localizar si no hay coordenadas establecidas
-      if (!this.latitude || !this.longitude) {
-        this.locateMe();
-      }
+      // Pedir ubicación automáticamente la primera vez
+      this.autoLocateOnFirstLoad();
     }, 400);
+  }
+
+  ionViewDidEnter() {
+    // Pedir ubicación si el mapa ya existe pero no hay coordenadas
+    if (this.map && (!this.latitude || !this.longitude)) {
+      this.locateMe();
+    }
+  }
+
+  private autoLocateOnFirstLoad() {
+    if (!this.latitude || !this.longitude) {
+      this.locateMe();
+    }
   }
 
   ngOnDestroy() {
