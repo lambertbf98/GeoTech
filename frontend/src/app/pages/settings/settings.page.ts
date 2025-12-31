@@ -344,32 +344,60 @@ export class SettingsPage implements OnInit, OnDestroy {
   }
 
   async purchaseLicense(licenseType: LicenseType) {
-    const alert = await this.alertCtrl.create({
+    const confirmAlert = await this.alertCtrl.create({
       header: 'Confirmar compra',
-      message: `Vas a comprar una licencia ${licenseType.name} por ${this.formatPrice(licenseType.price)}. Seras redirigido a PayPal para completar el pago.`,
+      message: `Vas a comprar una licencia ${licenseType.name} por ${this.formatPrice(licenseType.price)}.`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
-          text: 'Continuar a PayPal',
-          handler: async () => {
-            const loading = await this.loadingCtrl.create({
-              message: 'Conectando con PayPal...'
-            });
-            await loading.present();
-
-            try {
-              await this.licenseService.purchaseLicense(licenseType.id);
-            } catch (error: any) {
-              this.showToast(error.error?.message || 'Error al iniciar pago', 'danger');
-            } finally {
-              await loading.dismiss();
-            }
+          text: 'Continuar',
+          handler: () => {
+            this.preparePayPalPayment(licenseType);
           }
         }
       ]
     });
 
-    await alert.present();
+    await confirmAlert.present();
+  }
+
+  private async preparePayPalPayment(licenseType: LicenseType) {
+    const loading = await this.loadingCtrl.create({
+      message: 'Preparando pago...'
+    });
+    await loading.present();
+
+    try {
+      // Obtener URL de PayPal
+      const order = await this.licenseService.createPaymentOrder(licenseType.id);
+      await loading.dismiss();
+
+      if (order.approvalUrl) {
+        // Guardar estado para verificar al volver
+        localStorage.setItem('pending_payment', 'true');
+
+        // Mostrar alerta con enlace directo
+        const paypalAlert = await this.alertCtrl.create({
+          header: 'Abrir PayPal',
+          message: 'Pulsa el boton para ir a PayPal y completar el pago. Cuando termines, vuelve a la app.',
+          buttons: [
+            { text: 'Cancelar', role: 'cancel' },
+            {
+              text: 'Ir a PayPal',
+              handler: () => {
+                // Abrir directamente desde el tap del usuario
+                window.open(order.approvalUrl, '_blank');
+                return true;
+              }
+            }
+          ]
+        });
+        await paypalAlert.present();
+      }
+    } catch (error: any) {
+      await loading.dismiss();
+      this.showToast(error.error?.message || 'Error al preparar pago', 'danger');
+    }
   }
 
   formatPrice(price: number): string {
