@@ -504,6 +504,42 @@
     /* Hide elements */
     .hidden { display: none !important; }
 
+    /* Toast notifications */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border-left: 4px solid var(--primary);
+      padding: 14px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s ease;
+      max-width: 350px;
+      font-size: 0.9rem;
+    }
+
+    .toast.success { border-left-color: var(--success); }
+    .toast.error { border-left-color: var(--danger); }
+    .toast.warning { border-left-color: var(--warning); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+
     /* User detail */
     .user-detail-grid {
       display: grid;
@@ -577,6 +613,9 @@
       </form>
     </div>
   </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
 
   <!-- Admin Panel -->
   <div id="adminPanel" class="hidden">
@@ -1148,7 +1187,7 @@
         await api(`/licenses/admin/user/${userId}`, { method: 'DELETE' });
         loadUsers(usersPage);
       } catch (err) {
-        alert(err.message);
+        showToast(err.message, 'error');
       }
     }
 
@@ -1159,9 +1198,9 @@
         await api(`/licenses/admin/project/${projectId}`, { method: 'DELETE' });
         closeModal('userModal');
         closeModal('projectModal');
-        alert('Proyecto eliminado');
+        showToast('Proyecto eliminado', 'success');
       } catch (err) {
-        alert(err.message);
+        showToast(err.message, 'error');
       }
     }
 
@@ -1289,7 +1328,7 @@
           URL.revokeObjectURL(url);
         }
       } catch (err) {
-        alert('Error descargando informe: ' + err.message);
+        showToast('Error descargando informe: ' + err.message, 'error');
       }
     }
 
@@ -1308,7 +1347,7 @@
           URL.revokeObjectURL(url);
         }
       } catch (err) {
-        alert('Error descargando KML: ' + err.message);
+        showToast('Error descargando KML: ' + err.message, 'error');
       }
     }
 
@@ -1323,7 +1362,7 @@
           document.getElementById('reportViewerModal').classList.add('active');
         }
       } catch (err) {
-        alert('Error cargando informe: ' + err.message);
+        showToast('Error cargando informe: ' + err.message, 'error');
       }
     }
 
@@ -1350,7 +1389,7 @@
           }, 100);
         }
       } catch (err) {
-        alert('Error cargando KML: ' + err.message);
+        showToast('Error cargando KML: ' + err.message, 'error');
       }
     }
 
@@ -1521,7 +1560,7 @@
         });
         closeModal('createLicenseModal');
         loadLicenses();
-        alert('Licencia creada');
+        showToast('Licencia creada', 'success');
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.classList.remove('hidden');
@@ -1535,7 +1574,7 @@
         await api(`/licenses/admin/revoke/${licenseId}`, { method: 'POST' });
         loadLicenses(licensesPage);
       } catch (err) {
-        alert(err.message);
+        showToast(err.message, 'error');
       }
     }
 
@@ -1600,10 +1639,10 @@
 
       try {
         await api(`/payments/admin/approve/${paymentId}`, { method: 'POST' });
-        alert('Pago aprobado y licencia activada');
+        showToast('Pago aprobado y licencia activada', 'success');
         loadPayments(currentPaymentFilter, paymentsPage);
       } catch (err) {
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
       }
     }
 
@@ -1612,10 +1651,10 @@
 
       try {
         await api(`/payments/admin/cancel/${paymentId}`, { method: 'POST' });
-        alert('Pago cancelado');
+        showToast('Pago cancelado', 'success');
         loadPayments(currentPaymentFilter, paymentsPage);
       } catch (err) {
-        alert('Error: ' + err.message);
+        showToast('Error: ' + err.message, 'error');
       }
     }
 
@@ -1738,7 +1777,7 @@
         });
         closeModal('createTypeModal');
         loadTypes();
-        alert('Tipo creado');
+        showToast('Tipo creado', 'success');
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.classList.remove('hidden');
@@ -1773,6 +1812,20 @@
         errorEl.textContent = err.message;
         errorEl.classList.remove('hidden');
       }
+    }
+
+    // Toast notification
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
     }
 
     // Utilities
