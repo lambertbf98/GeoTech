@@ -190,12 +190,9 @@ router.post(
       if (!smtpConnected) {
         return res.json({
           success: false,
-          message: 'SMTP no conectado. Verifica las variables SMTP_USER y SMTP_PASS',
+          message: 'Resend no conectado. Verifica la variable RESEND_API_KEY',
           config: {
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT,
-            user: process.env.SMTP_USER ? '***configured***' : 'NOT SET',
-            pass: process.env.SMTP_PASS ? '***configured***' : 'NOT SET'
+            apiKey: process.env.RESEND_API_KEY ? '***configured***' : 'NOT SET'
           }
         });
       }

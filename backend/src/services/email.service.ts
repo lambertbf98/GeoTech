@@ -1,16 +1,5 @@
 // @ts-nocheck
-import nodemailer from 'nodemailer';
-import { invoiceService, InvoiceService } from './invoice.service';
-
-interface EmailConfig {
-  host: string;
-  port: number;
-  secure: boolean;
-  auth: {
-    user: string;
-    pass: string;
-  };
-}
+import { Resend } from 'resend';
 
 interface LicensePurchaseEmail {
   to: string;
@@ -24,66 +13,50 @@ interface LicensePurchaseEmail {
   invoiceNumber: string;
 }
 
-const EMAIL_CONFIG: EmailConfig = {
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || ''
-  }
-};
-
 const COMPANY = {
   name: 'GeoTech Solutions',
-  email: process.env.SMTP_FROM || 'info@geotech.app',
+  email: 'onboarding@resend.dev', // Usar dominio verificado en produccion
   website: 'www.geotech.app'
 };
 
 export class EmailService {
-  private transporter: nodemailer.Transporter | null = null;
+  private resend: Resend | null = null;
 
   constructor() {
-    this.initializeTransporter();
+    this.initializeResend();
   }
 
-  private initializeTransporter() {
-    if (EMAIL_CONFIG.auth.user && EMAIL_CONFIG.auth.pass) {
-      this.transporter = nodemailer.createTransport({
-        host: EMAIL_CONFIG.host,
-        port: EMAIL_CONFIG.port,
-        secure: EMAIL_CONFIG.secure,
-        auth: EMAIL_CONFIG.auth
-      });
+  private initializeResend() {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (apiKey) {
+      this.resend = new Resend(apiKey);
+      console.log('✅ Resend email service initialized');
     } else {
-      console.warn('⚠️ Email service not configured. Set SMTP_USER and SMTP_PASS in environment.');
+      console.warn('⚠️ Email service not configured. Set RESEND_API_KEY in environment.');
     }
   }
 
   /**
-   * Verifica la conexion con el servidor SMTP (con timeout de 10 segundos)
+   * Verifica la conexion con Resend
    */
   async verifyConnection(): Promise<boolean> {
-    if (!this.transporter) {
-      console.warn('Email transporter not initialized');
+    if (!this.resend) {
+      console.warn('Resend not initialized');
       return false;
     }
 
     try {
-      // Agregar timeout de 10 segundos para evitar que se quede colgado
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('SMTP verification timeout (10s)')), 10000);
-      });
-
-      await Promise.race([
-        this.transporter.verify(),
-        timeoutPromise
-      ]);
-
-      console.log('✅ Email service connected');
+      // Resend no tiene un metodo verify, pero podemos verificar que la API key funciona
+      // intentando obtener los dominios (esto es una llamada ligera)
+      const { data, error } = await this.resend.domains.list();
+      if (error) {
+        console.error('❌ Resend connection failed:', error);
+        return false;
+      }
+      console.log('✅ Resend service connected');
       return true;
     } catch (error: any) {
-      console.error('❌ Email service connection failed:', error?.message || error);
+      console.error('❌ Resend connection failed:', error?.message || error);
       return false;
     }
   }
@@ -92,7 +65,7 @@ export class EmailService {
    * Envia el email de confirmacion de compra con la factura adjunta
    */
   async sendLicensePurchaseEmail(data: LicensePurchaseEmail): Promise<boolean> {
-    if (!this.transporter) {
+    if (!this.resend) {
       console.warn('Email service not configured, skipping email send');
       return false;
     }
@@ -101,22 +74,26 @@ export class EmailService {
     const textContent = this.generatePurchaseEmailText(data);
 
     try {
-      await this.transporter.sendMail({
-        from: `"${COMPANY.name}" <${COMPANY.email}>`,
+      const { data: result, error } = await this.resend.emails.send({
+        from: `${COMPANY.name} <${COMPANY.email}>`,
         to: data.to,
-        subject: `🎉 Tu licencia GeoTech ha sido activada - ${data.invoiceNumber}`,
+        subject: `Tu licencia GeoTech ha sido activada - ${data.invoiceNumber}`,
         text: textContent,
         html: htmlContent,
         attachments: [
           {
             filename: `Factura-${data.invoiceNumber}.pdf`,
-            content: data.invoicePdf,
-            contentType: 'application/pdf'
+            content: data.invoicePdf.toString('base64')
           }
         ]
       });
 
-      console.log(`✅ Purchase email sent to ${data.to}`);
+      if (error) {
+        console.error('❌ Error sending purchase email:', error);
+        return false;
+      }
+
+      console.log(`✅ Purchase email sent to ${data.to}, id: ${result?.id}`);
       return true;
     } catch (error) {
       console.error('❌ Error sending purchase email:', error);
@@ -159,7 +136,7 @@ export class EmailService {
           <tr>
             <td align="center" style="padding: 30px 30px 0 30px;">
               <div style="width: 80px; height: 80px; background-color: #10b981; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
-                <span style="font-size: 40px; color: white;">✓</span>
+                <span style="font-size: 40px; color: white;">&#10003;</span>
               </div>
             </td>
           </tr>
@@ -167,7 +144,7 @@ export class EmailService {
           <!-- Main Content -->
           <tr>
             <td style="padding: 30px;">
-              <h2 style="color: #1f2937; text-align: center; margin: 0 0 10px 0; font-size: 24px;">¡Gracias por tu compra!</h2>
+              <h2 style="color: #1f2937; text-align: center; margin: 0 0 10px 0; font-size: 24px;">Gracias por tu compra!</h2>
               <p style="color: #6b7280; text-align: center; margin: 0 0 30px 0; font-size: 16px;">
                 Hola <strong>${data.customerName}</strong>, tu licencia ha sido activada correctamente.
               </p>
@@ -212,7 +189,7 @@ export class EmailService {
               <!-- Invoice Info -->
               <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
                 <p style="color: #6b7280; margin: 0; font-size: 14px; text-align: center;">
-                  📎 Adjuntamos la factura <strong>${data.invoiceNumber}</strong> en formato PDF
+                  Adjuntamos la factura <strong>${data.invoiceNumber}</strong> en formato PDF
                 </p>
               </div>
 
@@ -238,10 +215,10 @@ export class EmailService {
           <tr>
             <td style="background-color: #f9fafb; padding: 25px 30px; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
               <p style="color: #6b7280; font-size: 14px; text-align: center; margin: 0 0 10px 0;">
-                ¿Tienes alguna pregunta? Contactanos en <a href="mailto:${COMPANY.email}" style="color: #3b82f6; text-decoration: none;">${COMPANY.email}</a>
+                Tienes alguna pregunta? Contactanos en <a href="mailto:${COMPANY.email}" style="color: #3b82f6; text-decoration: none;">${COMPANY.email}</a>
               </p>
               <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-                © ${new Date().getFullYear()} ${COMPANY.name}. Todos los derechos reservados.
+                ${new Date().getFullYear()} ${COMPANY.name}. Todos los derechos reservados.
               </p>
             </td>
           </tr>
@@ -268,7 +245,7 @@ export class EmailService {
 ${COMPANY.name}
 =====================================
 
-¡Gracias por tu compra!
+Gracias por tu compra!
 
 Hola ${data.customerName},
 
@@ -287,10 +264,10 @@ ID de transaccion: ${data.transactionId}
 La factura en formato PDF esta adjunta a este correo.
 
 -------------------------------------
-¿Tienes alguna pregunta?
+Tienes alguna pregunta?
 Contactanos en ${COMPANY.email}
 
-© ${new Date().getFullYear()} ${COMPANY.name}
+${new Date().getFullYear()} ${COMPANY.name}
 ${COMPANY.website}
     `.trim();
   }
@@ -299,19 +276,25 @@ ${COMPANY.website}
    * Envia un email de prueba
    */
   async sendTestEmail(to: string): Promise<boolean> {
-    if (!this.transporter) {
+    if (!this.resend) {
       console.warn('Email service not configured');
       return false;
     }
 
     try {
-      await this.transporter.sendMail({
-        from: `"${COMPANY.name}" <${COMPANY.email}>`,
+      const { data, error } = await this.resend.emails.send({
+        from: `${COMPANY.name} <${COMPANY.email}>`,
         to,
         subject: 'Test Email - GeoTech',
         text: 'Este es un email de prueba del sistema GeoTech.',
         html: '<h1>Test Email</h1><p>Este es un email de prueba del sistema GeoTech.</p>'
       });
+
+      if (error) {
+        console.error('Error sending test email:', error);
+        return false;
+      }
+
       return true;
     } catch (error) {
       console.error('Error sending test email:', error);
