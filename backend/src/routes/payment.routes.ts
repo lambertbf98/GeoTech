@@ -205,6 +205,7 @@ router.get(
         total,
         page,
         limit,
+        totalPages: Math.ceil(total / limit),
         stats: {
           completed: { count: totalCompleted._count, amount: totalCompleted._sum.amount || 0 },
           pending: { count: totalPending._count, amount: totalPending._sum.amount || 0 },
@@ -285,6 +286,109 @@ router.get(
       }
 
       res.json({ payment });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /api/payments/admin/approve/:id - Aprobar pago pendiente y activar licencia (admin)
+router.post(
+  '/admin/approve/:id',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+
+      // Obtener el pago
+      const payment = await prisma.payment.findUnique({
+        where: { id },
+        include: {
+          user: true,
+          licenseType: true
+        }
+      });
+
+      if (!payment) {
+        return res.status(404).json({ error: 'Pago no encontrado' });
+      }
+
+      if (payment.status === 'COMPLETED') {
+        return res.status(400).json({ error: 'Este pago ya fue completado' });
+      }
+
+      // Generar clave de licencia
+      const licenseKey = `GT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+      // Calcular fecha de expiración
+      let expiresAt = new Date();
+      if (payment.licenseType.durationHours && payment.licenseType.durationHours > 0) {
+        expiresAt = new Date(Date.now() + payment.licenseType.durationHours * 60 * 60 * 1000);
+      } else {
+        expiresAt = new Date(Date.now() + (payment.licenseType.durationDays || 30) * 24 * 60 * 60 * 1000);
+      }
+
+      // Crear licencia y actualizar pago en transacción
+      const [license] = await prisma.$transaction([
+        prisma.license.create({
+          data: {
+            licenseKey,
+            userId: payment.userId,
+            licenseTypeId: payment.licenseTypeId,
+            status: 'ACTIVE',
+            expiresAt,
+            activatedAt: new Date()
+          }
+        }),
+        prisma.payment.update({
+          where: { id },
+          data: { status: 'COMPLETED' }
+        })
+      ]);
+
+      res.json({
+        success: true,
+        message: 'Pago aprobado y licencia activada',
+        license: {
+          id: license.id,
+          licenseKey: license.licenseKey,
+          expiresAt: license.expiresAt
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /api/payments/admin/cancel/:id - Cancelar pago pendiente (admin)
+router.post(
+  '/admin/cancel/:id',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+
+      const payment = await prisma.payment.findUnique({
+        where: { id }
+      });
+
+      if (!payment) {
+        return res.status(404).json({ error: 'Pago no encontrado' });
+      }
+
+      if (payment.status === 'COMPLETED') {
+        return res.status(400).json({ error: 'No se puede cancelar un pago completado' });
+      }
+
+      await prisma.payment.update({
+        where: { id },
+        data: { status: 'CANCELLED' }
+      });
+
+      res.json({ success: true, message: 'Pago cancelado' });
     } catch (error) {
       next(error);
     }

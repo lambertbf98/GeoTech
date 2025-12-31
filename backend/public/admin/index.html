@@ -600,6 +600,7 @@
       <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
       <button class="nav-tab" data-tab="users">Usuarios</button>
       <button class="nav-tab" data-tab="licenses">Licencias</button>
+      <button class="nav-tab" data-tab="payments">Pagos</button>
       <button class="nav-tab" data-tab="types">Tipos</button>
     </nav>
 
@@ -655,6 +656,23 @@
             <div class="loading"><div class="spinner"></div>Cargando...</div>
           </div>
           <div id="licensesPagination" class="pagination"></div>
+        </div>
+      </section>
+
+      <!-- Payments -->
+      <section id="payments" class="section">
+        <div class="card">
+          <h3 class="card-title">Pagos de PayPal</h3>
+          <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="loadPayments('all')">Todos</button>
+            <button class="btn btn-warning" onclick="loadPayments('CREATED')">Pendientes</button>
+            <button class="btn btn-success" onclick="loadPayments('COMPLETED')">Completados</button>
+            <button class="btn btn-danger" onclick="loadPayments('CANCELLED')">Cancelados</button>
+          </div>
+          <div id="paymentsList" class="list">
+            <div class="loading"><div class="spinner"></div>Cargando...</div>
+          </div>
+          <div id="paymentsPagination" class="pagination"></div>
         </div>
       </section>
 
@@ -907,6 +925,7 @@
           // Load data on tab switch
           if (tabId === 'users') loadUsers();
           if (tabId === 'licenses') loadLicenses();
+          if (tabId === 'payments') loadPayments('all');
           if (tabId === 'types') loadTypes();
         });
       });
@@ -1517,6 +1536,86 @@
         loadLicenses(licensesPage);
       } catch (err) {
         alert(err.message);
+      }
+    }
+
+    // Payments
+    let paymentsPage = 1;
+    let currentPaymentFilter = 'all';
+
+    async function loadPayments(filter = 'all', page = 1) {
+      paymentsPage = page;
+      currentPaymentFilter = filter;
+      const container = document.getElementById('paymentsList');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+
+      try {
+        let url = `/payments/admin/all?page=${page}&limit=10`;
+        if (filter && filter !== 'all') {
+          url += `&status=${filter}`;
+        }
+        const data = await api(url);
+        const payments = data.payments || [];
+
+        if (payments.length) {
+          container.innerHTML = payments.map(p => {
+            const status = (p.status || '').toUpperCase();
+            const badgeClass = status === 'COMPLETED' ? 'badge-success' :
+                               status === 'CREATED' ? 'badge-warning' :
+                               status === 'CANCELLED' ? 'badge-danger' : 'badge-info';
+            const statusText = status === 'COMPLETED' ? 'Completado' :
+                               status === 'CREATED' ? 'Pendiente' :
+                               status === 'CANCELLED' ? 'Cancelado' : status;
+            return `
+            <div class="list-item">
+              <div class="list-item-main">
+                <div class="list-item-title">${p.paypalOrderId || 'Sin ID'}</div>
+                <div class="list-item-sub">
+                  ${p.user?.email || 'Usuario desconocido'} - ${p.licenseType?.name || 'Tipo desconocido'}
+                  <br>Monto: ${p.amount ? p.amount.toFixed(2) : '0.00'} ${p.currency || 'EUR'}
+                  <br>Fecha: ${formatDate(p.createdAt)}
+                </div>
+              </div>
+              <div class="list-item-actions">
+                <span class="badge ${badgeClass}">${statusText}</span>
+                ${status === 'CREATED' ? `
+                  <button class="btn btn-success" onclick="approvePayment('${p.id}')">Aprobar</button>
+                  <button class="btn btn-danger" onclick="cancelPayment('${p.id}')">Cancelar</button>
+                ` : ''}
+              </div>
+            </div>
+          `}).join('');
+        } else {
+          container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No hay pagos</p>';
+        }
+
+        renderPagination('paymentsPagination', data.page || 1, data.totalPages || 1, (p) => loadPayments(currentPaymentFilter, p));
+      } catch (err) {
+        container.innerHTML = `<p class="error-msg">${err.message}</p>`;
+      }
+    }
+
+    async function approvePayment(paymentId) {
+      if (!confirm('¿Aprobar este pago y activar la licencia del usuario?')) return;
+
+      try {
+        await api(`/payments/admin/approve/${paymentId}`, { method: 'POST' });
+        alert('Pago aprobado y licencia activada');
+        loadPayments(currentPaymentFilter, paymentsPage);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function cancelPayment(paymentId) {
+      if (!confirm('¿Cancelar este pago?')) return;
+
+      try {
+        await api(`/payments/admin/cancel/${paymentId}`, { method: 'POST' });
+        alert('Pago cancelado');
+        loadPayments(currentPaymentFilter, paymentsPage);
+      } catch (err) {
+        alert('Error: ' + err.message);
       }
     }
 

@@ -2,6 +2,8 @@
 import { PrismaClient } from '@prisma/client';
 import { config } from '../config';
 import { licenseService } from './license.service';
+import { invoiceService } from './invoice.service';
+import { emailService } from './email.service';
 
 const prisma = new PrismaClient();
 
@@ -149,6 +151,11 @@ export class PayPalService {
       // Obtener payer ID
       const payerId = captureData.payer?.payer_id || '';
 
+      // Obtener datos del usuario
+      const user = await prisma.user.findUnique({
+        where: { id: payment.userId }
+      });
+
       // Crear licencia para el usuario
       const license = await licenseService.createLicense(
         payment.licenseTypeId,
@@ -163,6 +170,11 @@ export class PayPalService {
           paypalPayerId: payerId,
           licenseKeyGenerated: license.licenseKey
         }
+      });
+
+      // Generar y enviar factura por email (asíncrono, no bloquea respuesta)
+      this.sendInvoiceEmail(user, payment, license).catch(err => {
+        console.error('Error enviando factura por email:', err);
       });
 
       return {
@@ -258,6 +270,61 @@ export class PayPalService {
       include: { licenseType: true },
       orderBy: { createdAt: 'desc' }
     });
+  }
+
+  // Generar y enviar factura por email
+  private async sendInvoiceEmail(user: any, payment: any, license: any) {
+    if (!user?.email) {
+      console.warn('No se puede enviar factura: usuario sin email');
+      return;
+    }
+
+    try {
+      // Calcular duración para mostrar
+      let licenseDuration = '';
+      if (payment.licenseType.durationHours && payment.licenseType.durationHours > 0) {
+        licenseDuration = `${payment.licenseType.durationHours} horas`;
+      } else if (payment.licenseType.durationDays) {
+        licenseDuration = `${payment.licenseType.durationDays} dias`;
+      }
+
+      // Crear datos de factura
+      const invoiceData = invoiceService.createInvoiceData({
+        user: {
+          name: user.name || user.email.split('@')[0],
+          email: user.email
+        },
+        licenseType: {
+          name: payment.licenseType.name,
+          price: payment.amount,
+          durationDays: payment.licenseType.durationDays,
+          durationHours: payment.licenseType.durationHours
+        },
+        licenseKey: license.licenseKey,
+        transactionId: payment.paypalOrderId
+      });
+
+      // Generar PDF de factura
+      const pdfBuffer = await invoiceService.generateInvoicePDF(invoiceData);
+
+      // Enviar email con factura adjunta
+      await emailService.sendLicensePurchaseEmail({
+        to: user.email,
+        customerName: user.name || user.email.split('@')[0],
+        licenseType: payment.licenseType.name,
+        licenseKey: license.licenseKey,
+        licenseDuration,
+        price: payment.amount,
+        transactionId: payment.paypalOrderId,
+        invoicePdf: pdfBuffer,
+        invoiceNumber: invoiceData.invoiceNumber
+      });
+
+      console.log(`✅ Factura enviada a ${user.email} para licencia ${license.licenseKey}`);
+    } catch (error) {
+      console.error('Error generando/enviando factura:', error);
+      // No lanzamos error para no afectar el flujo de pago
+    }
   }
 }
 

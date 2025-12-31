@@ -1085,3 +1085,212 @@ El backend envía `daysRemaining`, `hoursRemaining` y `minutesRemaining`. El fro
 **Archivos:**
 - Backend: `backend/src/routes/license.routes.ts` (líneas 39-56)
 - Frontend: `frontend/src/app/services/license.service.ts` (líneas 181-206)
+
+---
+
+## Pagos (PayPal)
+
+### POST /payments/create-order
+Crear orden de pago con PayPal.
+
+**Request:**
+```json
+{
+  "licenseTypeId": "uuid"
+}
+```
+
+**Response (200):**
+```json
+{
+  "orderId": "PAYPAL-ORDER-ID",
+  "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=...",
+  "status": "CREATED"
+}
+```
+
+### POST /payments/capture
+Capturar pago después de aprobación.
+
+**Request:**
+```json
+{
+  "orderId": "PAYPAL-ORDER-ID"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Pago completado correctamente",
+  "license": {
+    "licenseKey": "GT-XXXX-XXXX",
+    "type": "Mensual",
+    "expiresAt": "2025-01-30T10:00:00Z"
+  }
+}
+```
+
+### GET /payments/history
+Obtener historial de pagos del usuario.
+
+**Response (200):**
+```json
+[
+  {
+    "id": "uuid",
+    "paypalOrderId": "PAYPAL-ORDER-ID",
+    "amount": 9.99,
+    "currency": "EUR",
+    "status": "completed",
+    "createdAt": "2024-12-30T10:00:00Z",
+    "licenseType": {
+      "name": "Mensual",
+      "durationDays": 30
+    }
+  }
+]
+```
+
+---
+
+## Admin - Pagos
+
+### GET /payments/admin/all
+Obtener todos los pagos paginados.
+
+**Query params:**
+- `page`: Número de página (default: 1)
+- `limit`: Resultados por página (default: 20)
+- `status`: Filtrar por estado (CREATED, COMPLETED, CANCELLED, etc.)
+
+**Response (200):**
+```json
+{
+  "payments": [
+    {
+      "id": "uuid",
+      "paypalOrderId": "PAYPAL-ORDER-ID",
+      "amount": 9.99,
+      "currency": "EUR",
+      "status": "COMPLETED",
+      "createdAt": "2024-12-30T10:00:00Z",
+      "user": {
+        "id": "uuid",
+        "email": "usuario@ejemplo.com",
+        "name": "Nombre"
+      },
+      "licenseType": {
+        "id": "uuid",
+        "name": "Mensual",
+        "price": 9.99
+      }
+    }
+  ],
+  "total": 50,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 3,
+  "stats": {
+    "completed": { "count": 45, "amount": 450.50 },
+    "pending": { "count": 3, "amount": 29.97 },
+    "failed": { "count": 2, "amount": 19.98 },
+    "refunded": { "count": 0, "amount": 0 }
+  }
+}
+```
+
+### POST /payments/admin/approve/:id
+Aprobar pago pendiente y activar licencia manualmente.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Pago aprobado y licencia activada",
+  "license": {
+    "id": "uuid",
+    "licenseKey": "GT-XXXX-XXXX",
+    "expiresAt": "2025-01-30T10:00:00Z"
+  }
+}
+```
+
+### POST /payments/admin/cancel/:id
+Cancelar pago pendiente.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Pago cancelado"
+}
+```
+
+### PUT /payments/admin/:id/status
+Actualizar estado de pago manualmente.
+
+**Request:**
+```json
+{
+  "status": "completed" // pending, completed, failed, refunded, cancelled
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "payment": {
+    "id": "uuid",
+    "status": "completed"
+  }
+}
+```
+
+---
+
+## Sistema de Facturación
+
+### Flujo Automático
+
+Cuando se completa un pago exitoso via PayPal:
+
+1. Se genera automáticamente una factura PDF profesional
+2. Se envía un email al usuario con:
+   - Mensaje de agradecimiento
+   - Detalles de la licencia (tipo, duración, clave)
+   - Factura PDF adjunta
+
+### Configuración SMTP
+
+Para habilitar el envío de emails, configurar en `.env`:
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=tu-email@gmail.com
+SMTP_PASS=tu-app-password
+SMTP_FROM="GeoTech <noreply@geotech.app>"
+```
+
+**Nota:** Para Gmail, usar una "Contraseña de aplicación", no la contraseña normal.
+
+### Formato de Factura PDF
+
+La factura incluye:
+- **Cabecera**: Logo de GeoTech, número de factura, fecha
+- **Datos de empresa**: Nombre, dirección, CIF, contacto
+- **Datos del cliente**: Nombre, email
+- **Detalle de compra**: Descripción, cantidad, precio
+- **Totales**: Subtotal, IVA (21%), Total
+- **Licencia**: Clave destacada en verde, duración
+- **Pie**: Mensaje de agradecimiento, información de contacto
+
+### Archivos Relacionados
+
+- `backend/src/services/invoice.service.ts` - Generación de PDF
+- `backend/src/services/email.service.ts` - Envío de emails
+- `backend/src/services/paypal.service.ts` - Integración (método `sendInvoiceEmail`)
