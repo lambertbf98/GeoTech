@@ -395,4 +395,80 @@ router.post(
   }
 );
 
+// POST /api/payments/admin/test-email - Probar envío de email (admin)
+router.post(
+  '/admin/test-email',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { emailService } = await import('../services/email.service');
+      const { invoiceService } = await import('../services/invoice.service');
+
+      // Datos de prueba
+      const testData = {
+        user: { name: 'Test User', email: req.body.email || 'test@test.com' },
+        licenseType: { name: 'Test License', price: 9.99, durationDays: 30 },
+        licenseKey: 'TEST-XXXX-XXXX-XXXX',
+        transactionId: 'TEST-TRANSACTION-123'
+      };
+
+      // Generar factura de prueba
+      const invoiceData = invoiceService.createInvoiceData(testData);
+      const pdfBuffer = await invoiceService.generateInvoicePDF(invoiceData);
+
+      // Verificar conexión SMTP
+      const smtpConnected = await emailService.verifyConnection();
+
+      if (!smtpConnected) {
+        return res.json({
+          success: false,
+          message: 'SMTP no conectado. Verifica las variables SMTP_USER y SMTP_PASS',
+          config: {
+            host: process.env.SMTP_HOST,
+            port: process.env.SMTP_PORT,
+            user: process.env.SMTP_USER ? '***configured***' : 'NOT SET',
+            pass: process.env.SMTP_PASS ? '***configured***' : 'NOT SET'
+          }
+        });
+      }
+
+      // Enviar email de prueba
+      const targetEmail = req.body.email;
+      if (!targetEmail) {
+        return res.json({
+          success: true,
+          message: 'SMTP conectado correctamente. Envía un email con: { "email": "tu@email.com" }',
+          pdfGenerated: true,
+          pdfSize: pdfBuffer.length
+        });
+      }
+
+      const sent = await emailService.sendLicensePurchaseEmail({
+        to: targetEmail,
+        customerName: 'Test User',
+        licenseType: 'Test License',
+        licenseKey: 'TEST-XXXX-XXXX-XXXX',
+        licenseDuration: '30 días',
+        price: 9.99,
+        transactionId: 'TEST-TRANSACTION-123',
+        invoicePdf: pdfBuffer,
+        invoiceNumber: invoiceData.invoiceNumber
+      });
+
+      res.json({
+        success: sent,
+        message: sent ? `Email enviado a ${targetEmail}` : 'Error enviando email',
+        invoiceNumber: invoiceData.invoiceNumber
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  }
+);
+
 export default router;
