@@ -1218,14 +1218,36 @@
         let photosHtml = '<p style="color: var(--text-muted);">Sin fotos</p>';
         if (p.photos?.length) {
           photosHtml = `
-            <div class="photo-grid">
+            <div class="list">
               ${p.photos.map(photo => `
-                <img src="${photo.imageUrl || photo.thumbnailUrl}"
-                     alt="Foto"
-                     class="photo-thumb"
-                     onclick="window.open('${photo.imageUrl}', '_blank')"
-                     onerror="this.style.display='none'"
-                     style="cursor: pointer;">
+                <div class="list-item" style="flex-direction: column; align-items: flex-start;">
+                  <div style="display: flex; gap: 12px; width: 100%;">
+                    <img src="${photo.thumbnailUrl || photo.imageUrl}"
+                         alt="Foto"
+                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer;"
+                         onclick="window.open('${photo.imageUrl}', '_blank')"
+                         onerror="this.style.display='none'">
+                    <div style="flex: 1;">
+                      <div class="list-item-sub" style="margin-bottom: 4px;">
+                        <strong>Coords:</strong> ${Number(photo.latitude).toFixed(6)}, ${Number(photo.longitude).toFixed(6)}
+                      </div>
+                      ${photo.catastroRef ? `<div class="list-item-sub"><strong>Ref. Catastral:</strong> ${photo.catastroRef}</div>` : ''}
+                      <div class="list-item-sub">${formatDate(photo.createdAt)}</div>
+                    </div>
+                  </div>
+                  ${photo.notes ? `
+                    <div style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 6px; width: 100%;">
+                      <div style="font-size: 0.7rem; color: var(--primary); font-weight: 600; margin-bottom: 4px;">NOTAS:</div>
+                      <div style="font-size: 0.85rem; color: var(--text);">${escapeHtml(photo.notes)}</div>
+                    </div>
+                  ` : ''}
+                  ${photo.aiDescription ? `
+                    <div style="margin-top: 8px; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; width: 100%;">
+                      <div style="font-size: 0.7rem; color: var(--success); font-weight: 600; margin-bottom: 4px;">ANALISIS IA:</div>
+                      <div style="font-size: 0.85rem; color: var(--text);">${escapeHtml(photo.aiDescription)}</div>
+                    </div>
+                  ` : ''}
+                </div>
               `).join('')}
             </div>
           `;
