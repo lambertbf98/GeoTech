@@ -173,8 +173,9 @@ export class PayPalService {
       });
 
       // Generar y enviar factura por email (asíncrono, no bloquea respuesta)
+      console.log('📧 Iniciando envío de factura a:', user?.email);
       this.sendInvoiceEmail(user, payment, license).catch(err => {
-        console.error('Error enviando factura por email:', err);
+        console.error('❌ Error enviando factura por email:', err?.message || err);
       });
 
       return {
@@ -274,19 +275,26 @@ export class PayPalService {
 
   // Generar y enviar factura por email
   private async sendInvoiceEmail(user: any, payment: any, license: any) {
+    console.log('📧 sendInvoiceEmail llamado con:', {
+      userEmail: user?.email,
+      paymentId: payment?.id,
+      licenseKey: license?.licenseKey
+    });
+
     if (!user?.email) {
-      console.warn('No se puede enviar factura: usuario sin email');
+      console.warn('⚠️ No se puede enviar factura: usuario sin email');
       return;
     }
 
     try {
       // Calcular duración para mostrar
       let licenseDuration = '';
-      if (payment.licenseType.durationHours && payment.licenseType.durationHours > 0) {
+      if (payment.licenseType?.durationHours && payment.licenseType.durationHours > 0) {
         licenseDuration = `${payment.licenseType.durationHours} horas`;
-      } else if (payment.licenseType.durationDays) {
+      } else if (payment.licenseType?.durationDays) {
         licenseDuration = `${payment.licenseType.durationDays} dias`;
       }
+      console.log('📧 Duración calculada:', licenseDuration);
 
       // Crear datos de factura
       const invoiceData = invoiceService.createInvoiceData({
