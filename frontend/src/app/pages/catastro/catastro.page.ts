@@ -103,25 +103,20 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  private hasRequestedLocation = false;
+
   ngAfterViewInit() {
-    setTimeout(async () => {
-      await this.initMap();
-      // Pedir ubicación automáticamente la primera vez
-      this.autoLocateOnFirstLoad();
-    }, 400);
+    setTimeout(() => this.initMap(), 400);
   }
 
   ionViewDidEnter() {
-    // Pedir ubicación si el mapa ya existe pero no hay coordenadas
-    if (this.map && (!this.latitude || !this.longitude)) {
-      this.locateMe();
-    }
-  }
-
-  private autoLocateOnFirstLoad() {
-    if (!this.latitude || !this.longitude) {
-      this.locateMe();
-    }
+    // Esperar a que el mapa esté listo y pedir ubicación
+    setTimeout(() => {
+      if (this.map && !this.hasRequestedLocation) {
+        this.hasRequestedLocation = true;
+        this.locateMe();
+      }
+    }, 500);
   }
 
   ngOnDestroy() {
