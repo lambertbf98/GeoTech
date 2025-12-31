@@ -104,7 +104,13 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    setTimeout(() => this.initMap(), 400);
+    setTimeout(async () => {
+      await this.initMap();
+      // Auto-localizar si no hay coordenadas establecidas
+      if (!this.latitude || !this.longitude) {
+        this.locateMe();
+      }
+    }, 400);
   }
 
   ngOnDestroy() {
@@ -124,23 +130,9 @@ export class CatastroPage implements OnInit, AfterViewInit, OnDestroy {
       shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
     });
 
-    // Obtener ubicación actual si no hay coordenadas establecidas
-    let lat = parseFloat(this.latitude) || 0;
-    let lon = parseFloat(this.longitude) || 0;
-
-    if (!lat || !lon) {
-      try {
-        const pos = await this.gpsService.getCurrentPosition();
-        lat = pos.latitude;
-        lon = pos.longitude;
-        this.latitude = lat.toFixed(6);
-        this.longitude = lon.toFixed(6);
-      } catch (e) {
-        // Si falla el GPS, usar Madrid como fallback
-        lat = 40.416775;
-        lon = -3.703790;
-      }
-    }
+    // Usar coordenadas existentes o Madrid como inicial
+    let lat = parseFloat(this.latitude) || 40.416775;
+    let lon = parseFloat(this.longitude) || -3.703790;
 
     this.map = L.map('mainMap', {
       zoomControl: false,
