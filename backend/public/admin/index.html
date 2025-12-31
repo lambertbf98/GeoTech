@@ -1572,7 +1572,7 @@
                 <div class="list-item-title">${p.paypalOrderId || 'Sin ID'}</div>
                 <div class="list-item-sub">
                   ${p.user?.email || 'Usuario desconocido'} - ${p.licenseType?.name || 'Tipo desconocido'}
-                  <br>Monto: ${p.amount ? p.amount.toFixed(2) : '0.00'} ${p.currency || 'EUR'}
+                  <br>Monto: ${p.amount ? Number(p.amount).toFixed(2) : '0.00'} ${p.currency || 'EUR'}
                   <br>Fecha: ${formatDate(p.createdAt)}
                 </div>
               </div>
