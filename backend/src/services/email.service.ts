@@ -61,7 +61,7 @@ export class EmailService {
   }
 
   /**
-   * Verifica la conexion con el servidor SMTP
+   * Verifica la conexion con el servidor SMTP (con timeout de 10 segundos)
    */
   async verifyConnection(): Promise<boolean> {
     if (!this.transporter) {
@@ -70,11 +70,20 @@ export class EmailService {
     }
 
     try {
-      await this.transporter.verify();
+      // Agregar timeout de 10 segundos para evitar que se quede colgado
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('SMTP verification timeout (10s)')), 10000);
+      });
+
+      await Promise.race([
+        this.transporter.verify(),
+        timeoutPromise
+      ]);
+
       console.log('✅ Email service connected');
       return true;
-    } catch (error) {
-      console.error('❌ Email service connection failed:', error);
+    } catch (error: any) {
+      console.error('❌ Email service connection failed:', error?.message || error);
       return false;
     }
   }
