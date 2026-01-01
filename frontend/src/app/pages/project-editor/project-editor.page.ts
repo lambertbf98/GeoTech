@@ -1888,7 +1888,7 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
   }
 
   /**
-   * Captura manual dibujando elementos en canvas (para móvil)
+   * Captura manual con estilo cartográfico profesional
    */
   private async captureMapManual(): Promise<string> {
     if (!this.map || !this.project) return '';
@@ -1896,6 +1896,7 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
     try {
       const width = 800;
       const height = 500;
+      const padding = 60; // Espacio para coordenadas y marco
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -1905,24 +1906,56 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       const bounds = this.getContentBounds();
       if (!bounds) return '';
 
-      // Fondo oscuro (simula mapa satelital oscuro)
-      ctx.fillStyle = '#1a1a2e';
+      // Fondo del marco (gris claro)
+      ctx.fillStyle = '#f8fafc';
       ctx.fillRect(0, 0, width, height);
 
-      // Añadir textura de terreno
-      this.drawTerrainTexture(ctx, width, height);
+      // Área del mapa (fondo blanco cremoso - estilo topográfico)
+      ctx.fillStyle = '#fefdf8';
+      ctx.fillRect(padding, padding - 20, width - padding * 2, height - padding - 20);
 
-      // Función para convertir coordenadas
+      // Borde del mapa
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(padding, padding - 20, width - padding * 2, height - padding - 20);
+
+      // Área útil del mapa
+      const mapLeft = padding;
+      const mapTop = padding - 20;
+      const mapWidth = width - padding * 2;
+      const mapHeight = height - padding - 20;
+
+      // Función para convertir coordenadas al área del mapa
       const latLngToPixel = (lat: number, lng: number): { x: number; y: number } => {
-        const x = ((lng - bounds.west) / (bounds.east - bounds.west)) * width;
-        const y = ((bounds.north - lat) / (bounds.north - bounds.south)) * height;
+        const x = mapLeft + ((lng - bounds.west) / (bounds.east - bounds.west)) * mapWidth;
+        const y = mapTop + ((bounds.north - lat) / (bounds.north - bounds.south)) * mapHeight;
         return { x, y };
       };
 
-      // Dibujar zonas
+      // Dibujar cuadrícula
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) {
+        // Líneas verticales
+        const vx = mapLeft + (mapWidth / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(vx, mapTop);
+        ctx.lineTo(vx, mapTop + mapHeight);
+        ctx.stroke();
+        // Líneas horizontales
+        const hy = mapTop + (mapHeight / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(mapLeft, hy);
+        ctx.lineTo(mapLeft + mapWidth, hy);
+        ctx.stroke();
+      }
+
+      // Dibujar zonas con estilo topográfico
       if (this.project.zones) {
-        this.project.zones.forEach(zone => {
+        this.project.zones.forEach((zone, idx) => {
           if (zone.coordinates.length < 3) return;
+
+          // Relleno con patrón diagonal
           ctx.beginPath();
           const first = latLngToPixel(zone.coordinates[0].lat, zone.coordinates[0].lng);
           ctx.moveTo(first.x, first.y);
@@ -1933,18 +1966,33 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
             }
           });
           ctx.closePath();
-          ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
+
+          // Relleno semi-transparente
+          ctx.fillStyle = 'rgba(254, 202, 202, 0.5)';
           ctx.fill();
-          ctx.strokeStyle = '#ef4444';
-          ctx.lineWidth = 3;
+
+          // Borde rojo
+          ctx.strokeStyle = '#dc2626';
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([]);
           ctx.stroke();
+
+          // Etiqueta de zona
+          const center = this.getPolygonCenter(zone.coordinates);
+          const cp = latLngToPixel(center.lat, center.lng);
+          ctx.fillStyle = '#991b1b';
+          ctx.font = 'bold 11px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(zone.name || `Zona ${idx + 1}`, cp.x, cp.y);
         });
       }
 
-      // Dibujar viales
+      // Dibujar viales con estilo de carretera
       if (this.project.paths) {
-        this.project.paths.forEach(path => {
+        this.project.paths.forEach((path, idx) => {
           if (path.coordinates.length < 2) return;
+
+          // Sombra del vial
           ctx.beginPath();
           const first = latLngToPixel(path.coordinates[0].lat, path.coordinates[0].lng);
           ctx.moveTo(first.x, first.y);
@@ -1954,68 +2002,105 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
               ctx.lineTo(p.x, p.y);
             }
           });
-          ctx.strokeStyle = '#3b82f6';
-          ctx.lineWidth = 5;
+          ctx.strokeStyle = '#1e3a8a';
+          ctx.lineWidth = 6;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
+          ctx.setLineDash([]);
+          ctx.stroke();
+
+          // Línea interior (azul claro)
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 3;
           ctx.stroke();
         });
       }
 
-      // Dibujar marcadores
+      // Dibujar marcadores con estilo profesional
       if (this.project.markers) {
         this.project.markers.forEach(marker => {
           const p = latLngToPixel(marker.coordinate.lat, marker.coordinate.lng);
           const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
-          const color = hasPhotos ? '#10b981' : '#f59e0b';
+          const color = hasPhotos ? '#059669' : '#d97706';
           const order = marker.order || '?';
 
           // Sombra
-          ctx.shadowColor = 'rgba(0,0,0,0.5)';
-          ctx.shadowBlur = 6;
-          ctx.shadowOffsetY = 3;
+          ctx.shadowColor = 'rgba(0,0,0,0.3)';
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
 
-          // Pin
+          // Círculo exterior
           ctx.beginPath();
           ctx.fillStyle = color;
-          ctx.arc(p.x, p.y - 18, 16, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Punta
-          ctx.beginPath();
-          ctx.moveTo(p.x - 10, p.y - 8);
-          ctx.lineTo(p.x, p.y + 2);
-          ctx.lineTo(p.x + 10, p.y - 8);
+          ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
           ctx.fill();
 
           // Quitar sombra
           ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
 
-          // Círculo blanco
+          // Círculo interior blanco
           ctx.beginPath();
           ctx.fillStyle = 'white';
-          ctx.arc(p.x, p.y - 18, 11, 0, Math.PI * 2);
+          ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
           ctx.fill();
 
           // Número
           ctx.fillStyle = color;
-          ctx.font = 'bold 14px Arial';
+          ctx.font = 'bold 12px Arial';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(String(order), p.x, p.y - 17);
+          ctx.fillText(String(order), p.x, p.y);
         });
       }
 
-      // Título
-      ctx.shadowColor = 'transparent';
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, height - 35, width, 35);
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 14px Arial';
+      // Marco con coordenadas
+      ctx.fillStyle = '#334155';
+      ctx.font = '10px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(`${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`, width / 2, height - 15);
 
-      return canvas.toDataURL('image/jpeg', 0.9);
+      // Coordenadas en las esquinas
+      ctx.fillText(`${bounds.north.toFixed(5)}°`, width / 2, 12);
+      ctx.fillText(`${bounds.south.toFixed(5)}°`, width / 2, height - 5);
+      ctx.save();
+      ctx.translate(12, height / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(`${bounds.west.toFixed(5)}°`, 0, 0);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(width - 12, height / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillText(`${bounds.east.toFixed(5)}°`, 0, 0);
+      ctx.restore();
+
+      // Título del proyecto
+      ctx.fillStyle = '#1e293b';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText(this.project.name, padding, 20);
+
+      // Leyenda
+      ctx.font = '10px Arial';
+      ctx.fillStyle = '#64748b';
+      const legend = `${this.project.markers?.length || 0} puntos | ${this.project.zones?.length || 0} zonas | ${this.project.paths?.length || 0} viales`;
+      ctx.textAlign = 'right';
+      ctx.fillText(legend, width - padding, 20);
+
+      // Escala aproximada (visual)
+      const scaleX = width - padding - 80;
+      const scaleY = height - 12;
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(scaleX, scaleY - 3, 60, 6);
+      ctx.fillStyle = 'white';
+      ctx.fillRect(scaleX, scaleY - 3, 30, 6);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(scaleX, scaleY - 3, 60, 6);
+
+      return canvas.toDataURL('image/jpeg', 0.95);
     } catch (error) {
       console.error('Error en captura manual:', error);
       return '';
@@ -2023,29 +2108,12 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
   }
 
   /**
-   * Dibuja textura de terreno para el fondo del mapa
+   * Calcula el centro de un polígono
    */
-  private drawTerrainTexture(ctx: CanvasRenderingContext2D, width: number, height: number) {
-    // Gradiente base
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, '#2d4a3e');
-    gradient.addColorStop(0.5, '#3a5c4d');
-    gradient.addColorStop(1, '#2d4a3e');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
-    // Añadir manchas de vegetación
-    ctx.globalAlpha = 0.3;
-    for (let i = 0; i < 50; i++) {
-      const x = Math.random() * width;
-      const y = Math.random() * height;
-      const size = Math.random() * 60 + 20;
-      ctx.beginPath();
-      ctx.fillStyle = Math.random() > 0.5 ? '#1e3a2f' : '#4a6b5a';
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
+  private getPolygonCenter(coords: { lat: number; lng: number }[]): { lat: number; lng: number } {
+    let lat = 0, lng = 0;
+    coords.forEach(c => { lat += c.lat; lng += c.lng; });
+    return { lat: lat / coords.length, lng: lng / coords.length };
   }
 
   /**

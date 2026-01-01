@@ -9,15 +9,19 @@ import { PhotoLocation } from '../models';
 export class GpsService {
   private defaultOptions: PositionOptions = {
     enableHighAccuracy: true,
-    timeout: 10000,
+    timeout: 15000,
     maximumAge: 0
   };
 
   constructor() {}
 
+  /**
+   * Obtiene la mejor posición GPS posible tomando múltiples lecturas
+   * durante unos segundos y seleccionando la más precisa
+   */
   async getCurrentPosition(): Promise<PhotoLocation> {
     if (!Capacitor.isNativePlatform()) {
-      return this.getWebPosition();
+      return this.getWebPositionAccurate();
     }
 
     try {
@@ -30,43 +34,149 @@ export class GpsService {
         }
       }
 
-      const position: Position = await Geolocation.getCurrentPosition(this.defaultOptions);
-
-      return {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        altitude: position.coords.altitude ?? undefined,
-        accuracy: position.coords.accuracy ?? undefined
-      };
+      // Tomar múltiples lecturas y elegir la mejor
+      return this.getBestPosition();
     } catch (error) {
       console.error('Error getting location:', error);
       throw error;
     }
   }
 
-  private getWebPosition(): Promise<PhotoLocation> {
+  /**
+   * Toma múltiples lecturas GPS durante 3 segundos y devuelve la más precisa
+   */
+  private async getBestPosition(): Promise<PhotoLocation> {
+    return new Promise(async (resolve, reject) => {
+      const readings: PhotoLocation[] = [];
+      let watchId: string | null = null;
+
+      const timeout = setTimeout(async () => {
+        // Después de 3 segundos, elegir la mejor lectura
+        if (watchId) {
+          await Geolocation.clearWatch({ id: watchId });
+        }
+
+        if (readings.length === 0) {
+          // Si no hay lecturas, intentar una lectura simple
+          try {
+            const pos = await Geolocation.getCurrentPosition(this.defaultOptions);
+            resolve({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              altitude: pos.coords.altitude ?? undefined,
+              accuracy: pos.coords.accuracy ?? undefined
+            });
+          } catch (e) {
+            reject(new Error('No se pudo obtener ubicación'));
+          }
+          return;
+        }
+
+        // Elegir la lectura con mejor precisión (menor valor de accuracy)
+        const best = readings.reduce((prev, curr) =>
+          (curr.accuracy || 999) < (prev.accuracy || 999) ? curr : prev
+        );
+
+        console.log(`GPS: ${readings.length} lecturas, mejor precisión: ${best.accuracy}m`);
+        resolve(best);
+      }, 3000);
+
+      try {
+        watchId = await Geolocation.watchPosition(
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+          (position, err) => {
+            if (err) return;
+            if (position) {
+              const reading: PhotoLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                altitude: position.coords.altitude ?? undefined,
+                accuracy: position.coords.accuracy ?? undefined
+              };
+              readings.push(reading);
+
+              // Si tenemos una lectura muy precisa (< 10m), usar inmediatamente
+              if (reading.accuracy && reading.accuracy < 10) {
+                clearTimeout(timeout);
+                Geolocation.clearWatch({ id: watchId! });
+                console.log(`GPS: Precisión excelente: ${reading.accuracy}m`);
+                resolve(reading);
+              }
+            }
+          }
+        );
+      } catch (e) {
+        clearTimeout(timeout);
+        reject(e);
+      }
+    });
+  }
+
+  /**
+   * Versión web mejorada - toma múltiples lecturas para mejor precisión
+   */
+  private getWebPositionAccurate(): Promise<PhotoLocation> {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error('Geolocalizacion no soportada'));
         return;
       }
-      navigator.geolocation.getCurrentPosition(
+
+      const readings: PhotoLocation[] = [];
+      let watchId: number | null = null;
+
+      const timeout = setTimeout(() => {
+        if (watchId !== null) {
+          navigator.geolocation.clearWatch(watchId);
+        }
+
+        if (readings.length === 0) {
+          // Fallback a lectura simple
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              altitude: pos.coords.altitude ?? undefined,
+              accuracy: pos.coords.accuracy ?? undefined
+            }),
+            (err) => reject(new Error('No se pudo obtener ubicación')),
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+          );
+          return;
+        }
+
+        // Elegir la mejor lectura
+        const best = readings.reduce((prev, curr) =>
+          (curr.accuracy || 999) < (prev.accuracy || 999) ? curr : prev
+        );
+        console.log(`GPS Web: ${readings.length} lecturas, mejor precisión: ${best.accuracy}m`);
+        resolve(best);
+      }, 3000);
+
+      watchId = navigator.geolocation.watchPosition(
         (position) => {
-          resolve({
+          const reading: PhotoLocation = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             altitude: position.coords.altitude ?? undefined,
             accuracy: position.coords.accuracy ?? undefined
-          });
+          };
+          readings.push(reading);
+
+          // Si tenemos precisión excelente, resolver inmediatamente
+          if (reading.accuracy && reading.accuracy < 10) {
+            clearTimeout(timeout);
+            if (watchId !== null) {
+              navigator.geolocation.clearWatch(watchId);
+            }
+            console.log(`GPS Web: Precisión excelente: ${reading.accuracy}m`);
+            resolve(reading);
+          }
         },
         (error) => {
-          let message = 'Error al obtener ubicacion';
-          if (error.code === error.PERMISSION_DENIED) message = 'Permiso de ubicacion denegado';
-          else if (error.code === error.POSITION_UNAVAILABLE) message = 'Ubicacion no disponible';
-          else if (error.code === error.TIMEOUT) message = 'Tiempo de espera agotado';
-          reject(new Error(message));
+          // Ignorar errores durante watch, esperar al timeout
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     });
   }
