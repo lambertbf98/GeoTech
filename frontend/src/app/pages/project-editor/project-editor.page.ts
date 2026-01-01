@@ -1989,6 +1989,46 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       });
     }
 
+    // Dibujar fotos sueltas (orphan photos con GPS)
+    const markerPhotoIds = new Set<string>();
+    this.project.markers?.forEach(m => m.photoIds?.forEach(id => markerPhotoIds.add(id)));
+    const orphanPhotos = this.photos?.filter(p => p.latitude && p.longitude && !markerPhotoIds.has(p.id)) || [];
+
+    orphanPhotos.forEach((photo, idx) => {
+      const p = latLngToPixel(photo.latitude!, photo.longitude!);
+
+      // Sombra
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      // Icono de cámara (círculo púrpura)
+      ctx.beginPath();
+      ctx.fillStyle = '#7c3aed';
+      ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Quitar sombra
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      // Círculo interior blanco
+      ctx.beginPath();
+      ctx.fillStyle = 'white';
+      ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Símbolo de cámara (📷 simplificado)
+      ctx.fillStyle = '#7c3aed';
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('📷', p.x, p.y);
+    });
+
     // Título en la parte inferior
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.fillRect(0, height - 35, width, 35);
@@ -1996,11 +2036,10 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(
-      `${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`,
-      width / 2,
-      height - 17
-    );
+    const statsText = orphanPhotos.length > 0
+      ? `${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales, ${orphanPhotos.length} fotos`
+      : `${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`;
+    ctx.fillText(statsText, width / 2, height - 17);
 
     return canvas.toDataURL('image/jpeg', 0.92);
   }
@@ -2392,6 +2431,16 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         allLats.push(c.lat);
         allLngs.push(c.lng);
       });
+    });
+
+    // Fotos sueltas (orphan photos con GPS)
+    const markerPhotoIds = new Set<string>();
+    this.project.markers?.forEach(m => m.photoIds?.forEach(id => markerPhotoIds.add(id)));
+    this.photos?.forEach(photo => {
+      if (photo.latitude && photo.longitude && !markerPhotoIds.has(photo.id)) {
+        allLats.push(photo.latitude);
+        allLngs.push(photo.longitude);
+      }
     });
 
     if (allLats.length === 0) return null;
