@@ -1663,16 +1663,17 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
     this.renderProjectElements();
     this.fitBoundsToContent();
 
-    // Mostrar resumen
-    if (photosWithGps > 0 || photosWithoutGps > 0) {
-      let message = '';
-      if (photosWithGps > 0) {
-        message += `${photosWithGps} foto${photosWithGps > 1 ? 's' : ''} con ubicacion GPS detectada. `;
-      }
-      if (photosWithoutGps > 0) {
-        message += `${photosWithoutGps} foto${photosWithoutGps > 1 ? 's' : ''} sin GPS (ubicacion aproximada).`;
-      }
-      this.showToast(message.trim(), 'success');
+    // Mostrar alerta si algunas fotos no tenían GPS
+    if (photosWithoutGps > 0) {
+      const alert = await this.alertCtrl.create({
+        header: 'Fotos sin GPS',
+        message: photosWithGps > 0
+          ? `${photosWithoutGps} foto(s) no tenían coordenadas GPS y se ubicaron en tu posición actual o centro del mapa.`
+          : `Las fotos no tenían coordenadas GPS. Se ubicaron en tu posición actual o centro del mapa.`,
+        buttons: ['Entendido'],
+        cssClass: 'gps-warning-alert'
+      });
+      await alert.present();
     }
   }
 
