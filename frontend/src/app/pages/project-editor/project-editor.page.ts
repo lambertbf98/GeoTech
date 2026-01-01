@@ -1125,11 +1125,16 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   }
 
   async deleteViewerPhoto() {
-    if (this.viewerPhoto && this.viewerMarker) {
+    if (this.viewerPhoto) {
       const photo = this.viewerPhoto;
       const marker = this.viewerMarker;
       this.closePhotoViewer();
-      await this.deleteMarkerPhoto(photo, marker);
+      if (marker) {
+        await this.deleteMarkerPhoto(photo, marker);
+      } else {
+        // Foto huérfana (sin marcador asociado)
+        await this.deleteOrphanPhoto(photo);
+      }
     }
   }
 
@@ -1203,6 +1208,11 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
   async showOrphanPhotoOptions(photo: Photo) {
     const buttons: any[] = [
       {
+        text: 'Ver foto',
+        icon: 'eye-outline',
+        handler: () => this.openOrphanPhotoViewer(photo)
+      },
+      {
         text: 'Editar notas',
         icon: 'create-outline',
         handler: () => this.editPhotoNotes(photo)
@@ -1227,6 +1237,12 @@ export class ProjectEditorPage implements OnInit, OnDestroy {
       buttons
     });
     await actionSheet.present();
+  }
+
+  openOrphanPhotoViewer(photo: Photo) {
+    this.viewerPhoto = photo;
+    this.viewerMarker = null; // No hay marcador asociado
+    this.showPhotoViewer = true;
   }
 
   async deleteOrphanPhoto(photo: Photo) {
@@ -2323,6 +2339,7 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         photos: this.photos.map(p => ({
           id: p.id,
           url: p.imageUrl || p.localPath || '',
+          base64: p.imageUrl || '', // Las fotos de cámara rápida tienen base64 en imageUrl
           description: p.notes || p.aiDescription,
           latitude: p.latitude,
           longitude: p.longitude,
