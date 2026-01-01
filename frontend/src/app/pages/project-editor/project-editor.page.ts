@@ -13,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { Project, ProjectZone, ProjectPath, ProjectMarker, GeoPoint, Photo } from '../../models';
 import * as L from 'leaflet';
 import html2canvas from 'html2canvas';
+import exifr from 'exifr';
 
 type DrawMode = 'none' | 'zone' | 'path' | 'marker';
 
@@ -25,6 +26,8 @@ type DrawMode = 'none' | 'zone' | 'path' | 'marker';
 export class ProjectEditorPage implements OnInit, OnDestroy {
   // ViewChild para el input de foto oculto (iOS Safari compatibility)
   @ViewChild('hiddenPhotoInput', { static: false }) hiddenPhotoInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('galleryPhotoInput', { static: false }) galleryPhotoInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('quickCameraInput', { static: false }) quickCameraInput!: ElementRef<HTMLInputElement>;
   private pendingPhotoMarkerId: string | null = null;
 
   project: Project | null = null;
@@ -1575,6 +1578,182 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
     }
   }
 
+  // ========== IMPORT PHOTOS FROM GALLERY ==========
+
+  importPhotosFromGallery() {
+    if (this.galleryPhotoInput?.nativeElement) {
+      this.galleryPhotoInput.nativeElement.click();
+    }
+  }
+
+  async onGalleryPhotosSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+
+    if (!files || files.length === 0 || !this.project) {
+      input.value = '';
+      return;
+    }
+
+    let photosWithGps = 0;
+    let photosWithoutGps = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      try {
+        // Extraer metadatos EXIF GPS
+        const exifData = await exifr.parse(file, { gps: true });
+        let latitude: number | undefined;
+        let longitude: number | undefined;
+
+        if (exifData?.latitude && exifData?.longitude) {
+          latitude = exifData.latitude;
+          longitude = exifData.longitude;
+          photosWithGps++;
+        } else {
+          photosWithoutGps++;
+          // Si no hay GPS, intentar usar ubicación actual
+          try {
+            const pos = await this.gpsService.getCurrentPosition();
+            latitude = pos.latitude;
+            longitude = pos.longitude;
+          } catch (e) {
+            // Usar centro del mapa si no hay GPS disponible
+            if (this.map) {
+              const center = this.map.getCenter();
+              latitude = center.lat;
+              longitude = center.lng;
+            }
+          }
+        }
+
+        if (!latitude || !longitude) continue;
+
+        // Convertir a base64 con compresión
+        const base64 = await this.fileToBase64(file);
+        const base64Image = `data:image/jpeg;base64,${base64}`;
+
+        // Crear la foto
+        const photo: Photo = {
+          id: `photo_${Date.now()}_${i}`,
+          projectId: this.project.id,
+          localPath: `gallery_${Date.now()}_${i}.jpeg`,
+          imageUrl: base64Image,
+          latitude,
+          longitude,
+          timestamp: exifData?.DateTimeOriginal?.toISOString() || new Date().toISOString(),
+          synced: false,
+          notes: file.name
+        };
+
+        await this.storageService.savePhoto(photo);
+        this.photos.push(photo);
+
+        // Subir a la nube en background si hay serverId
+        if (this.project.serverId) {
+          this.uploadPhotoToCloud(photo, base64Image);
+        }
+      } catch (error) {
+        console.error('Error procesando foto:', file.name, error);
+      }
+    }
+
+    input.value = '';
+    this.renderProjectElements();
+    this.fitBoundsToContent();
+
+    // Mostrar resumen
+    if (photosWithGps > 0 || photosWithoutGps > 0) {
+      let message = '';
+      if (photosWithGps > 0) {
+        message += `${photosWithGps} foto${photosWithGps > 1 ? 's' : ''} con ubicacion GPS detectada. `;
+      }
+      if (photosWithoutGps > 0) {
+        message += `${photosWithoutGps} foto${photosWithoutGps > 1 ? 's' : ''} sin GPS (ubicacion aproximada).`;
+      }
+      this.showToast(message.trim(), 'success');
+    }
+  }
+
+  // ========== QUICK CAMERA ==========
+
+  takeQuickPhoto() {
+    if (this.quickCameraInput?.nativeElement) {
+      this.quickCameraInput.nativeElement.click();
+    }
+  }
+
+  async onQuickCameraPhoto(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file || !this.project) {
+      input.value = '';
+      return;
+    }
+
+    try {
+      // Obtener ubicación actual
+      let latitude: number;
+      let longitude: number;
+
+      try {
+        const pos = await this.gpsService.getCurrentPosition();
+        latitude = pos.latitude;
+        longitude = pos.longitude;
+      } catch (e) {
+        // Si no hay GPS, usar centro del mapa
+        if (this.map) {
+          const center = this.map.getCenter();
+          latitude = center.lat;
+          longitude = center.lng;
+        } else {
+          this.showToast('No se pudo obtener la ubicacion', 'warning');
+          input.value = '';
+          return;
+        }
+      }
+
+      // Convertir a base64 con compresión
+      const base64 = await this.fileToBase64(file);
+      const base64Image = `data:image/jpeg;base64,${base64}`;
+
+      // Crear la foto
+      const photo: Photo = {
+        id: `photo_${Date.now()}`,
+        projectId: this.project.id,
+        localPath: `quick_${Date.now()}.jpeg`,
+        imageUrl: base64Image,
+        latitude,
+        longitude,
+        timestamp: new Date().toISOString(),
+        synced: false
+      };
+
+      await this.storageService.savePhoto(photo);
+      this.photos.push(photo);
+
+      // Subir a la nube en background si hay serverId
+      if (this.project.serverId) {
+        this.uploadPhotoToCloud(photo, base64Image);
+      }
+
+      this.renderProjectElements();
+
+      // Centrar mapa en la foto
+      if (this.map) {
+        this.map.setView([latitude, longitude], 18);
+      }
+
+      this.showToast('Foto añadida en tu ubicacion', 'success');
+    } catch (error: any) {
+      console.error('Error con foto rapida:', error);
+    } finally {
+      input.value = '';
+    }
+  }
+
   async analyzePhotoWithAI(photo: Photo) {
     this.isAnalyzingPhoto = true;
     this.aiLoadingMessage = 'Analizando imagen con IA...';
@@ -1600,7 +1779,7 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
   // ========== MAP SCREENSHOT ==========
 
   /**
-   * Genera una imagen del mapa dibujando manualmente los elementos
+   * Genera una imagen del mapa con fondo satelital de ESRI
    */
   async captureMapScreenshot(): Promise<string> {
     if (!this.map || !this.project) return '';
@@ -1614,34 +1793,28 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       const ctx = canvas.getContext('2d');
       if (!ctx) return '';
 
-      // Fondo gris claro
-      ctx.fillStyle = '#e5e7eb';
-      ctx.fillRect(0, 0, width, height);
-
       // Obtener bounds del contenido
       const bounds = this.getContentBounds();
       if (!bounds) return '';
 
-      // Dibujar grid de referencia
-      ctx.strokeStyle = '#d1d5db';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < width; x += 50) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < height; y += 50) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
+      // Intentar cargar imagen satelital de ESRI
+      try {
+        const mapImage = await this.loadStaticMapImage(bounds, width, height);
+        if (mapImage) {
+          ctx.drawImage(mapImage, 0, 0, width, height);
+        } else {
+          // Fallback: fondo verde oscuro (simulando vegetación)
+          this.drawFallbackBackground(ctx, width, height);
+        }
+      } catch (e) {
+        console.log('Error cargando mapa satelital, usando fallback');
+        this.drawFallbackBackground(ctx, width, height);
       }
 
       // Función para convertir coordenadas
       const latLngToPixel = (lat: number, lng: number): { x: number; y: number } => {
-        const x = ((lng - bounds.west) / (bounds.east - bounds.west)) * (width - 80) + 40;
-        const y = ((bounds.north - lat) / (bounds.north - bounds.south)) * (height - 80) + 40;
+        const x = ((lng - bounds.west) / (bounds.east - bounds.west)) * width;
+        const y = ((bounds.north - lat) / (bounds.north - bounds.south)) * height;
         return { x, y };
       };
 
@@ -1659,7 +1832,7 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
             }
           });
           ctx.closePath();
-          ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
           ctx.fill();
           ctx.strokeStyle = '#ef4444';
           ctx.lineWidth = 3;
@@ -1697,9 +1870,9 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
           const order = marker.order || '?';
 
           // Sombra
-          ctx.shadowColor = 'rgba(0,0,0,0.3)';
-          ctx.shadowBlur = 4;
-          ctx.shadowOffsetY = 2;
+          ctx.shadowColor = 'rgba(0,0,0,0.5)';
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetY = 3;
 
           // Pin
           ctx.beginPath();
@@ -1732,19 +1905,78 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         });
       }
 
-      // Título
+      // Título con fondo semi-transparente
       ctx.shadowColor = 'transparent';
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, height - 30, width, 30);
+      ctx.fillRect(0, height - 35, width, 35);
       ctx.fillStyle = 'white';
-      ctx.font = '14px Arial';
+      ctx.font = 'bold 14px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(`${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`, width / 2, height - 12);
+      ctx.fillText(`${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`, width / 2, height - 15);
 
       return canvas.toDataURL('image/jpeg', 0.9);
     } catch (error) {
       console.error('Error generando mapa:', error);
       return '';
+    }
+  }
+
+  /**
+   * Carga imagen de mapa estático de ESRI
+   */
+  private loadStaticMapImage(bounds: { north: number; south: number; east: number; west: number }, width: number, height: number): Promise<HTMLImageElement | null> {
+    return new Promise((resolve) => {
+      // ESRI World Imagery export URL
+      const url = `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?` +
+        `bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}` +
+        `&bboxSR=4326&imageSR=4326&size=${width},${height}&format=jpg&f=image`;
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+
+      // Timeout de 5 segundos
+      const timeout = setTimeout(() => {
+        console.log('Timeout cargando mapa satelital');
+        resolve(null);
+      }, 5000);
+
+      img.onload = () => {
+        clearTimeout(timeout);
+        resolve(img);
+      };
+
+      img.onerror = () => {
+        clearTimeout(timeout);
+        console.log('Error cargando imagen de mapa');
+        resolve(null);
+      };
+
+      img.src = url;
+    });
+  }
+
+  /**
+   * Dibuja un fondo de fallback cuando no se puede cargar el mapa satelital
+   */
+  private drawFallbackBackground(ctx: CanvasRenderingContext2D, width: number, height: number) {
+    // Gradiente verde-marrón simulando terreno
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, '#2d5016');
+    gradient.addColorStop(0.3, '#3a6b1e');
+    gradient.addColorStop(0.6, '#4a7c2a');
+    gradient.addColorStop(1, '#3d6422');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Añadir textura
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    for (let i = 0; i < 100; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const size = Math.random() * 30 + 10;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 

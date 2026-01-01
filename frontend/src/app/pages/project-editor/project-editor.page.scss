@@ -137,6 +137,26 @@
   font-size: 13px;
 }
 
+// Quick Camera FAB - bottom center
+.quick-camera-fab {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+
+  ion-fab-button {
+    --background: var(--ion-color-primary);
+    --box-shadow: 0 4px 16px rgba(59, 130, 246, 0.5);
+    width: 56px;
+    height: 56px;
+
+    ion-icon {
+      font-size: 28px;
+    }
+  }
+}
+
 // Report Preview Overlay
 .report-preview-overlay {
   position: absolute;

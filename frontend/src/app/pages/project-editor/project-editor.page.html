@@ -79,7 +79,21 @@
       title="Agregar punto">
       <ion-icon slot="icon-only" name="location-outline"></ion-icon>
     </ion-button>
+    <ion-button
+      class="tool-btn"
+      color="light"
+      (click)="importPhotosFromGallery()"
+      title="Agregar fotos">
+      <ion-icon slot="icon-only" name="images-outline"></ion-icon>
+    </ion-button>
   </div>
+
+  <!-- Quick Camera Button - FAB for taking photos without creating marker first -->
+  <ion-fab class="quick-camera-fab" vertical="bottom" horizontal="center" *ngIf="drawMode === 'none' && !showReportPreview">
+    <ion-fab-button color="primary" (click)="takeQuickPhoto()">
+      <ion-icon name="camera"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 
   <!-- Locate Me Button -->
   <ion-button class="locate-btn" color="light" (click)="locateMe()">
@@ -143,6 +157,24 @@
     capture="environment"
     style="position: fixed; top: -1000px; left: -1000px; opacity: 0; width: 1px; height: 1px; pointer-events: none;"
     (change)="onHiddenPhotoInputChange($event)"
+  />
+  <!-- Hidden file input for importing photos from gallery (multiple) -->
+  <input
+    #galleryPhotoInput
+    type="file"
+    accept="image/*"
+    multiple
+    style="position: fixed; top: -1000px; left: -1000px; opacity: 0; width: 1px; height: 1px; pointer-events: none;"
+    (change)="onGalleryPhotosSelected($event)"
+  />
+  <!-- Hidden file input for quick camera -->
+  <input
+    #quickCameraInput
+    type="file"
+    accept="image/*"
+    capture="environment"
+    style="position: fixed; top: -1000px; left: -1000px; opacity: 0; width: 1px; height: 1px; pointer-events: none;"
+    (change)="onQuickCameraPhoto($event)"
   />
 
 </ion-content>
