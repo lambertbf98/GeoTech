@@ -210,11 +210,21 @@ export class KmlService {
         if (photo.latitude && photo.longitude) {
           const photoName = `Foto ${index + 1}`;
           const description = photo.description || '';
-          const imageRef = photo.base64 ? `files/${photo.id}.jpg` : '';
+
+          // Incrustar imagen como data URL directamente en el HTML
+          let imageHtml = '';
+          if (photo.base64) {
+            let imgSrc = photo.base64;
+            // Si no tiene prefijo data:, añadirlo
+            if (!imgSrc.startsWith('data:') && !imgSrc.startsWith('http')) {
+              imgSrc = `data:image/jpeg;base64,${imgSrc}`;
+            }
+            imageHtml = `<img style="max-width:500px;max-height:400px;border-radius:8px;" src="${imgSrc}"/><br/>`;
+          }
 
           kml += `      <Placemark>
         <name>${this.escapeXml(photoName)}</name>
-        <description><![CDATA[${imageRef ? `<img style="max-width:500px;" src="${imageRef}">` : ''}${this.escapeXml(description)}]]></description>
+        <description><![CDATA[${imageHtml}${this.escapeXml(description)}]]></description>
         <styleUrl>#photoStyle</styleUrl>
         <Point>
           <coordinates>${photo.longitude},${photo.latitude},0</coordinates>
