@@ -1939,21 +1939,47 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
   /**
    * Carga imagen de mapa estático de ESRI
    */
-  private loadStaticMapImage(bounds: { north: number; south: number; east: number; west: number }, width: number, height: number): Promise<HTMLImageElement | null> {
-    return new Promise((resolve) => {
-      // ESRI World Imagery export URL
-      const url = `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?` +
+  private async loadStaticMapImage(bounds: { north: number; south: number; east: number; west: number }, width: number, height: number): Promise<HTMLImageElement | null> {
+    // Intentar hasta 3 veces con diferentes servicios
+    const services = [
+      // ESRI World Imagery
+      `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?` +
         `bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}` +
-        `&bboxSR=4326&imageSR=4326&size=${width},${height}&format=jpg&f=image`;
+        `&bboxSR=4326&imageSR=4326&size=${width},${height}&format=jpg&f=image`,
+      // Segundo intento con el mismo servicio
+      `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?` +
+        `bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}` +
+        `&bboxSR=4326&imageSR=4326&size=${width},${height}&format=png&f=image`,
+      // Tercer intento - servidor alternativo
+      `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?` +
+        `bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}` +
+        `&bboxSR=4326&imageSR=4326&size=${width},${height}&format=jpg&f=image`
+    ];
 
+    for (let i = 0; i < services.length; i++) {
+      const url = services[i];
+      console.log(`Intento ${i + 1} de cargar mapa satelital...`);
+
+      const result = await this.tryLoadImage(url, 15000); // 15 segundos timeout
+      if (result) {
+        console.log(`Mapa satelital cargado en intento ${i + 1}`);
+        return result;
+      }
+    }
+
+    console.log('No se pudo cargar mapa satelital después de todos los intentos');
+    return null;
+  }
+
+  private tryLoadImage(url: string, timeoutMs: number): Promise<HTMLImageElement | null> {
+    return new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
 
-      // Timeout de 5 segundos
       const timeout = setTimeout(() => {
-        console.log('Timeout cargando mapa satelital');
+        console.log('Timeout cargando imagen');
         resolve(null);
-      }, 5000);
+      }, timeoutMs);
 
       img.onload = () => {
         clearTimeout(timeout);
@@ -1962,7 +1988,7 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
 
       img.onerror = () => {
         clearTimeout(timeout);
-        console.log('Error cargando imagen de mapa');
+        console.log('Error cargando imagen');
         resolve(null);
       };
 
