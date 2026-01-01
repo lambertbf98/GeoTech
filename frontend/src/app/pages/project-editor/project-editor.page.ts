@@ -1794,205 +1794,113 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
   // ========== MAP SCREENSHOT ==========
 
   /**
-   * Genera una imagen del mapa con fondo satelital de ESRI
+   * Genera una imagen del mapa capturando directamente el mapa de Leaflet con html2canvas
    */
   async captureMapScreenshot(): Promise<string> {
     if (!this.map || !this.project) return '';
 
     try {
-      const width = 800;
-      const height = 500;
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return '';
+      // Guardar el estado actual del mapa
+      const currentCenter = this.map.getCenter();
+      const currentZoom = this.map.getZoom();
 
-      // Obtener bounds del contenido
+      // Ocultar controles y UI temporalmente
+      const mapContainer = document.getElementById('editorMap');
+      if (!mapContainer) return '';
+
+      // Ocultar elementos de UI que no queremos en la captura
+      const elementsToHide = document.querySelectorAll('.stats-panel, .tools-panel, .locate-btn, .export-pdd-btn, .export-kml-btn, .drawing-controls, .leaflet-control-zoom, .leaflet-control-attribution');
+      elementsToHide.forEach(el => (el as HTMLElement).style.display = 'none');
+
+      // Ajustar el mapa a los bounds del contenido
       const bounds = this.getContentBounds();
-      if (!bounds) return '';
-
-      // Intentar cargar imagen satelital de ESRI
-      try {
-        const mapImage = await this.loadStaticMapImage(bounds, width, height);
-        if (mapImage) {
-          ctx.drawImage(mapImage, 0, 0, width, height);
-        } else {
-          // Fallback: fondo verde oscuro (simulando vegetación)
-          this.drawFallbackBackground(ctx, width, height);
-        }
-      } catch (e) {
-        console.log('Error cargando mapa satelital, usando fallback');
-        this.drawFallbackBackground(ctx, width, height);
+      if (bounds) {
+        const leafletBounds = L.latLngBounds(
+          [bounds.south, bounds.west],
+          [bounds.north, bounds.east]
+        );
+        this.map.fitBounds(leafletBounds, { padding: [30, 30], animate: false });
       }
 
-      // Función para convertir coordenadas
-      const latLngToPixel = (lat: number, lng: number): { x: number; y: number } => {
-        const x = ((lng - bounds.west) / (bounds.east - bounds.west)) * width;
-        const y = ((bounds.north - lat) / (bounds.north - bounds.south)) * height;
-        return { x, y };
-      };
+      // Esperar a que los tiles se carguen
+      await this.waitForTilesToLoad();
 
-      // Dibujar zonas
-      if (this.project.zones) {
-        this.project.zones.forEach(zone => {
-          if (zone.coordinates.length < 3) return;
-          ctx.beginPath();
-          const first = latLngToPixel(zone.coordinates[0].lat, zone.coordinates[0].lng);
-          ctx.moveTo(first.x, first.y);
-          zone.coordinates.forEach((coord, i) => {
-            if (i > 0) {
-              const p = latLngToPixel(coord.lat, coord.lng);
-              ctx.lineTo(p.x, p.y);
-            }
-          });
-          ctx.closePath();
-          ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
-          ctx.fill();
-          ctx.strokeStyle = '#ef4444';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-        });
-      }
+      // Capturar con html2canvas
+      const canvas = await html2canvas(mapContainer, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#1a1a2e',
+        scale: 1,
+        logging: false,
+        imageTimeout: 30000
+      });
 
-      // Dibujar viales
-      if (this.project.paths) {
-        this.project.paths.forEach(path => {
-          if (path.coordinates.length < 2) return;
-          ctx.beginPath();
-          const first = latLngToPixel(path.coordinates[0].lat, path.coordinates[0].lng);
-          ctx.moveTo(first.x, first.y);
-          path.coordinates.forEach((coord, i) => {
-            if (i > 0) {
-              const p = latLngToPixel(coord.lat, coord.lng);
-              ctx.lineTo(p.x, p.y);
-            }
-          });
-          ctx.strokeStyle = '#3b82f6';
-          ctx.lineWidth = 5;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.stroke();
-        });
-      }
+      // Restaurar elementos de UI
+      elementsToHide.forEach(el => (el as HTMLElement).style.display = '');
 
-      // Dibujar marcadores
-      if (this.project.markers) {
-        this.project.markers.forEach(marker => {
-          const p = latLngToPixel(marker.coordinate.lat, marker.coordinate.lng);
-          const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
-          const color = hasPhotos ? '#10b981' : '#f59e0b';
-          const order = marker.order || '?';
+      // Restaurar vista original del mapa
+      this.map.setView(currentCenter, currentZoom, { animate: false });
 
-          // Sombra
-          ctx.shadowColor = 'rgba(0,0,0,0.5)';
-          ctx.shadowBlur = 6;
-          ctx.shadowOffsetY = 3;
+      // Añadir título al canvas
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = canvas.width;
+      finalCanvas.height = canvas.height;
+      const ctx = finalCanvas.getContext('2d');
+      if (!ctx) return canvas.toDataURL('image/jpeg', 0.9);
 
-          // Pin
-          ctx.beginPath();
-          ctx.fillStyle = color;
-          ctx.arc(p.x, p.y - 18, 16, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Punta
-          ctx.beginPath();
-          ctx.moveTo(p.x - 10, p.y - 8);
-          ctx.lineTo(p.x, p.y + 2);
-          ctx.lineTo(p.x + 10, p.y - 8);
-          ctx.fill();
-
-          // Quitar sombra para el círculo blanco
-          ctx.shadowColor = 'transparent';
-
-          // Círculo blanco
-          ctx.beginPath();
-          ctx.fillStyle = 'white';
-          ctx.arc(p.x, p.y - 18, 11, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Número
-          ctx.fillStyle = color;
-          ctx.font = 'bold 14px Arial';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(String(order), p.x, p.y - 17);
-        });
-      }
+      // Dibujar la captura del mapa
+      ctx.drawImage(canvas, 0, 0);
 
       // Título con fondo semi-transparente
-      ctx.shadowColor = 'transparent';
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, height - 35, width, 35);
+      ctx.fillRect(0, canvas.height - 35, canvas.width, 35);
       ctx.fillStyle = 'white';
       ctx.font = 'bold 14px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(`${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`, width / 2, height - 15);
+      ctx.fillText(
+        `${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`,
+        canvas.width / 2,
+        canvas.height - 15
+      );
 
-      return canvas.toDataURL('image/jpeg', 0.9);
+      return finalCanvas.toDataURL('image/jpeg', 0.9);
     } catch (error) {
-      console.error('Error generando mapa:', error);
+      console.error('Error capturando mapa:', error);
       return '';
     }
   }
 
   /**
-   * Carga imagen de mapa estático de ESRI
+   * Espera a que los tiles del mapa terminen de cargar
    */
-  private async loadStaticMapImage(bounds: { north: number; south: number; east: number; west: number }, width: number, height: number): Promise<HTMLImageElement | null> {
-    // Intentar hasta 3 veces con diferentes servicios
-    const services = [
-      // ESRI World Imagery
-      `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?` +
-        `bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}` +
-        `&bboxSR=4326&imageSR=4326&size=${width},${height}&format=jpg&f=image`,
-      // Segundo intento con el mismo servicio
-      `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?` +
-        `bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}` +
-        `&bboxSR=4326&imageSR=4326&size=${width},${height}&format=png&f=image`,
-      // Tercer intento - servidor alternativo
-      `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?` +
-        `bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}` +
-        `&bboxSR=4326&imageSR=4326&size=${width},${height}&format=jpg&f=image`
-    ];
-
-    for (let i = 0; i < services.length; i++) {
-      const url = services[i];
-      console.log(`Intento ${i + 1} de cargar mapa satelital...`);
-
-      const result = await this.tryLoadImage(url, 15000); // 15 segundos timeout
-      if (result) {
-        console.log(`Mapa satelital cargado en intento ${i + 1}`);
-        return result;
-      }
-    }
-
-    console.log('No se pudo cargar mapa satelital después de todos los intentos');
-    return null;
-  }
-
-  private tryLoadImage(url: string, timeoutMs: number): Promise<HTMLImageElement | null> {
+  private waitForTilesToLoad(): Promise<void> {
     return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+      if (!this.map || !this.satelliteLayer) {
+        resolve();
+        return;
+      }
 
-      const timeout = setTimeout(() => {
-        console.log('Timeout cargando imagen');
-        resolve(null);
-      }, timeoutMs);
+      // Verificar si ya están cargados
+      const checkLoaded = () => {
+        const container = this.map?.getContainer();
+        if (!container) {
+          resolve();
+          return;
+        }
 
-      img.onload = () => {
-        clearTimeout(timeout);
-        resolve(img);
+        const loadingTiles = container.querySelectorAll('.leaflet-tile:not(.leaflet-tile-loaded)');
+        if (loadingTiles.length === 0) {
+          resolve();
+        } else {
+          setTimeout(checkLoaded, 100);
+        }
       };
 
-      img.onerror = () => {
-        clearTimeout(timeout);
-        console.log('Error cargando imagen');
-        resolve(null);
-      };
+      // Dar tiempo inicial para que inicie la carga
+      setTimeout(checkLoaded, 500);
 
-      img.src = url;
+      // Timeout máximo de 5 segundos
+      setTimeout(() => resolve(), 5000);
     });
   }
 
