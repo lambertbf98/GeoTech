@@ -1794,12 +1794,22 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
   // ========== MAP SCREENSHOT ==========
 
   /**
-   * Genera una imagen del mapa - intenta html2canvas, sino usa método manual
+   * Genera una imagen del mapa - usa el backend para obtener imagen satelital real
    */
   async captureMapScreenshot(): Promise<string> {
     if (!this.map || !this.project) return '';
 
-    // Primero intentar con html2canvas
+    // Primero intentar con el backend (imagen satelital real)
+    try {
+      const result = await this.captureMapFromBackend();
+      if (result && result.length > 100) {
+        return result;
+      }
+    } catch (e) {
+      console.log('Backend satelital falló, intentando html2canvas');
+    }
+
+    // Segundo intento: html2canvas
     try {
       const result = await this.captureMapWithHtml2Canvas();
       if (result && result.length > 100) {
@@ -1809,8 +1819,190 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       console.log('html2canvas falló, usando método manual');
     }
 
-    // Fallback: método manual con canvas
+    // Fallback: método manual cartográfico
     return this.captureMapManual();
+  }
+
+  /**
+   * Obtiene imagen satelital del backend y dibuja elementos encima
+   */
+  private async captureMapFromBackend(): Promise<string> {
+    if (!this.project) return '';
+
+    const bounds = this.getContentBounds();
+    if (!bounds) return '';
+
+    // Expandir bounds un poco para dar margen
+    const latPadding = (bounds.north - bounds.south) * 0.15;
+    const lngPadding = (bounds.east - bounds.west) * 0.15;
+    const expandedBounds = {
+      north: bounds.north + latPadding,
+      south: bounds.south - latPadding,
+      east: bounds.east + lngPadding,
+      west: bounds.west - lngPadding
+    };
+
+    const width = 800;
+    const height = 500;
+
+    // Llamar al backend para obtener imagen satelital
+    const response = await firstValueFrom(
+      this.apiService.post<{ image: string }>('/export/satellite-map', {
+        bounds: expandedBounds,
+        width,
+        height
+      })
+    );
+
+    if (!response.image) {
+      throw new Error('No se recibió imagen del backend');
+    }
+
+    // Crear canvas y cargar la imagen satelital
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+
+    // Cargar imagen satelital de fondo
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Error cargando imagen satelital'));
+      img.src = response.image;
+    });
+
+    ctx.drawImage(img, 0, 0, width, height);
+
+    // Función para convertir coordenadas
+    const latLngToPixel = (lat: number, lng: number): { x: number; y: number } => {
+      const x = ((lng - expandedBounds.west) / (expandedBounds.east - expandedBounds.west)) * width;
+      const y = ((expandedBounds.north - lat) / (expandedBounds.north - expandedBounds.south)) * height;
+      return { x, y };
+    };
+
+    // Dibujar zonas
+    if (this.project.zones) {
+      this.project.zones.forEach(zone => {
+        if (zone.coordinates.length < 3) return;
+
+        ctx.beginPath();
+        const first = latLngToPixel(zone.coordinates[0].lat, zone.coordinates[0].lng);
+        ctx.moveTo(first.x, first.y);
+        zone.coordinates.forEach((coord, i) => {
+          if (i > 0) {
+            const p = latLngToPixel(coord.lat, coord.lng);
+            ctx.lineTo(p.x, p.y);
+          }
+        });
+        ctx.closePath();
+
+        // Relleno semi-transparente rojo
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.35)';
+        ctx.fill();
+
+        // Borde rojo
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Etiqueta
+        const center = this.getPolygonCenter(zone.coordinates);
+        const cp = latLngToPixel(center.lat, center.lng);
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(cp.x - 40, cp.y - 10, 80, 20);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(zone.name || 'Zona', cp.x, cp.y);
+      });
+    }
+
+    // Dibujar viales
+    if (this.project.paths) {
+      this.project.paths.forEach(path => {
+        if (path.coordinates.length < 2) return;
+
+        // Sombra del vial
+        ctx.beginPath();
+        const first = latLngToPixel(path.coordinates[0].lat, path.coordinates[0].lng);
+        ctx.moveTo(first.x, first.y);
+        path.coordinates.forEach((coord, i) => {
+          if (i > 0) {
+            const p = latLngToPixel(coord.lat, coord.lng);
+            ctx.lineTo(p.x, p.y);
+          }
+        });
+        ctx.strokeStyle = '#1e3a8a';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // Línea interior azul
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      });
+    }
+
+    // Dibujar marcadores
+    if (this.project.markers) {
+      this.project.markers.forEach(marker => {
+        const p = latLngToPixel(marker.coordinate.lat, marker.coordinate.lng);
+        const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
+        const color = hasPhotos ? '#059669' : '#d97706';
+        const order = marker.order || '?';
+
+        // Sombra
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+
+        // Círculo exterior
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Quitar sombra
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        // Círculo interior blanco
+        ctx.beginPath();
+        ctx.fillStyle = 'white';
+        ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Número
+        ctx.fillStyle = color;
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(order), p.x, p.y);
+      });
+    }
+
+    // Título en la parte inferior
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, height - 35, width, 35);
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      `${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`,
+      width / 2,
+      height - 17
+    );
+
+    return canvas.toDataURL('image/jpeg', 0.92);
   }
 
   /**
