@@ -32,6 +32,7 @@ export interface ProjectExportData {
     url: string;
     base64?: string;
     description?: string;
+    aiDescription?: string;
     latitude?: number;
     longitude?: number;
     timestamp?: string;
@@ -209,22 +210,37 @@ export class KmlService {
       data.photos.forEach((photo, index) => {
         if (photo.latitude && photo.longitude) {
           const photoName = `Foto ${index + 1}`;
-          const description = photo.description || '';
+
+          // Build rich description with image, notes and AI description
+          let descriptionHtml = '';
 
           // Incrustar imagen como data URL directamente en el HTML
-          let imageHtml = '';
           if (photo.base64) {
             let imgSrc = photo.base64;
             // Si no tiene prefijo data:, añadirlo
             if (!imgSrc.startsWith('data:') && !imgSrc.startsWith('http')) {
               imgSrc = `data:image/jpeg;base64,${imgSrc}`;
             }
-            imageHtml = `<img style="max-width:500px;max-height:400px;border-radius:8px;" src="${imgSrc}"/><br/>`;
+            descriptionHtml += `<img style="max-width:500px;max-height:400px;border-radius:8px;" src="${imgSrc}"/><br/>`;
+          }
+
+          // Notes
+          if (photo.description) {
+            descriptionHtml += `<p style="background:rgba(16,185,129,0.25);padding:10px;border-radius:6px;margin:8px 0;border-left:3px solid #10b981;color:#a7f3d0;">
+              <strong style="color:#34d399;">Notas:</strong><br/>${this.escapeXml(photo.description)}
+            </p>`;
+          }
+
+          // AI Description
+          if (photo.aiDescription) {
+            descriptionHtml += `<p style="background:rgba(245,158,11,0.2);padding:10px;border-radius:6px;margin:8px 0;border-left:3px solid #f59e0b;color:#fde68a;">
+              <strong style="color:#fbbf24;">Analisis IA:</strong><br/>${this.escapeXml(photo.aiDescription)}
+            </p>`;
           }
 
           kml += `      <Placemark>
         <name>${this.escapeXml(photoName)}</name>
-        <description><![CDATA[${imageHtml}${this.escapeXml(description)}]]></description>
+        <description><![CDATA[${descriptionHtml}]]></description>
         <styleUrl>#photoStyle</styleUrl>
         <Point>
           <coordinates>${photo.longitude},${photo.latitude},0</coordinates>

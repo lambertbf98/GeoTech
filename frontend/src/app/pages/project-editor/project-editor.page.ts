@@ -1794,80 +1794,258 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
   // ========== MAP SCREENSHOT ==========
 
   /**
-   * Genera una imagen del mapa capturando directamente el mapa de Leaflet con html2canvas
+   * Genera una imagen del mapa - intenta html2canvas, sino usa método manual
    */
   async captureMapScreenshot(): Promise<string> {
     if (!this.map || !this.project) return '';
 
+    // Primero intentar con html2canvas
     try {
-      // Guardar el estado actual del mapa
-      const currentCenter = this.map.getCenter();
-      const currentZoom = this.map.getZoom();
+      const result = await this.captureMapWithHtml2Canvas();
+      if (result && result.length > 100) {
+        return result;
+      }
+    } catch (e) {
+      console.log('html2canvas falló, usando método manual');
+    }
 
-      // Ocultar controles y UI temporalmente
-      const mapContainer = document.getElementById('editorMap');
-      if (!mapContainer) return '';
+    // Fallback: método manual con canvas
+    return this.captureMapManual();
+  }
 
-      // Ocultar elementos de UI que no queremos en la captura
-      const elementsToHide = document.querySelectorAll('.stats-panel, .tools-panel, .locate-btn, .export-pdd-btn, .export-kml-btn, .drawing-controls, .leaflet-control-zoom, .leaflet-control-attribution');
-      elementsToHide.forEach(el => (el as HTMLElement).style.display = 'none');
+  /**
+   * Captura con html2canvas (para desktop/PWA)
+   */
+  private async captureMapWithHtml2Canvas(): Promise<string> {
+    if (!this.map || !this.project) return '';
 
-      // Ajustar el mapa a los bounds del contenido
+    const currentCenter = this.map.getCenter();
+    const currentZoom = this.map.getZoom();
+
+    const mapContainer = document.getElementById('editorMap');
+    if (!mapContainer) return '';
+
+    // Ocultar elementos de UI
+    const elementsToHide = document.querySelectorAll('.stats-panel, .tools-panel, .locate-btn, .export-pdd-btn, .export-kml-btn, .drawing-controls, .leaflet-control-zoom, .leaflet-control-attribution');
+    elementsToHide.forEach(el => (el as HTMLElement).style.display = 'none');
+
+    // Ajustar el mapa a los bounds del contenido
+    const bounds = this.getContentBounds();
+    if (bounds) {
+      const leafletBounds = L.latLngBounds(
+        [bounds.south, bounds.west],
+        [bounds.north, bounds.east]
+      );
+      this.map.fitBounds(leafletBounds, { padding: [30, 30], animate: false });
+    }
+
+    // Esperar a que los tiles se carguen
+    await this.waitForTilesToLoad();
+
+    // Capturar con html2canvas
+    const canvas = await html2canvas(mapContainer, {
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#1a1a2e',
+      scale: 1,
+      logging: false,
+      imageTimeout: 30000
+    });
+
+    // Restaurar elementos de UI
+    elementsToHide.forEach(el => (el as HTMLElement).style.display = '');
+
+    // Restaurar vista original del mapa
+    this.map.setView(currentCenter, currentZoom, { animate: false });
+
+    // Verificar que el canvas tenga contenido válido
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      return '';
+    }
+
+    // Añadir título al canvas
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = canvas.width;
+    finalCanvas.height = canvas.height;
+    const ctx = finalCanvas.getContext('2d');
+    if (!ctx) return canvas.toDataURL('image/jpeg', 0.9);
+
+    ctx.drawImage(canvas, 0, 0);
+
+    // Título con fondo semi-transparente
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, canvas.height - 35, canvas.width, 35);
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+      `${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`,
+      canvas.width / 2,
+      canvas.height - 15
+    );
+
+    return finalCanvas.toDataURL('image/jpeg', 0.9);
+  }
+
+  /**
+   * Captura manual dibujando elementos en canvas (para móvil)
+   */
+  private async captureMapManual(): Promise<string> {
+    if (!this.map || !this.project) return '';
+
+    try {
+      const width = 800;
+      const height = 500;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return '';
+
       const bounds = this.getContentBounds();
-      if (bounds) {
-        const leafletBounds = L.latLngBounds(
-          [bounds.south, bounds.west],
-          [bounds.north, bounds.east]
-        );
-        this.map.fitBounds(leafletBounds, { padding: [30, 30], animate: false });
+      if (!bounds) return '';
+
+      // Fondo oscuro (simula mapa satelital oscuro)
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, width, height);
+
+      // Añadir textura de terreno
+      this.drawTerrainTexture(ctx, width, height);
+
+      // Función para convertir coordenadas
+      const latLngToPixel = (lat: number, lng: number): { x: number; y: number } => {
+        const x = ((lng - bounds.west) / (bounds.east - bounds.west)) * width;
+        const y = ((bounds.north - lat) / (bounds.north - bounds.south)) * height;
+        return { x, y };
+      };
+
+      // Dibujar zonas
+      if (this.project.zones) {
+        this.project.zones.forEach(zone => {
+          if (zone.coordinates.length < 3) return;
+          ctx.beginPath();
+          const first = latLngToPixel(zone.coordinates[0].lat, zone.coordinates[0].lng);
+          ctx.moveTo(first.x, first.y);
+          zone.coordinates.forEach((coord, i) => {
+            if (i > 0) {
+              const p = latLngToPixel(coord.lat, coord.lng);
+              ctx.lineTo(p.x, p.y);
+            }
+          });
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
+          ctx.fill();
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        });
       }
 
-      // Esperar a que los tiles se carguen
-      await this.waitForTilesToLoad();
+      // Dibujar viales
+      if (this.project.paths) {
+        this.project.paths.forEach(path => {
+          if (path.coordinates.length < 2) return;
+          ctx.beginPath();
+          const first = latLngToPixel(path.coordinates[0].lat, path.coordinates[0].lng);
+          ctx.moveTo(first.x, first.y);
+          path.coordinates.forEach((coord, i) => {
+            if (i > 0) {
+              const p = latLngToPixel(coord.lat, coord.lng);
+              ctx.lineTo(p.x, p.y);
+            }
+          });
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 5;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+        });
+      }
 
-      // Capturar con html2canvas
-      const canvas = await html2canvas(mapContainer, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#1a1a2e',
-        scale: 1,
-        logging: false,
-        imageTimeout: 30000
-      });
+      // Dibujar marcadores
+      if (this.project.markers) {
+        this.project.markers.forEach(marker => {
+          const p = latLngToPixel(marker.coordinate.lat, marker.coordinate.lng);
+          const hasPhotos = marker.photoIds && marker.photoIds.length > 0;
+          const color = hasPhotos ? '#10b981' : '#f59e0b';
+          const order = marker.order || '?';
 
-      // Restaurar elementos de UI
-      elementsToHide.forEach(el => (el as HTMLElement).style.display = '');
+          // Sombra
+          ctx.shadowColor = 'rgba(0,0,0,0.5)';
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetY = 3;
 
-      // Restaurar vista original del mapa
-      this.map.setView(currentCenter, currentZoom, { animate: false });
+          // Pin
+          ctx.beginPath();
+          ctx.fillStyle = color;
+          ctx.arc(p.x, p.y - 18, 16, 0, Math.PI * 2);
+          ctx.fill();
 
-      // Añadir título al canvas
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = canvas.width;
-      finalCanvas.height = canvas.height;
-      const ctx = finalCanvas.getContext('2d');
-      if (!ctx) return canvas.toDataURL('image/jpeg', 0.9);
+          // Punta
+          ctx.beginPath();
+          ctx.moveTo(p.x - 10, p.y - 8);
+          ctx.lineTo(p.x, p.y + 2);
+          ctx.lineTo(p.x + 10, p.y - 8);
+          ctx.fill();
 
-      // Dibujar la captura del mapa
-      ctx.drawImage(canvas, 0, 0);
+          // Quitar sombra
+          ctx.shadowColor = 'transparent';
 
-      // Título con fondo semi-transparente
+          // Círculo blanco
+          ctx.beginPath();
+          ctx.fillStyle = 'white';
+          ctx.arc(p.x, p.y - 18, 11, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Número
+          ctx.fillStyle = color;
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(String(order), p.x, p.y - 17);
+        });
+      }
+
+      // Título
+      ctx.shadowColor = 'transparent';
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, canvas.height - 35, canvas.width, 35);
+      ctx.fillRect(0, height - 35, width, 35);
       ctx.fillStyle = 'white';
       ctx.font = 'bold 14px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(
-        `${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`,
-        canvas.width / 2,
-        canvas.height - 15
-      );
+      ctx.fillText(`${this.project.name} - ${this.project.markers?.length || 0} puntos, ${this.project.zones?.length || 0} zonas, ${this.project.paths?.length || 0} viales`, width / 2, height - 15);
 
-      return finalCanvas.toDataURL('image/jpeg', 0.9);
+      return canvas.toDataURL('image/jpeg', 0.9);
     } catch (error) {
-      console.error('Error capturando mapa:', error);
+      console.error('Error en captura manual:', error);
       return '';
     }
+  }
+
+  /**
+   * Dibuja textura de terreno para el fondo del mapa
+   */
+  private drawTerrainTexture(ctx: CanvasRenderingContext2D, width: number, height: number) {
+    // Gradiente base
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, '#2d4a3e');
+    gradient.addColorStop(0.5, '#3a5c4d');
+    gradient.addColorStop(1, '#2d4a3e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Añadir manchas de vegetación
+    ctx.globalAlpha = 0.3;
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const size = Math.random() * 60 + 20;
+      ctx.beginPath();
+      ctx.fillStyle = Math.random() > 0.5 ? '#1e3a2f' : '#4a6b5a';
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
 
   /**
@@ -1880,7 +2058,6 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         return;
       }
 
-      // Verificar si ya están cargados
       const checkLoaded = () => {
         const container = this.map?.getContainer();
         if (!container) {
@@ -1896,10 +2073,7 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
         }
       };
 
-      // Dar tiempo inicial para que inicie la carga
       setTimeout(checkLoaded, 500);
-
-      // Timeout máximo de 5 segundos
       setTimeout(() => resolve(), 5000);
     });
   }
@@ -2274,7 +2448,8 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
           id: p.id,
           url: p.imageUrl || p.localPath || '',
           base64: p.imageUrl || '', // Las fotos de cámara rápida tienen base64 en imageUrl
-          description: p.notes || p.aiDescription,
+          description: p.notes || '',
+          aiDescription: p.aiDescription || '',
           latitude: p.latitude,
           longitude: p.longitude,
           timestamp: p.timestamp
