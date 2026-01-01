@@ -83,17 +83,17 @@
       class="tool-btn"
       color="light"
       (click)="importPhotosFromGallery()"
-      title="Agregar fotos">
+      title="Fototeca">
       <ion-icon slot="icon-only" name="images-outline"></ion-icon>
     </ion-button>
+    <ion-button
+      class="tool-btn"
+      color="light"
+      (click)="takeQuickPhoto()"
+      title="Tomar foto">
+      <ion-icon slot="icon-only" name="camera-outline"></ion-icon>
+    </ion-button>
   </div>
-
-  <!-- Quick Camera Button - FAB for taking photos without creating marker first -->
-  <ion-fab class="quick-camera-fab" vertical="bottom" horizontal="center" *ngIf="drawMode === 'none' && !showReportPreview">
-    <ion-fab-button color="primary" (click)="takeQuickPhoto()">
-      <ion-icon name="camera"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
 
   <!-- Locate Me Button -->
   <ion-button class="locate-btn" color="light" (click)="locateMe()">

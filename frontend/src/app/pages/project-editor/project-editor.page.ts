@@ -1745,8 +1745,6 @@ ${path.description ? '📝 DESCRIPCIÓN:\n' + path.description : ''}
       if (this.map) {
         this.map.setView([latitude, longitude], 18);
       }
-
-      this.showToast('Foto añadida en tu ubicacion', 'success');
     } catch (error: any) {
       console.error('Error con foto rapida:', error);
     } finally {
